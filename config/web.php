@@ -50,6 +50,12 @@ $config = [
             'enablePrettyUrl' => true,
             'showScriptName' => false,
             'rules' => [
+
+                // ['class' => 'yii\rest\UrlRule', 'controller' => 'api/product'],
+                // '/api/promotion/<id:\d+>/products' => 'api/promotions/products',
+                '/api/products' => 'api/product/index',
+                // '/admin/order/<id:\d+>' => 'admin/orders/content',
+
             ],
         ],
 
