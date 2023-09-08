@@ -7,7 +7,7 @@ use yii\web\Controller;
 use yii\filters\VerbFilter;
 use Yii;
 use app\models\LoginForm;
-use app\common\ACLConst;
+use app\controllers\ACLConst;
 
 class BaseController extends Controller
 {

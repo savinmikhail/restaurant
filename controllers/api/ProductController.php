@@ -19,10 +19,7 @@ class ProductController extends OrderableController
      */
     public function actionIndex()
     {
-
-        $Products = Products::find();
-
-        $Products = $Products->addOrderBy(['sort' => SORT_ASC])->all();
+        $Products = Products::find()->all();
 
         return $this->asJson([
             'products' => $Products,
