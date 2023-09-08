@@ -1,6 +1,6 @@
 <?php
 
-namespace app\models;
+namespace app\models\tables;
 
 use app\models\Base;
 use Yii;
@@ -91,10 +91,6 @@ completed - доставле
             'payment_method'=>$payment_method, 
             'order_sum'=>$total, 
             'status'=>Order::STATUS_NEW,
-            'bonus_add' =>$bonus_add,
-            'bonus_remove'=>$bonus_remove,
-            'return_bottles'=>$return_bottles,
-            'pledge_bottles'=>$pledge_price / (\app\controllers\api\BasketController::pledgePrice),
             'updated'=>date('Y-m-d H:i:s'),
             'period_start'=>date('Y-m-d H:i:s', @$period['start']), 
             'period_end'=>date('Y-m-d H:i:s', @$period['end']), 
@@ -104,7 +100,7 @@ completed - доставле
         ];
         $this->load($orderVars, '');
         $orderBasket = new Basket();
-        $orderBasket->fuser_id = \app\models\Fuser::getUserId();
+        // $orderBasket->fuser_id = \app\models\Fuser::getUserId();
         $orderBasket->is_express = $is_express;
         $this->order_sum = $this->order_sum - $this->bonus_remove + $pledge_price;
         $this->save();
@@ -160,14 +156,13 @@ completed - доставле
 
         $period = json_decode($orderVars['period'], 1);
         $period_comment = json_decode($orderVars['period_comment'], 1);
-        $this->order_sum = $basket_total;
+        // $this->order_sum = $basket_total;
         $this->period_start = date('Y-m-d H:i:s', @$period['start']);
         $this->period_end = date('Y-m-d H:i:s', @$period['end']);
         $this->period_id = ((isset($period['period_id']))?$period['period_id']:0);
         $this->period_comment = (isset($period_comment['correction_id']))?$period_comment['correction_id']:'';
         $this->period_comment_text = (isset($period_comment['correction_name']))?$period_comment['correction_name']:'';
         $this->status = Order::STATUS_NEW;
-        $this->pledge_bottles = ((isset($orderVars['pledge_price']))?floatval($orderVars['pledge_price'])/(\app\controllers\api\BasketController::pledgePrice):0);
         $this->order_sum = $this->order_sum - $this->bonus_remove + ((isset($orderVars['pledge_price']))?floatval($orderVars['pledge_price']):0);
         
         if ($success = $this->save()) {

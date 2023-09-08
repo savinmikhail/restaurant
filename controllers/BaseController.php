@@ -2,11 +2,7 @@
 
 namespace app\controllers;
 
-use yii\filters\AccessControl;
 use yii\web\Controller;
-use yii\filters\VerbFilter;
-use Yii;
-use app\models\LoginForm;
 use app\controllers\ACLConst;
 
 class BaseController extends Controller

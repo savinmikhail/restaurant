@@ -3,7 +3,7 @@
 namespace app\controllers\api;
 
 use app\controllers\api\OrderableController;
-use app\models\Products;
+use app\models\tables\Products;
 
 class ProductController extends OrderableController
 {

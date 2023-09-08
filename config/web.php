@@ -50,11 +50,28 @@ $config = [
             'enablePrettyUrl' => true,
             'showScriptName' => false,
             'rules' => [
+                ['class' => 'yii\rest\UrlRule', 'controller' => 'admin/category'],
+                [
+                    'class' => 'yii\rest\UrlRule', 'controller' => 'admin/promotion',
+                    'extraPatterns' => [
+                        'GET,POST edit/<id>' => 'edit',
+                    ]
+                ],
+                ['class' => 'yii\rest\UrlRule', 'controller' => 'admin/product'],
+                ['class' => 'yii\rest\UrlRule', 'controller' => 'admin/pages'],
+                ['class' => 'yii\rest\UrlRule', 'controller' => 'admin/tariffs'],
+                ['class' => 'yii\rest\UrlRule', 'controller' => 'admin/users'],
+                [
+                    'class' => 'yii\rest\UrlRule', 'controller' => 'admin/orders',
+                    'extraPatterns' => [
+                        'GET,POST' => 'index',
+                    ]
+                ],
+                '/api/promotion/<id:\d+>/products' => 'api/promotions/products',
+                '/admin/order/<id:\d+>' => 'admin/orders/content',
 
-                // ['class' => 'yii\rest\UrlRule', 'controller' => 'api/product'],
-                // '/api/promotion/<id:\d+>/products' => 'api/promotions/products',
-                '/api/products' => 'api/product/index',
-                // '/admin/order/<id:\d+>' => 'admin/orders/content',
+                ['class' => 'yii\rest\UrlRule', 'controller' => 'api/product'],
+                // '/api/products' => 'api/product/index',
 
             ],
         ],
