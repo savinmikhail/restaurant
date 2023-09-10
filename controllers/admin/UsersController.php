@@ -3,7 +3,7 @@
 namespace app\controllers\admin;
 
 use app\controllers\AdminController;
-use app\models\tables\User;
+use app\models\User;
 use app\models\UserUpdateForm;
 use Yii;
 use yii\helpers\Json;

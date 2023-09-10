@@ -3,7 +3,7 @@
 namespace app\controllers;
 
 use Yii;
-use app\models\LoginForm;
+use app\models\forms\LoginForm;
 
 class AdminController extends BaseController
 {
@@ -31,31 +31,31 @@ class AdminController extends BaseController
      * @return string
      */
     
-    // public function actionLogin()
-    // {
-    //     $model = new LoginForm();
-    //     $teamplate = '/admin/login';
+    public function actionLogin()
+    {
+        $model = new LoginForm();
+        $teamplate = '/admin/login';
 
-    //     if (Yii::$app && isset(Yii::$app->user) && Yii::$app->user && Yii::$app->user->identity && Yii::$app->user->identity->getId()) {
-    //         if (parent::isAdmin()) {
-    //             $teamplate = 'welcome';
-    //         }
-    //     } else {
-    //         $post = Yii::$app->request->post();
+        if (Yii::$app && isset(Yii::$app->user) && Yii::$app->user && Yii::$app->user->identity && Yii::$app->user->identity->getId()) {
+            if (parent::isAdmin()) {
+                $teamplate = 'welcome';
+            }
+        } else {
+            $post = Yii::$app->request->post();
 
-    //         if ($post && isset($post['LoginForm']) && isset($post['LoginForm']['username']) && $post['LoginForm']['username']) {
-    //             $lu = \app\models\tables\User::find()->andWhere([
-    //                 'user_login' => $post['LoginForm']['username'],
-    //             ])->select('user_role')->asArray()->one();
+            if ($post && isset($post['LoginForm']) && isset($post['LoginForm']['username']) && $post['LoginForm']['username']) {
+                $lu = \app\models\User::find()->andWhere([
+                    'user_login' => $post['LoginForm']['username'],
+                ])->select('user_role')->asArray()->one();
 
-    //             if ($lu && $lu['user_role'] == 'ADMIN') {
-    //                 if ($model->load($post) && $model->login()) {
-    //                     $teamplate = 'welcome';
-    //                 }
-    //             }
-    //         }
-    //     }
+                if ($lu && $lu['user_role'] == 'ADMIN') {
+                    if ($model->load($post) && $model->login()) {
+                        $teamplate = 'welcome';
+                    }
+                }
+            }
+        }
 
-    //     return $this->render($teamplate, ['model' => $model]);
-    // }
+        return $this->render($teamplate, ['model' => $model]);
+    }
 }

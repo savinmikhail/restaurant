@@ -2,12 +2,12 @@
 
 namespace app\controllers\admin;
 
-use app\models\CategoryForm;
+use app\models\forms\CategoryForm;
 use Yii;
-use app\common\controllers\AdminController;
+use app\controllers\AdminController;
 use yii\web\NotFoundHttpException;
 use app\models\tables\Categories;
-use app\models\UploadForm;
+use app\models\forms\UploadForm;
 
 class CategoryController extends AdminController
 {

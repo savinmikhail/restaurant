@@ -14,9 +14,9 @@ class Products extends Base
     {
         return [
             [['name', 'sort', 'category_id', 'base_price'], 'required'],
-            [['base_price','base_price_yurga', 'express_delivery_price'], 'double'],
-            [['sort', 'active', 'category_id', 'quantity', 'cashback_percent', 'pack_count', 'bonus_price', 'is_water','need_water','is_popular', 'is_pledge','is_cooler'], 'integer'],
-            [['visibility', 'active', 'delivery_separately', 'is_bonus_item', 'express_delivery_enabled', 'allow_cashback'], 'boolean'],
+            [['base_price', ], 'double'],
+            [['sort', 'active', 'category_id'], 'integer'],
+            [[ 'active',  ], 'boolean'],
             [['description', 'name', 'external_id'], 'string'],
             [['image'], 'string', 'skipOnEmpty' => true],
         ];

@@ -3,13 +3,13 @@
 namespace app\controllers\admin;
 
 use app\controllers\AdminController;
-use app\models\ProductForm;
+use app\models\forms\ProductForm;
 use app\models\tables\Categories;
 use app\models\tables\Products;
 use app\models\tables\ProductsImages;
 use app\models\tables\ProductsProperties;
 use app\models\tables\ProductsPropertiesValues;
-use app\models\UploadForm;
+use app\models\forms\UploadForm;
 use Yii;
 use yii\data\Pagination;
 use yii\web\NotFoundHttpException;
@@ -48,8 +48,8 @@ class ProductController extends AdminController
     {
         $upload = new UploadForm();
         $ProductForm = new ProductForm();
-        $productProperties = new ProductsProperties();
-        $productPropertiesValues = new ProductsPropertiesValues();
+        // $productProperties = new ProductsProperties();
+        // $productPropertiesValues = new ProductsPropertiesValues();
         $productImages = new ProductsImages();
         if ($this->request->isPost) {
             $ProductForm->load($this->request->post(), 'ProductForm');
@@ -62,7 +62,7 @@ class ProductController extends AdminController
                     $model = new Products();
                 }
                 $formAttributes = $ProductForm->getAttributes();
-                $arProductProperties = $formAttributes['properties'];
+                // $arProductProperties = $formAttributes['properties'];
 
                 unset($formAttributes['properties'],$formAttributes['image'], $formAttributes['banner'],$formAttributes['detail_image']);
                 $model->attributes = $formAttributes;
@@ -70,7 +70,7 @@ class ProductController extends AdminController
                 $upload->image = \yii\web\UploadedFile::getInstanceByName('ProductForm[image]');
                 
                 if ($result = $model->save()) {
-                    $this->updateProductProperties($model, $arProductProperties);
+                    // $this->updateProductProperties($model, $arProductProperties);
                     if ($upload->validate()) {
                         $model->image = '/upload/' . $upload->upload('product_'.$model->id);
                         $model->save();
@@ -98,29 +98,29 @@ class ProductController extends AdminController
             $cats[$cat['id']] = $cat;
         }
 
-        foreach ($items as $id => $item) {
-            if ($id == 0) {
-                continue;
-            }
-            if ($cats[$id]['parent_id'] > 0) {
-                $item = $cats[$cats[$id]['parent_id']]['name'].' / '.$item;
-                $items[$id] = $item;
-            }
-        }
+        // foreach ($items as $id => $item) {
+        //     if ($id == 0) {
+        //         continue;
+        //     }
+        //     if ($cats[$id]['parent_id'] > 0) {
+        //         $item = $cats[$cats[$id]['parent_id']]['name'].' / '.$item;
+        //         $items[$id] = $item;
+        //     }
+        // }
         
-        $vals = $productPropertiesValues->find()->where(['product_id' => $Product['id']])->asArray()->all();
-        $productPropsVals = [];
-        foreach ($vals as $val) {
-            $productPropsVals[$val['property_id']] = $val;
-        }
+        // $vals = $productPropertiesValues->find()->where(['product_id' => $Product['id']])->asArray()->all();
+        // $productPropsVals = [];
+        // foreach ($vals as $val) {
+        //     $productPropsVals[$val['property_id']] = $val;
+        // }
 
         return $this->render('/admin/products/edit', [
             'model' => $ProductForm,
             'id' => $Product['id'],
             'categories' => $items,
             'images' => ($Product['id'] > 0) ? $productImages->find()->where(['product_id' => $Product['id']])->all() : [],
-            'properties' => $productProperties->find()->all(),
-            'productPropsValues' => $productPropsVals,
+            // 'properties' => $productProperties->find()->all(),
+            // 'productPropsValues' => $productPropsVals,
             'success' => ($this->request->isPost ? $result : (($this->getReqParam('success')) ? true : false)),
         ]);
     }
