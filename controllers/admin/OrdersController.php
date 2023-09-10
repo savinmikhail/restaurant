@@ -15,17 +15,13 @@ class OrdersController extends AdminController
 
 
         $orders = Order::find()
-            ->joinWith('user');
+            ->joinWith('table');
         if (!empty($request->post('id'))) {
             $orders->andWhere('orders.id=:id', [':id' => $request->post('id')]);
         }
 
         if (!empty($request->post('external_id'))) {
             $orders->andWhere('orders.external_id LIKE :external_id', [':external_id' => '%'.$request->post('external_id').'%']);
-        }
-
-        if (!empty($request->post('phone'))) {
-            $orders->andWhere('user.user_phone LIKE :phone', [':phone' => '%' . $request->post('phone') . '%']);
         }
 
         $countOrders = clone $orders;
@@ -42,7 +38,7 @@ class OrdersController extends AdminController
     public function actionContent()
     {
         $id = intval($this->getReqParam('id'));
-        $order = Order::find()->joinWith('user')->joinWith('basket')->joinWith('basket.items')->joinWith('basket.items.product')->where(['orders.id'=>$id])->asArray()->one();
+        $order = Order::find()->joinWith('table')->joinWith('basket')->joinWith('basket.items')->joinWith('basket.items.product')->where(['orders.id'=>$id])->asArray()->one();
         if (!$order) {
             Yii::$app->response->setStatusCode(404);
             return 'The requested page does not exist.';

@@ -34,7 +34,7 @@ class Order extends Base
     public function rules()
     {
         return [
-            [['user_id', 'payment_method', 'order_sum',], 'required'],
+            [['table_id', 'payment_method', 'order_sum',], 'required'],
             [['external_id', 'status'], 'string'],
             [['payed',], 'integer'],
             [['created_at', 'updated_at'], 'datetime', 'format' => 'php:Y-m-d H:i:s'],
@@ -63,9 +63,9 @@ class Order extends Base
 
 
 
-    public function getUser()
+    public function getTable()
     {
-        return $this->hasOne(\app\models\User::class, ['id' => 'user_id']);
+        return $this->hasOne(\app\models\tables\Table::class, ['id' => 'table_id']);
     }
 
 
