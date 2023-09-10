@@ -21,9 +21,28 @@ class Basket extends Base
         return 'baskets';
     }
 
-    
+    public static function tableName()
+    {
+        return 'baskets';
+    }
+
+    protected function prefixName()
+    {
+        return 'basket';
+    }
+
     public function calcTotalSum()
     {
+    }
+
+    public function getItems()
+    {
+        return $this->hasMany(BasketItem::class, ['basket_id' => 'id']);
+    }
+
+    public function getOrder()
+    {
+        return $this->hasOne(Order::class, ['id' => 'order_id']);
     }
 
     public function setBasketExpressStatus($flag = false)
@@ -65,24 +84,6 @@ class Basket extends Base
         $this->save();
     }
 
-
-
-
-
-    public function getItems()
-    {
-        return $this->hasMany(BasketItem::class, ['basket_id' => 'id']);
-    }
-
-    public function getOrder()
-    {
-        return $this->hasOne(Order::class, ['id' => 'order_id']);
-    }
-
-    protected function prefixName()
-    {
-        return 'basket';
-    }
 
     private function checkContains($productId)
     {

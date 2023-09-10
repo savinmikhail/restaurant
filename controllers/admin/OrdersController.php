@@ -2,7 +2,7 @@
 
 namespace app\controllers\admin;
 
-use app\models\Order;
+use app\models\tables\Order;
 use Yii;
 use yii\data\Pagination;
 use \app\controllers\AdminController;
@@ -30,7 +30,7 @@ class OrdersController extends AdminController
 
         $countOrders = clone $orders;
         $pages = new Pagination(['totalCount' => $countOrders->count(), 'pageSize' => 50]);
-        $orders = $orders->offset($pages->offset)->limit($pages->limit)->addOrderBy(['created' => SORT_DESC])->all();
+        $orders = $orders->offset($pages->offset)->limit($pages->limit)->addOrderBy(['created_at' => SORT_DESC])->all();
 
         return $this->render('/admin/orders/list', [
             'orders' => $orders,
@@ -42,7 +42,7 @@ class OrdersController extends AdminController
     public function actionContent()
     {
         $id = intval($this->getReqParam('id'));
-        $order = Order::find()->joinWith('user')->joinWith('address')->joinWith('basket')->joinWith('basket.items')->joinWith('basket.items.product')->where(['orders.id'=>$id])->asArray()->one();
+        $order = Order::find()->joinWith('user')->joinWith('basket')->joinWith('basket.items')->joinWith('basket.items.product')->where(['orders.id'=>$id])->asArray()->one();
         if (!$order) {
             Yii::$app->response->setStatusCode(404);
             return 'The requested page does not exist.';
