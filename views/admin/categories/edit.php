@@ -64,12 +64,12 @@ use yii\helpers\Html;
                         ->label(false)
                         ->checkbox(['value' => 1, 'checked' => ($model->active == 1)])->label('Активность') ?>
 
-                    <?= $form->field($model, 'parent_id', [
+                    <?/*= $form->field($model, 'parent_id', [
                         'options' => ['class' => 'form-group'],
                         'template' => '{beginWrapper}{input}{error}{endWrapper}',
                         'wrapperOptions' => ['class' => 'mb-3']
                     ])
-                        ->dropdownList($parentCategories)->label('Родительская категория') ?>
+                        ->dropdownList($parentCategories)->label('Родительская категория') */?>
 
                     <?= $form->field($model, 'description', [
                         'options' => ['class' => 'form-group'],

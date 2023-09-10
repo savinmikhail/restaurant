@@ -45,17 +45,19 @@ class CategoryController extends AdminController
     public function editObject($category)
     {
         $upload = new UploadForm();
-        $parentCategories = Categories::find()->where(['parent_id' => 0])->asArray()->all();
+        // $parentCategories = Categories::find()->where(['parent_id' => 0])->asArray()->all();
 
-        $items[0] = '--Верхний уровень--';
-        foreach ($parentCategories as $cat) {
-            $items[$cat['id']] = $cat['name'];
-        }
+        // $items[0] = '--Верхний уровень--';
+        // foreach ($parentCategories as $cat) {
+        //     $items[$cat['id']] = $cat['name'];
+        // }
         $categoryForm = new CategoryForm();
 
         if ($this->request->isPost) {
+
             $categoryForm->load($this->request->post(), 'CategoryForm');
             if ($categoryForm->validate()) {
+
                 $result = false;
                 if ($category['id'] > 0) {
                     $model = Categories::find()->where(['id' => $category['id']])->one();
@@ -68,7 +70,9 @@ class CategoryController extends AdminController
                 unset($formAttributes['image']);
                 $model->attributes = $formAttributes;
                 $upload->image = \yii\web\UploadedFile::getInstanceByName('CategoryForm[image]');
+
                 if ($result = $model->save()) {
+
                     if ($upload->validate()) {
                         $imageName = $upload->upload('cat_' . $model->id);
                         $model->image = '/upload/' . $imageName;
@@ -88,7 +92,7 @@ class CategoryController extends AdminController
         return $this->render('/admin/categories/edit', [
             'model' => $categoryForm,
             'id' => $category['id'],
-            'parentCategories' => $items,
+            // 'parentCategories' => $items,
             'success' => ($this->request->isPost ? $result : (($this->getReqParam('success')) ? true : false))
         ]);
     }
@@ -118,7 +122,7 @@ class CategoryController extends AdminController
 
     public function actionIndex()
     {
-        $categories = Categories::find()->joinWith('parent as p')->addOrderBy(['p.sort' => SORT_ASC, 'sort' => SORT_ASC])->all();
+        $categories = Categories::find()->/*joinWith('parent as p')->*/addOrderBy([/*'p.sort' => SORT_ASC,*/ 'sort' => SORT_ASC])->all();
         $view = new yii\web\View();
         $view->title = 'Категории';
         return $this->render('/admin/categories/list', [

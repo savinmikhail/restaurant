@@ -16,7 +16,7 @@ class Categories extends Base
             [['name'], 'required'],
             [['name', 'image', 'description', 'external_id'], 'string'],
             [['image'], 'string', 'skipOnEmpty' => true],
-            [['sort', 'parent_id', 'active','is_cooler','is_water','is_bonus'], 'integer'],
+            [['sort', /*'parent_id', */'active'], 'integer'],
         ];
     }
 
