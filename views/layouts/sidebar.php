@@ -17,13 +17,11 @@
                 <a href="#" class="d-block">
                     <?if (Yii::$app->user->isGuest) {?>
                         <?} else {?>
-                    <?= Yii::$app->user->getIdentity()->__get('user_login'); ?>
+                    <?= Yii::$app->user->getIdentity()->user_login; ?>
                     <?}?>
                 </a>
             </div>
         </div>
-
-
 
         <!-- Sidebar Menu -->
         <nav class="mt-2">
@@ -34,6 +32,7 @@
                     ['label' => 'Категории', 'iconStyle' => 'far', 'url' => ['/admin/categories'], 'visible' => (!Yii::$app->user->isGuest)],
                     ['label' => 'Товары', 'iconStyle' => 'far', 'url' => ['/admin/products'], 'visible' => (!Yii::$app->user->isGuest)],
                     ['label' => 'Заказы', 'iconStyle' => 'far', 'url' => ['/admin/orders'], 'visible' => (!Yii::$app->user->isGuest)],
+                    ['label' => 'Стол', 'iconStyle' => 'far', 'url' => ["/admin/tables"], 'visible' => (!Yii::$app->user->isGuest)],
                     ['label' => 'Выход', 'iconClass' => 'nav-icon fas fa-sign-out-alt', 'url' => ['/admin/logout'], 'visible' => (!Yii::$app->user->isGuest)],
                    
                 ],
