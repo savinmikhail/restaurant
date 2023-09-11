@@ -85,18 +85,13 @@ class Basket extends Base
         if ($obBasketItem) {
             if ($quantity == 0) {
                 $obBasketItem->delete();
-
                 return [0, ''];
             }
-            $arProduct = Products::find()->where(['id' => $obBasketItem->product_id])->asArray()->one();
-            if ($arProduct['quantity'] >= $quantity) {
+            if ($obBasketItem->quantity !== $quantity) {
                 $obBasketItem->quantity = $quantity;
                 $obBasketItem->save();
-
                 return [$obBasketItem->id, ''];
-            } else {
-                return [false, 'Вы не можете заказать больше чем ' . $arProduct['quantity'] . 'шт'];
-            }
+            } 
         }
         $obBasketItem = new BasketItem();
         $obBasketItem->load(['id' => $id, 'quantity' => $quantity, 'basket_id' => $this->id], '');

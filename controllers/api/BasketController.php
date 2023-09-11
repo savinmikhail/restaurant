@@ -34,18 +34,12 @@ class BasketController extends OrderableController
      */
     public function actionIndex()
     {
-        $request = \Yii::$app->request;
-        if (!$request->isPost) {
-            return $this->asJson(['error' => 'empty request']);
-        }
-        $this->getBasket()->setBasketExpressStatus(intval($request->post('is_express')));
         list($result, $total) = $this->getBasketItems();
 
         return $this->asJson([
             'list' => $result,
             'count' => $this->getBasketItemsCount(),
             'total' => $total,
-            'discount' => 0,
             'table_number' => \Yii::$app->session->get('table_number'),
         ]);
     }
@@ -63,8 +57,15 @@ class BasketController extends OrderableController
      */
     public function actionPaymentmethods()
     {
-        // верстка расчитана только на 2 вида. надо править если будет 3й
-        return $this->asJson(['list' => ['cash' => 'Оплата при получении', 'online' => 'Оплатить онлайн']]);
+        return $this->asJson(
+            [
+                'list' =>
+                [
+                    'cash' => 'Оплата при получении',
+                    'online' => 'Оплатить онлайн'
+                ]
+            ]
+        );
     }
 
     /**
@@ -106,8 +107,8 @@ class BasketController extends OrderableController
         list($result, $total) = $this->getBasketItems();
 
         return $this->asJson([
-            'status' => 1,   
-            'error' => 0, 
+            'status' => 1,
+            'error' => 0,
             'message' => '',
             'list' => $result,
             'count' => $this->getBasketItemsCount(),
@@ -151,8 +152,8 @@ class BasketController extends OrderableController
         list($result, $total) = $this->getBasketItems();
 
         return $this->asJson([
-            'status' => 1,   
-            'error' => 0, 
+            'status' => 1,
+            'error' => 0,
             'message' => '',
             'list' => $result,
             'count' => $this->getBasketItemsCount(),
@@ -160,8 +161,6 @@ class BasketController extends OrderableController
             'table_number' => \Yii::$app->session->get('table_number'),
         ]);
     }
-
-
 
     /**
      * @SWG\Post(path="/api/basket/delete",
@@ -195,7 +194,7 @@ class BasketController extends OrderableController
         return $this->asJson(
             [
                 'status' => 1,
-                'error' => 0, 
+                'error' => 0,
                 'message' => '',
                 'list' => $result,
                 'count' => $this->getBasketItemsCount(),
@@ -229,11 +228,20 @@ class BasketController extends OrderableController
      */
     public function actionClear()
     {
-        $request = \Yii::$app->request;
         $this->getBasket()->clear();
-        list($result, $total) = $this->getBasketItems($request->post('address'));
+        list($result, $total) = $this->getBasketItems();
 
-        return $this->asJson(['status' => 1,  'express_cost' => self::expressCost, 'error' => 0, 'message' => '', 'pledge_price' => self::pledgePrice, 'list' => $result, 'count' => $this->getBasketItemsCount(), 'total' => $total, 'discount' => 0, 'fuser_id' => Fuser::getUserId(), 'time_intervals' => $this->getBasket()->getTimeIntervals($request->post('address'), $result['hasCoolers'])]);
+        return $this->asJson(
+            [
+                'status' => 1,
+                'error' => 0,
+                'message' => '',
+                'list' => $result,
+                'count' => $this->getBasketItemsCount(),
+                'total' => $total,
+                'table_number' => \Yii::$app->session->get('table_number'),
+            ]
+        );
     }
 
     private function getBasketItemsCount()
