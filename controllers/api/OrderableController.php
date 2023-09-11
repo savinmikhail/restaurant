@@ -5,6 +5,7 @@ namespace app\controllers\api;
 use app\models\tables\Basket;
 use Yii;
 use app\controllers\ApiController;
+use app\models\tables\BasketItem;
 use app\models\tables\Table;
 
 class OrderableController extends ApiController
@@ -19,13 +20,44 @@ class OrderableController extends ApiController
     protected function getBasketItems()
     {
         $filter = [
-            'table_id' => \Yii::$app->session->get('table_number'),
+            'table_id' => Yii::$app->session->get('table_number'),
             'order_id' => null
         ];
         $result = $this->getBasketItemsByFilter($filter);
         $total = 0;
-
+        if (isset($result['items'])) {
+            $total = self::prepareItems($result['items']);
+        }
         return [$result, $total];
+    }
+
+    public static function prepareItems(&$items)
+    {
+        if (!$items) return;
+        $total = 0;
+
+        foreach ($items as &$item) {
+            $obBasketItem = BasketItem::find()->where(['id' => $item['id']])->one();
+            if ($item['quantity'] === 0.5) {
+                $item['price'] = $item['product']['half_price'];
+            } else {
+                $item['price'] = $item['product']['base_price'];
+            }
+            $obBasketItem->price = $item['price'];
+            $obBasketItem->save();
+        }
+        unset($item);
+
+        $total = self::calcTotal($items);
+        return $total;
+    }
+    public static function calcTotal($items)
+    {
+        $total = 0;
+        foreach ($items as $item) {
+            $total = $total + $item['price'] * $item['quantity'];
+        }
+        return $total;
     }
 
     private function getBasketItemsByFilter($arFilter)
