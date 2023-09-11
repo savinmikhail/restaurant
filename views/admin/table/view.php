@@ -14,7 +14,7 @@ $this->title = 'Стол';
                         <div class="search-2">
                             <label for="table_number">Номер стола</label>
                             <i class="bx bxs-map" id="table_number"></i>
-                            <input type="text" id="table_number" value="<?= isset($_COOKIE['table_number']) ? $_COOKIE['table_number'] : '' ?>" name="table_number" class="form-control" placeholder="Введите номер стола">
+                            <input type="text" id="table_number" value="<?= isset($_SESSION['table_number']) ? $_SESSION['table_number'] : '' ?>" name="table_number" class="form-control" placeholder="Введите номер стола">
                         </div>
                     </div>
                 </div>

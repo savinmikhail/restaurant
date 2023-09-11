@@ -2,7 +2,7 @@
 
 namespace app\controllers\api;
 
-use app\models\Basket;
+use app\models\tables\Basket;
 use app\controllers\api\OrderableController;
 
 class BasketController extends OrderableController
@@ -97,13 +97,14 @@ class BasketController extends OrderableController
         } catch (\Exception $e) {
             return $this->asJson(['status' => 0, 'error' => $e->getMessage(), 'code' => $e->getCode()]);
         }
-        list($result, $total) = $this->getBasketItems($request->post('address'));
+        list($result, $total) = $this->getBasketItems();
 
         return $this->asJson([
-            'status' => 1,  'express_cost' => self::expressCost, 'error' => 0, 'message' => '',
-            'pledge_price' => self::pledgePrice,
+            'status' => 1,   'error' => 0, 'message' => '',
             'list' => $result,
-            'count' => $this->getBasketItemsCount(), 'total' => $total, 'discount' => 0, 'fuser_id' => Fuser::getUserId(), 'time_intervals' => $this->getBasket()->getTimeIntervals($request->post('address'), $result['hasCoolers']),
+            'count' => $this->getBasketItemsCount(),
+            'total' => $total,
+            'table_id' => \Yii::$app->session->get('table_number'),
         ]);
     }
 
@@ -215,6 +216,17 @@ class BasketController extends OrderableController
 
     private function getBasketItemsCount()
     {
-        return Basket::find()->joinWith('items')->joinWith('items.product')->where(['fuser_id' => Fuser::getUserId(), 'order_id' => null])->cache(false)->asArray()->count();
+        return Basket::find()
+            ->joinWith('items')
+            ->joinWith('items.product')
+            ->where(
+                [
+                    'table_id' => \Yii::$app->session->get('table_number'),
+                    'order_id' => null
+                ]
+            )
+            ->cache(false)
+            ->asArray()
+            ->count();
     }
 }

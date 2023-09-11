@@ -10,8 +10,8 @@ class BasketItem extends ActiveRecord
     {
         return [
             [['basket_id', 'product_id'], 'required'],
-            [['basket_id', 'product_id', 'quantity', 'tariff_id', 'promotion_id'], 'integer'],
-            [['price', 'bonus'], 'double'],
+            [['basket_id', 'product_id', 'quantity'], 'integer'],
+            [['price'], 'double'],
         ];
     }
 

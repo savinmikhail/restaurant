@@ -13,9 +13,8 @@ class OrdersController extends AdminController
     {
         $request = Yii::$app->request;
 
+        $orders = Order::find()->joinWith('table');
 
-        $orders = Order::find()
-            ->joinWith('table');
         if (!empty($request->post('id'))) {
             $orders->andWhere('orders.id=:id', [':id' => $request->post('id')]);
         }

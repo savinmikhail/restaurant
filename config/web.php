@@ -45,6 +45,11 @@ $config = [
             ],
         ],
         'db' => $db,
+        
+        'session' => [
+            'class' => 'yii\web\Session',
+            // Other session configuration options here
+        ],
 
         'urlManager' => [
             'enablePrettyUrl' => true,
@@ -53,6 +58,7 @@ $config = [
                 ['class' => 'yii\rest\UrlRule', 'controller' => 'admin/category'],
 
                 ['class' => 'yii\rest\UrlRule', 'controller' => 'admin/product'],
+                ['class' => 'yii\rest\UrlRule', 'controller' => 'api/product'],
                 [
                     'class' => 'yii\rest\UrlRule', 'controller' => 'admin/orders',
                     'extraPatterns' => [
