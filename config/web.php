@@ -55,10 +55,13 @@ $config = [
             'enablePrettyUrl' => true,
             'showScriptName' => false,
             'rules' => [
-                ['class' => 'yii\rest\UrlRule', 'controller' => 'admin/category'],
-
-                ['class' => 'yii\rest\UrlRule', 'controller' => 'admin/product'],
                 ['class' => 'yii\rest\UrlRule', 'controller' => 'api/product'],
+                ['class' => 'yii\rest\UrlRule', 'controller' => 'api/basket'],
+                ['class' => 'yii\rest\UrlRule', 'controller' => 'api/order'],
+                ['class' => 'yii\rest\UrlRule', 'controller' => 'api/catalog'],
+
+                ['class' => 'yii\rest\UrlRule', 'controller' => 'admin/category'],
+                ['class' => 'yii\rest\UrlRule', 'controller' => 'admin/product'],
                 [
                     'class' => 'yii\rest\UrlRule', 'controller' => 'admin/orders',
                     'extraPatterns' => [
@@ -66,9 +69,9 @@ $config = [
                     ]
                 ],
                 '/admin/order/<id:\d+>' => 'admin/orders/content',
-
                 '/admin/tables' => 'admin/table/index',
-
+                
+                '/api/order' => 'api/order/index'
             ],
         ],
 

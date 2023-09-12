@@ -125,39 +125,25 @@ class Order extends Base
     {
         $this->load($orderVars, '');
 
+        $table = Table::find()->where(['table_number' => \Yii::$app->session->get('table_number')])->one();
+        $this->table_id = $table->id;
 
-        $this->user_id = Yii::$app->user->identity->getId();
-        $orderBasket = Basket::find()->where(['basket.id' => $orderVars['basket']])->one();
-        $address_id = $this->address_id;
+        $orderBasket = Basket::find()->where(['baskets.id' => $orderVars['basket']])->one();
         $result = Basket::find()
             ->joinWith('items')
             ->joinWith('items.product')
-            ->joinWith(['items.product.tariff as tariff' => function ($query) use ($address_id) {
-                if ($address_id) {
-                    $query->select('tariff.tariff_id, tariff.price, tariff.sort, tariff.one_piece, tariff.product_id, tariff.limit');
-                    $query->andOnCondition(['tariff.year' => date('Y'), 'tariff.month' => date('m'), 'tariff.address_id' => $address_id]);
-                }
-            }])
-            ->where(['basket.id' => $orderVars['basket']])->cache(false)->asArray()->one();
-        $total = 0;
+            ->where(['baskets.id' => $orderVars['basket']])->cache(false)->asArray()->one();
+        $basket_total = 0;
         if (isset($result['items'])) {
+            $basket_total = \app\common\Util::prepareItems($result['items']);
         }
 
-        $period = json_decode($orderVars['period'], 1);
-        $period_comment = json_decode($orderVars['period_comment'], 1);
-        // $this->order_sum = $basket_total;
-        $this->period_start = date('Y-m-d H:i:s', @$period['start']);
-        $this->period_end = date('Y-m-d H:i:s', @$period['end']);
-        $this->period_id = ((isset($period['period_id'])) ? $period['period_id'] : 0);
-        $this->period_comment = (isset($period_comment['correction_id'])) ? $period_comment['correction_id'] : '';
-        $this->period_comment_text = (isset($period_comment['correction_name'])) ? $period_comment['correction_name'] : '';
+        $this->order_sum = $basket_total;
         $this->status = Order::STATUS_NEW;
-        $this->order_sum = $this->order_sum - $this->bonus_remove + ((isset($orderVars['pledge_price'])) ? floatval($orderVars['pledge_price']) : 0);
 
         if ($success = $this->save()) {
             $orderBasket->order_id = $this->id;
             $orderBasket->save();
-            $this->updateBonusBalance();
         }
 
         return $success;

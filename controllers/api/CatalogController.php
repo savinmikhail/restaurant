@@ -3,8 +3,8 @@
 namespace app\controllers\api;
 
 use app\controllers\ApiController;
-use app\models\Categories;
-use app\models\Products;
+use app\models\tables\Categories;
+use app\models\tables\Products;
 
 class CatalogController extends ApiController
 {
@@ -31,7 +31,7 @@ class CatalogController extends ApiController
      *     tags={"Catalog"},
      *     @SWG\Response(
      *         response = 200,
-     *         description = "User collection response",
+     *         description = "categories collection response",
      *         @SWG\Schema(ref = "#/definitions/Categories")
      *     ),
      * )
@@ -41,7 +41,7 @@ class CatalogController extends ApiController
         $categories = Categories::find()->where(['active' => 1])->addOrderBy(['sort' => SORT_ASC])->all();
         if ($categories) {
             foreach ($categories as &$cat) {
-                $cat['image'] = ($cat['image']) ? $cat['image'].'?t='.time() : '';
+                $cat['image'] = ($cat['image']) ? $cat['image'] . '?t=' . time() : '';
             }
         }
 
@@ -70,28 +70,27 @@ class CatalogController extends ApiController
             return $this->asJson(['filter' => []]);
         }
 
-        $result = (new \yii\db\Query())->select('(`facet_index`.`property_value`) as prop_value,(`facet_index`.`is_white`) as prop_value_is_white,(`facet_index`.`hex_value`) as prop_value_hex, products_properties.*,facet_index.*')
-        ->from('products_properties')
-        ->join('JOIN `facet_index` ON ', '(`facet_index`.`category_id`='.$request->post('category').' AND `facet_index`.`property_id`=`products_properties`.`id`)')
-        ->where(['in_filter' => 1])
-        //->andWhere(['facet_index.category_id' => $request->post('category')])
-        ->addGroupBy('facet_index.property_id')
-        ->addGroupBy('facet_index.property_value')
-        ->addOrderBy('`products_properties`.`sort` ASC, `prop_value` ASC')
-        ->all();
+        $result = (new \yii\db\Query())->select('products_properties.*,')
+            ->from('products_properties')
+            ->join('JOIN `facet_index` ON ', '(`facet_index`.`category_id`=' . $request->post('category') . ' AND `facet_index`.`property_id`=`products_properties`.`id`)')
+            ->where(['in_filter' => 1])
+            ->addGroupBy('facet_index.property_id')
+            ->addGroupBy('facet_index.property_value')
+            ->addOrderBy('`products_properties`.`sort` ASC, `prop_value` ASC')
+            ->all();
         $arFilterResult = [];
         foreach ($result as $item) {
             if (!isset($arFilterResult[$item['property_id']])) {
                 $arFilterResult[$item['property_id']] = [
-                   'name' => $item['name'],
-                   'code' => $item['property_id'],
-                   'sort' => $item['sort'],
-                   'values' => [
-                    [
-                        'value' => $item['prop_value'],
-                        'is_white' => $item['prop_value_is_white'],
-                        'hex' => $item['prop_value_hex'],
-                    ],
+                    'name' => $item['name'],
+                    'code' => $item['property_id'],
+                    'sort' => $item['sort'],
+                    'values' => [
+                        [
+                            'value' => $item['prop_value'],
+                            'is_white' => $item['prop_value_is_white'],
+                            'hex' => $item['prop_value_hex'],
+                        ],
                     ],
                 ];
             } else {
@@ -121,23 +120,21 @@ class CatalogController extends ApiController
     public function actionPopular()
     {
         $result = Products::find()
-        ->where(['products.active' => 1, 'products.is_popular' => 1])
-        ->andWhere(['>','products.quantity',0])
-        ->joinWith([
-            'productProperties',
-            'productProperties.property',
-        ])->joinWith([
-            'categories',
-        ])
-        ->addGroupBy('products.id')
-        ->addOrderBy(['sort' => SORT_ASC]);
+            ->where(['products.active' => 1, 'products.is_popular' => 1])
+            ->andWhere(['>', 'products.quantity', 0])
+            ->joinWith([
+                'productProperties',
+                'productProperties.property',
+            ])->joinWith([
+                'categories',
+            ])
+            ->addGroupBy('products.id')
+            ->addOrderBy(['sort' => SORT_ASC]);
         $list = $result->asArray()->all();
         $count = $result->count();
 
         return $this->asJson(['list' => $list, 'count' => $count]);
     }
-
-
 
     /**
      * @SWG\Post(path="/api/catalog/products",
@@ -195,21 +192,21 @@ class CatalogController extends ApiController
         if ($request->isPost) {
             $from = (($request->post('from'))) ? intval($request->post('from')) : 0;
             $limit = (($request->post('limit'))) ? intval($request->post('limit')) : 20;
-            list($count, $list) = $this->getProductsByFilter($request->post(), $from, $limit,$request->post('sort'));
+            list($count, $list) = $this->getProductsByFilter($request->post(), $from, $limit, $request->post('sort'));
         } else {
             $from = (($request->post('from'))) ? intval($request->post('from')) : 0;
             $limit = (($request->post('limit'))) ? intval($request->post('limit')) : 2000;
             $result = [];
             $result = Products::find()
-            ->where(['products.active' => 1])
-            ->joinWith([
-                'productProperties',
-                'productProperties.property',
-            ])->joinWith([
-                'categories',
-            ])
-            ->addGroupBy('products.id')
-            ->addOrderBy(['sort' => SORT_ASC]);
+                ->where(['products.active' => 1])
+                ->joinWith([
+                    'productProperties',
+                    'productProperties.property',
+                ])->joinWith([
+                    'categories',
+                ])
+                ->addGroupBy('products.id')
+                ->addOrderBy(['sort' => SORT_ASC]);
             $list = $result->asArray()->all();
             $count = $result->count();
         }
@@ -242,12 +239,12 @@ class CatalogController extends ApiController
         return $result;
     }
 
-    private function getProductsByFilter($filter, $from = 0, $limit = 20,$sort='sort')
+    private function getProductsByFilter($filter, $from = 0, $limit = 20, $sort = 'sort')
     {
         $result = [];
         $result = Products::find()
             ->where(['products.active' => 1])
-            ->andWhere(['>','products.quantity',"0"])
+            ->andWhere(['>', 'products.quantity', "0"])
             ->joinWith([
                 'productImages',
                 'productProperties',
@@ -257,19 +254,19 @@ class CatalogController extends ApiController
                 'categories',
             ])
             ->addGroupBy('products.id');
-            if (isset($filter['filter'])) {
-                foreach ($filter['filter'] as $prop_id => $prop_values) {
-                    $result->join(' JOIN `products_properties_values` p'.$prop_id.' ON ', 'p'.$prop_id.'.`product_id`=`products`.`id`');
-                }
+        if (isset($filter['filter'])) {
+            foreach ($filter['filter'] as $prop_id => $prop_values) {
+                $result->join(' JOIN `products_properties_values` p' . $prop_id . ' ON ', 'p' . $prop_id . '.`product_id`=`products`.`id`');
             }
-            
-            if ($sort == 'price_asc') {
-                $result->addOrderBy(['products.base_price' => SORT_ASC]);
-            }elseif ($sort == 'price_desc') {
-                $result->addOrderBy(['products.base_price' => SORT_DESC]);
-            } else {
-                $result->addOrderBy(['products.sort' => SORT_ASC]);
-            }
+        }
+
+        if ($sort == 'price_asc') {
+            $result->addOrderBy(['products.base_price' => SORT_ASC]);
+        } elseif ($sort == 'price_desc') {
+            $result->addOrderBy(['products.base_price' => SORT_DESC]);
+        } else {
+            $result->addOrderBy(['products.sort' => SORT_ASC]);
+        }
 
         if (isset($filter['category']) && $filter['category']) {
             $result->andWhere(['products.category_id' => intval($filter['category'])]);
@@ -278,15 +275,15 @@ class CatalogController extends ApiController
         }
         if (isset($filter['filter'])) {
             foreach ($filter['filter'] as $prop_id => $prop_values) {
-                $result->andWhere(['p'.$prop_id.'.property_id' => $prop_id]);
+                $result->andWhere(['p' . $prop_id . '.property_id' => $prop_id]);
                 if (is_array($prop_values)) {
-                    $result->andWhere(['in','p'.$prop_id.'.value', $prop_values]);
+                    $result->andWhere(['in', 'p' . $prop_id . '.value', $prop_values]);
                 } else {
-                    $result->andWhere(['p'.$prop_id.'.value' => $prop_values]);
+                    $result->andWhere(['p' . $prop_id . '.value' => $prop_values]);
                 }
             }
         }
-            /*
+        /*
             $result->andWhere(['products_properties_values.value' => '2А']);
             $result->andWhere(['products_properties_values.property_id' => 1]);
         */

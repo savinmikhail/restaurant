@@ -3,15 +3,38 @@
 namespace app\controllers;
 
 use Yii;
+use yii\helpers\Url;
 use yii\filters\AccessControl;
 use yii\web\Controller;
 use yii\web\Response;
+use yii\web\JsonResponseFormatter;
 use yii\filters\VerbFilter;
 use app\models\LoginForm;
 use app\models\ContactForm;
 
+/**
+ * @SWG\Swagger(
+ *     basePath="/",
+ *     produces={"application/json"},
+ *     consumes={"application/x-www-form-urlencoded"},
+ *     @SWG\Info(version="1.0", title="Simple API"),
+ * )
+ */
+
 class SiteController extends Controller
 {
+    // public function beforeAction($action)
+    // {
+    //     $this->layout = 'mainsite';
+
+    //     //Yii::$app->response->format = Response::FORMAT_JSON;
+    //     Yii::$app->response->formatters[Response::FORMAT_JSON] =  [
+    //         'class' => JsonResponseFormatter::class,
+    //         'prettyPrint' => true
+    //     ];
+    //     return parent::beforeAction($action);
+    // }
+
     /**
      * {@inheritdoc}
      */
@@ -44,6 +67,18 @@ class SiteController extends Controller
     public function actions()
     {
         return [
+            'docs' => [
+                'class' => 'yii2mod\swagger\SwaggerUIRenderer',
+                'restUrl' => Url::to(['site/json-schema']),
+            ],
+            'json-schema' => [
+                'class' => 'yii2mod\swagger\OpenAPIRenderer',
+                // Тhe list of directories that contains the swagger annotations.
+                'scanDir' => [
+                    Yii::getAlias('@app/controllers'),
+                    Yii::getAlias('@app/models'),
+                ],
+            ],
             'error' => [
                 'class' => 'yii\web\ErrorAction',
             ],

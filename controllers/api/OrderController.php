@@ -3,76 +3,53 @@
 namespace app\controllers\api;
 
 use app\controllers\api\OrderableController;
-use app\models\OrderForm;
+use app\models\forms\OrderForm;
 use app\models\tables\Order;
+use app\models\tables\Table;
 use yii\filters\AccessControl;
 
 class OrderController extends OrderableController
 {
-    public function behaviors()
-    {
-        return [
-            'access' => [
-                'class' => AccessControl::class,
-                'only' => ['index',  'list', 'view'],
-                'rules' => [
-                    [
-                        'allow' => true,
-                        'actions' => ['index', 'list', 'view'],
-                        'roles' => ['@'],
-                    ],
-                ],
-                'denyCallback' => function ($rule, $action) {
-                    return $this->asJson(['result' => false, 'errors' => ['user' => ['message' => 'authorization required', 'code' => '401']]]);
-                },
-            ],
-        ];
-    }
+    // public function behaviors()
+    // {
+    //     return [
+    //         'access' => [
+    //             'class' => AccessControl::class,
+    //             'only' => ['index',  'list', 'view'],
+    //             'rules' => [
+    //                 [
+    //                     'allow' => true,
+    //                     'actions' => ['index', 'list', 'view'],
+    //                     'roles' => ['@'],
+    //                 ],
+    //             ],
+    //             'denyCallback' => function ($rule, $action) {
+    //                 return $this->asJson(
+    //                     [
+    //                         'result' => false,
+    //                         'errors' =>
+    //                         [
+    //                             'user' =>
+    //                             [
+    //                                 'message' => 'authorization required',
+    //                                 'code' => '401'
+    //                             ]
+    //                         ]
+    //                     ]
+    //                 );
+    //             },
+    //         ],
+    //     ];
+    // }
 
     /**
      * @SWG\Post(path="/api/order",
      *     tags={"Order"},
      *      @SWG\Parameter(
-     *      name="address_id",
-     *      in="formData",
-     *      type="string",
-     *      description="Ид адреса"
-     *      ),
-     *      @SWG\Parameter(
      *      name="basket",
      *      in="formData",
      *      type="string",
      *      description="Ид корзины"
-     *      ),
-     *      @SWG\Parameter(
-     *      name="return_bottles",
-     *      in="formData",
-     *      type="string",
-     *      description="Количество бутылей к возврату"
-     *      ),
-     *      @SWG\Parameter(
-     *      name="bonus_remove",
-     *      in="formData",
-     *      type="string",
-     *      description="количество бонусов на списание"
-     *      ),
-     *      @SWG\Parameter(
-     *      name="bonus_add",
-     *      in="formData",
-     *      type="string",
-     *      description="количество бонусов на начисление"
-     *      ),
-     *      @SWG\Parameter(
-     *      name="period",
-     *      in="formData",
-     *      type="string",
-     *      description="выбранный интервал. ассоциативный массив как я его шлю"
-     *      ),
-     *      @SWG\Parameter(
-     *      name="period_comment",
-     *      in="formData",
-     *      type="string",
-     *      description="комментарий к интервалу"
      *      ),
      *      @SWG\Parameter(
      *      name="payment_method",
@@ -89,28 +66,30 @@ class OrderController extends OrderableController
      */
     public function actionIndex()
     {
-
         $request = \Yii::$app->request;
         if (!$request->isPost) {
             return $this->asJson(['error' => 'empty request']);
         }
+
         $orderForm = new OrderForm();
+
         $orderForm->load($request->post(), '');
+
         if (!$orderForm->validate()) {
             return $this->asJson(['success' => false, 'errors' => $orderForm->errors]);
         }
         $order = new Order();
         if ($order->make($orderForm->toArray())) {
             if (isset($order->id) && $order->id) {
-                return $this->finalAction($order,$request);
-            } 
+                return $this->finalAction($order, $request);
+            }
         }
-        $result = ['success' => false, 'errors' => $order->errors];
+        $result = [
+            'success' => false,
+            'errors' => $order->errors
+        ];
         return $this->asJson($result);
     }
-
-  
-
 
     /**
      * @SWG\Post(path="/api/order/fastcopy",
@@ -121,12 +100,6 @@ class OrderController extends OrderableController
      *      type="string",
      *      description="Ид заказа"
      *      ),
-     *      @SWG\Parameter(
-     *      name="address",
-     *      in="formData",
-     *      type="string",
-     *      description="Ид адреса"
-     *      ),
      *     description="Копирование заказа (быстрое)",
      *     @SWG\Response(
      *         response = 200,
@@ -135,7 +108,9 @@ class OrderController extends OrderableController
      *     ),
      * )
      */
-    public function actionFastcopy()
+   
+/* 
+   public function actionFastcopy()
     {
         $request = \Yii::$app->request;
         if (!$request->isPost) {
@@ -146,10 +121,10 @@ class OrderController extends OrderableController
             $quantities = $this->prepareQuantitites($request->post('products'));
         }
         $sourceOrder = Order::find()->where(['id' => $request->post('id')])->one();
-        list($result, $total) =  $this->getBasketItemsFromOrder($sourceOrder->id,$request->post('address'),$quantities,$request->post('is_express'));
+        list($result, $total) =  $this->getBasketItemsFromOrder($sourceOrder->id, $request->post('address'), $quantities, $request->post('is_express'));
         if ($request->post('save')) {
             $order = new Order();
-            list ($success,$errors) = $order->makeFast(
+            list($success, $errors) = $order->makeFast(
                 $result,
                 $total,
                 intval($request->post('address')),
@@ -162,82 +137,134 @@ class OrderController extends OrderableController
                 $request->post('period_comment'),
                 $request->post('pledge_price')
             );
-            
+
             if ($success) {
-                return $this->finalAction($order,$request);
-                
+                return $this->finalAction($order, $request);
             } else {
                 return $this->asJson(['success' => false, 'errors' => $errors]);
             }
-    
         }
-        return $this->asJson(['list' => $result, 'express_cost' => \app\controllers\api\BasketController::expressCost, 'pledge_price' => \app\controllers\api\BasketController::pledgePrice, 'count' => count($result['items']), 'total' => $total, 'discount' => 0, 'time_intervals' => $this->getBasket()->getTimeIntervals(intval($request->post('address')),$result['hasCoolers'])]);
-    
+        return $this->asJson(
+            [
+                'list' => $result,
+                'count' => count($result['items']),
+                'total' => $total,
+                'time_intervals' => $this->getBasket()->getTimeIntervals(intval($request->post('address')), $result['hasCoolers'])
+            ]
+        );
     }
-
-    private function finalAction($order,$request)
+*/
+    private function finalAction($order, $request)
     {
-      
-        if ($request->post('payment_method') == 'cash') {
+
+        if ($request->post('payment_method') === 'cash') {
             $obQueue = new \app\models\tables\Queue();
             $obQueue->order_id = $order->id;
             $obQueue->retries = 0;
             $obQueue->save();
-          
         }
 
-        $result = ['success' => true, 'order_id' => $order->id];
-        if ($request->post('payment_method') != 'cash') {
-            list($status,$result['paymentUrl'],$result['bankUrl']) = $this->createPaymentUrl($order->id, $order->order_sum);
+        $result = [
+            'success' => true,
+            'order_id' => $order->id
+        ];
+        if ($request->post('payment_method') !== 'cash') {
+            list($status, $result['paymentUrl'], $result['bankUrl']) = $this->createPaymentUrl($order->id, $order->order_sum);
         }
         return $this->asJson($result);
     }
 
+    private function createPaymentUrl($last_order_id, $amount)
+    {
+        return [
+            1,
+            'https://smth.smth',
+            []
+        ];
+     /*   $returnUrl = "https://mp.kv.tomsk.ru/api/payment/redirect?orderId={$last_order_id}&success=true";
+        $failUrl = "https://mp.kv.tomsk.ru/api/payment/redirect?orderId={$last_order_id}&success=false";
+        $host = 'https://mp.kv.tomsk.ru/api/payment/callback';
+        //$token = 'auaclh27bt0pejpl05pf138f0';
+        $token = 'l08ccs6936bvhai03i5p2fu8fr';   //prod
+        $amount = round($amount * 100, 0);
+        $arrContextOptions = [
+            'ssl' => [
+                'verify_peer' => false,
+                'verify_peer_name' => false,
+            ],
+        ];
+        //$url = 'https://3dsec.sberbank.ru/payment/rest/register.do'
+        $url = 'https://securepayments.sberbank.ru/payment/rest/register.do'  //prod
+        . "?amount={$amount}&orderNumber=M{$last_order_id}"
+        . '&token=' . $token
+            //    .'&dynamicCallbackUrl='.$host
+            . '&pageView=MOBILE'
+            . '&returnUrl=' . $returnUrl
+            . '&failUrl=' . $failUrl;
+        $response = json_decode(file_get_contents($url, false, stream_context_create($arrContextOptions)));
+
+        if (isset($response->formUrl)) {
+            return [
+                1,
+                $response->formUrl,
+                []
+            ];
+        } else {
+            return [
+                0,
+                [
+                    'code' => $response->errorCode,
+                    'message' => $response->errorMessage,
+                ],
+                ['url' => $url]
+            ];
+        }*/
+    }
     private function prepareQuantitites($json)
     {
         $result = [];
-        $q = json_decode($json,1);
+        $q = json_decode($json, 1);
         foreach ($q as $item) {
             $result[$item['id']] = intval($item['quantity']);
         }
         return $result;
     }
 
-    /**
-     * @SWG\Post(path="/api/order/copy",
-     *     tags={"Order"},
-     *      @SWG\Parameter(
-     *      name="id",
-     *      in="formData",
-     *      type="string",
-     *      description="Ид заказа"
-     *      ),
-     *     description="Копирование заказа (содержимого корзины)",
-     *     @SWG\Response(
-     *         response = 200,
-     *         description = "Содержимое корзины",
-     *         @SWG\Schema(ref = "#/definitions/Products")
-     *     ),
-     * )
-     */
-    public function actionCopy()
-    {
-        $request = \Yii::$app->request;
-        if (!$request->isPost) {
-            return $this->asJson(['error' => 'empty request']);
-        }
-        $sourceOrder = Order::find()->where(['id' => $request->post('id')])->one();
-        $sourceOrderBasket = $sourceOrder->getBasket()->one();
-        $this->getBasket()->clear();
+    // /**
+    //  * @SWG\Post(path="/api/order/copy",
+    //  *     tags={"Order"},
+    //  *      @SWG\Parameter(
+    //  *      name="id",
+    //  *      in="formData",
+    //  *      type="string",
+    //  *      description="Ид заказа"
+    //  *      ),
+    //  *     description="Копирование заказа (содержимого корзины)",
+    //  *     @SWG\Response(
+    //  *         response = 200,
+    //  *         description = "Содержимое корзины",
+    //  *         @SWG\Schema(ref = "#/definitions/Products")
+    //  *     ),
+    //  * )
+    //  */
+    // public function actionCopy()
+    // {
+    //     $request = \Yii::$app->request;
+    //     if (!$request->isPost) {
+    //         return $this->asJson(['error' => 'empty request']);
+    //     }
+    //     $sourceOrder = Order::find()->where(['id' => $request->post('id')])->one();
+    //     $sourceOrderBasket = $sourceOrder->getBasket()->one();
+    //     $this->getBasket()->clear();
 
-        foreach ($sourceOrderBasket->getItems()->all() as $obBasketItem) {
-            $this->getBasket()->addItem($obBasketItem->product_id, $obBasketItem->quantity);
-        }
-        $this->getBasket()->setBasketExpressStatus(intval($sourceOrderBasket->is_express));
-        list($result, $total) = $this->getBasketItems($sourceOrder->address_id);
+    //     foreach ($sourceOrderBasket->getItems()->all() as $obBasketItem) {
+    //         $this->getBasket()->addItem($obBasketItem->product_id, $obBasketItem->quantity);
+    //     }
+    //     $this->getBasket()->setBasketExpressStatus(intval($sourceOrderBasket->is_express));
+    //     list($result, $total) = $this->getBasketItems($sourceOrder->address_id);
 
-        return $this->asJson(['result' => true, 'address' => $sourceOrder->address_id, 'basket' => $result, 'total' => $total]);
-    }
+    //     return $this->asJson(['result' => true, 'address' => $sourceOrder->address_id, 'basket' => $result, 'total' => $total]);
+    // }
 
     /**
      * @SWG\Post(path="/api/order/cancel",
@@ -264,13 +291,11 @@ class OrderController extends OrderableController
         }
         $order = Order::find()->where(['id' => $request->post('id')])->one();
         $order->canceled = 1;
-        $order->period_comment = (string) $order->period_comment;
-        $order->updated = date('Y-m-d H:i:s');
+        $order->updated_at = time();
         $order->save();
-        $order->updateBonusBalance('plus');
         if ($order->external_id) {
-            $client = new \app\common\ErpClient();
-            $res = $client->cancelOrder($order);
+            // $client = new \app\common\ErpClient();
+            // $res = $client->cancelOrder($order);
         }
 
         return $this->asJson(['result' => true, 'errors' => $order->errors]);
@@ -279,12 +304,6 @@ class OrderController extends OrderableController
     /**
      * @SWG\POST(path="/api/order/list",
      *     tags={"Order"},
-     *      @SWG\Parameter(
-     *      name="address_id",
-     *      in="formData",
-     *      type="string",
-     *      description="ид адреса доставки"
-     *      ),
      *      @SWG\Parameter(
      *      name="limit",
      *      in="formData",
@@ -310,25 +329,23 @@ class OrderController extends OrderableController
         if (!$request->isPost) {
             return $this->asJson(['error' => 'empty request']);
         }
-        $filter = ['orders.user_id' => $this->getUser()->getId()];
-        if ($request->post('address_id')) {
-            $filter['orders.address_id'] = $request->post('address_id');
-        }
-
+        $table = Table::find()->where(['table_number' => \Yii::$app->session->get('table_number')])->one();
+        $filter = ['orders.table_id' => $table->id];
         if ($request->isPost) {
             $from = (($request->post('from'))) ? intval($request->post('from')) : 0;
             $limit = (($request->post('limit'))) ? intval($request->post('limit')) : 20;
         }
 
-        $orders = Order::find()->where($filter)->joinWith('address')->joinWith('expeditor')->joinWith('basket')->joinWith('basket.items')->joinWith('basket.items.product')
-        ->andWhere(['canceled' => 0])
-        ->andWhere(['in', 'orders.status', [\app\models\tables\Order::STATUS_CREATED, \app\models\tables\Order::STATUS_INPROCESS, \app\models\tables\Order::STATUS_INPATH]])
-        ->addGroupBy('orders.id')
-        ->addOrderBy(['orders.id' => SORT_DESC]);
+        $orders = Order::find()->where($filter)->joinWith('basket')->joinWith('basket.items')->joinWith('basket.items.product')
+            ->andWhere(['canceled' => 0])
+            ->andWhere(['in', 'orders.status', [Order::STATUS_CREATED, Order::STATUS_INPROCESS, Order::STATUS_INPATH]])
+            ->addGroupBy('orders.id')
+            ->addOrderBy(['orders.id' => SORT_DESC]);
+        $ordersList = $orders->asArray()->all();
+
         $countOrders = clone $orders;
         $orders->offset($from);
         $orders->limit($limit);
-        $ordersList = $orders->asArray()->all();
         $count = $countOrders->count();
 
         return $this->asJson(['success' => true, 'list' => $ordersList, 'total' => $count]);
@@ -351,72 +368,74 @@ class OrderController extends OrderableController
         if (!$request->isPost) {
             return $this->asJson(['error' => 'empty request']);
         }
-        if (!$this->getUser()) {
-            return $this->asJson(['success' => true, 'list' => []]);
+        $table = $this->getTable();
+        if (!$table) {
+            return $this->asJson(['success' => false, 'list' => []]);
         }
         $filter = [
-                    'orders.user_id' => $this->getUser()->getId(),
-                   
-                ];
+            'orders.table_id' => $table->id,
+        ];
+
         $ordersList = Order::find()->where($filter)->limit(1)->addOrderBy(['orders.id' => SORT_DESC])->asArray()->all();
         return $this->asJson(['success' => true, 'list' => $ordersList]);
     }
 
 
-    /**
-     * @SWG\POST(path="/api/order/archive",
-     *     tags={"Order"},
-     *      @SWG\Parameter(
-     *      name="limit",
-     *      in="formData",
-     *      type="string",
-     *      description="число на страницу"
-     *      ),
-     *      @SWG\Parameter(
-     *      name="from",
-     *      in="formData",
-     *      type="string",
-     *      description="количество записей (не страниц) которые пропускаем"
-     *      ),
-     *     @SWG\Response(
-     *         response = 200,
-     *         description = "User collection response",
-     *         @SWG\Schema(ref = "#/definitions/AddressList")
-     *     ),
-     * )
-     */
-    public function actionArchive()
-    {
-        $request = \Yii::$app->request;
-        if (!$request->isPost) {
-            return $this->asJson(['error' => 'empty request']);
-        }
-        $filter = ['orders.user_id' => $this->getUser()->getId()];
-        if ($request->post('address_id')) {
-            $filter['orders.address_id'] = $request->post('address_id');
-        }
+    // /**
+    //  * @SWG\POST(path="/api/order/archive",
+    //  *     tags={"Order"},
+    //  *      @SWG\Parameter(
+    //  *      name="limit",
+    //  *      in="formData",
+    //  *      type="string",
+    //  *      description="число на страницу"
+    //  *      ),
+    //  *      @SWG\Parameter(
+    //  *      name="from",
+    //  *      in="formData",
+    //  *      type="string",
+    //  *      description="количество записей (не страниц) которые пропускаем"
+    //  *      ),
+    //  *     @SWG\Response(
+    //  *         response = 200,
+    //  *         description = "User collection response",
+    //  *         @SWG\Schema(ref = "#/definitions/AddressList")
+    //  *     ),
+    //  * )
+    //  */
+    // public function actionArchive()
+    // {
+    //     $request = \Yii::$app->request;
+    //     if (!$request->isPost) {
+    //         return $this->asJson(['error' => 'empty request']);
+    //     }
+    //     $filter = ['orders.user_id' => $this->getUser()->getId()];
+    //     if ($request->post('address_id')) {
+    //         $filter['orders.address_id'] = $request->post('address_id');
+    //     }
 
-        if ($request->isPost) {
-            $from = (($request->post('from'))) ? intval($request->post('from')) : 0;
-            $limit = (($request->post('limit'))) ? intval($request->post('limit')) : 20;
-        }
+    //     if ($request->isPost) {
+    //         $from = (($request->post('from'))) ? intval($request->post('from')) : 0;
+    //         $limit = (($request->post('limit'))) ? intval($request->post('limit')) : 20;
+    //     }
 
-        $orders = Order::find()->where($filter)->joinWith('address')->joinWith('expeditor')->joinWith('basket')->joinWith('basket.items')->joinWith('basket.items.product')
+    //     $orders = Order::find()->where($filter)->joinWith('address')->joinWith('expeditor')->joinWith('basket')->joinWith('basket.items')->joinWith('basket.items.product')
 
-       ->andWhere(['or',
-           ['canceled' => 1],
-           ['in', 'orders.status', [\app\models\tables\Order::STATUS_DONE, \app\models\tables\Order::STATUS_NEW]],
-       ])
-        ->addGroupBy('orders.id')
-        ->addOrderBy(['orders.id' => SORT_DESC]);
-        $countOrders = clone $orders;
-        $orders->offset($from);
-        $orders->limit($limit);
-        $ordersList = $orders->asArray()->all();
-        $count = $countOrders->count();
+    //         ->andWhere([
+    //             'or',
+    //             ['canceled' => 1],
+    //             ['in', 'orders.status', [Order::STATUS_DONE, Order::STATUS_NEW]],
+    //         ])
+    //         ->addGroupBy('orders.id')
+    //         ->addOrderBy(['orders.id' => SORT_DESC]);
+    //     $countOrders = clone $orders;
+    //     $orders->offset($from);
+    //     $orders->limit($limit);
+    //     $ordersList = $orders->asArray()->all();
+    //     $count = $countOrders->count();
 
-        return $this->asJson(['success' => true, 'list' => $ordersList, 'total' => $count]);
-    }
+    //     return $this->asJson(['success' => true, 'list' => $ordersList, 'total' => $count]);
+    // }
 
     /**
      * @SWG\POST(path="/api/order/view",
@@ -441,7 +460,15 @@ class OrderController extends OrderableController
         if (!$request->isPost) {
             return $this->asJson(['error' => 'empty request']);
         }
-        $filter = ['orders.user_id' => $this->getUser()->getId()];
+
+        $table = $this->getTable();
+        if (!$table) {
+            return $this->asJson(['success' => false, 'list' => []]);
+        }
+
+        $filter = [
+            'orders.table_id' => $table->id,
+        ];
         if ($request->post('id')) {
             $filter['orders.id'] = $request->post('id');
         }

@@ -17,6 +17,11 @@ class OrderableController extends ApiController
         return Yii::$app->user->identity;
     }
 
+    public function getTable()
+    {
+        return Table::find()->where(['table_number' => \Yii::$app->session->get('table_number')])->one();
+    }
+
     protected function getBasketItems()
     {
         $filter = [
@@ -26,38 +31,9 @@ class OrderableController extends ApiController
         $result = $this->getBasketItemsByFilter($filter);
         $total = 0;
         if (isset($result['items'])) {
-            $total = self::prepareItems($result['items']);
+            $total = \app\common\Util::prepareItems($result['items']);
         }
         return [$result, $total];
-    }
-
-    public static function prepareItems(&$items)
-    {
-        if (!$items) return;
-        $total = 0;
-
-        foreach ($items as &$item) {
-            $obBasketItem = BasketItem::find()->where(['id' => $item['id']])->one();
-            if ($item['quantity'] === 0.5) {
-                $item['price'] = $item['product']['half_price'];
-            } else {
-                $item['price'] = $item['product']['base_price'];
-            }
-            $obBasketItem->price = $item['price'];
-            $obBasketItem->save();
-        }
-        unset($item);
-
-        $total = self::calcTotal($items);
-        return $total;
-    }
-    public static function calcTotal($items)
-    {
-        $total = 0;
-        foreach ($items as $item) {
-            $total = $total + $item['price'] * $item['quantity'];
-        }
-        return $total;
     }
 
     private function getBasketItemsByFilter($arFilter)

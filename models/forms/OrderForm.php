@@ -1,10 +1,10 @@
 <?php
 
-namespace app\models;
+namespace app\models\forms;
 
 use app\models\tables\Basket;
 use app\models\tables\Bonus;
-use app\models\tables\User;
+use app\models\User;
 use Yii;
 use yii\base\Model;
 
@@ -13,16 +13,8 @@ use yii\base\Model;
  */
 class OrderForm extends Model
 {
-    public $address_id;
-    public $bonus_add;
-    public $bonus_remove;
     public $basket;
-    public $return_bottles;
-    public $pledge_price;
-    public $period;
-    public $period_comment;
     public $payment_method;
-    public $is_express;
 
     /**
      * @return array the validation rules
@@ -30,18 +22,15 @@ class OrderForm extends Model
     public function rules()
     {
         return [
-            [['address_id', 'basket', 'period', 'payment_method'], 'required'],
-            [['address_id', 'bonus_remove', 'bonus_add','pledge_price', 'period_comment', 'period', 'payment_method'], 'string'],
-            [['is_express', 'return_bottles'], 'integer'],
+            [[ 'basket', 'payment_method'], 'required'],
+            [[ 'payment_method'], 'string'],
             [['basket'], 'validateBasket', 'skipOnEmpty' => true, 'skipOnError' => false],
-            [['return_bottles'], 'validateBottles', 'skipOnEmpty' => true, 'skipOnError' => false],
-            [['bonus_remove'], 'validateBonus', 'skipOnEmpty' => true, 'skipOnError' => false],
         ];
     }
 
     public function validateBasket($attribute_name, $params)
     {
-        $obBasket = Basket::find()->joinWith('items')->where(['basket.id' => $this->$attribute_name])->one();
+        $obBasket = Basket::find()->joinWith('items')->where(['baskets.id' => $this->$attribute_name])->one();
         if (!count($obBasket->items)) {
             $this->addError($attribute_name, 'Ваша корзина пуста');
 
