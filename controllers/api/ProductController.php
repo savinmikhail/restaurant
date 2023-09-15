@@ -20,32 +20,18 @@ class ProductController extends OrderableController
      */
     public function actionIndex()
     {
-        $obProducts = Products::find()
-            ->with(['productPropertiesValues.property', 'productSizePrices.price', 'productModifiers', 'productGroupModifiers.childModifiers'])
+        $productsData = Products::find()
+            ->joinWith('productPropertiesValues.property')
+            ->joinWith('productSizePrices.price')
+            ->joinWith('productModifiers')
+            ->joinWith('productGroupModifiers.childModifiers')
+            ->asArray()
             ->all();
-
         $session = Yii::$app->session;
-
-        $productsData = [];
-
-        foreach ($obProducts as $product) {
-            // Access related data for each product
-            $productData = [
-                'product' => $product,
-                'productPropertiesValues' => $product->productPropertiesValues,
-                'productSizePrices' => $product->productSizePrices,
-                'productModifiers' => $product->productModifiers,
-                'productGroupModifiers' => $product->productGroupModifiers,
-            ];
-
-            $productsData[] = $productData;
-        }
 
         return $this->asJson([
             'products' => $productsData,
             'table_number' => $session->get('table_number')
         ]);
     }
-
-    
 }

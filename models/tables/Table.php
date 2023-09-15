@@ -9,12 +9,14 @@ class Table extends Base
     public function rules()
     {
         return [
-            [['status', 'table_number'], 'required'],
-            [['table_number'], 'integer'],
-            [['status'], 'boolean'],
+            [['is_deleted', 'table_number'], 'required'],
+            [['table_number', 'seating_capacity', 'revision'], 'integer'],
+            [['is_deleted'], 'boolean'],
+            [['name'], 'string'],
+
         ];
     }
-
+    
     protected function recordTableName()
     {
         return 'tables';

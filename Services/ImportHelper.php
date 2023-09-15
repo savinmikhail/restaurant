@@ -13,9 +13,10 @@ use app\models\tables\ProductsProperties;
 use app\models\tables\ProductsPropertiesValues;
 use app\models\tables\Size;
 use app\models\tables\SizePrice;
+use app\models\tables\Table;
 use Exception;
 
-class MenuParser
+class ImportHelper
 {
     public function parse(array $data)
     {
@@ -269,6 +270,28 @@ class MenuParser
         $obSize->load($obSizeValues, '');
         if (!$obSize->save()) {
             $this->handleError('Size', $obSize);
+        }
+    }
+
+    public static function processTables(array $arTables)
+    {
+        foreach ($arTables as $table) {
+            $obTable = Table::find()->where(['external_id' => $table['id']])->one();
+            if (!$obTable) {
+                $obTable = new Table;
+                $obTable->external_id = $table['id'];
+            }
+            $arPropValues = [
+                'table_number' => $table['number'],
+                'name' => $table['name'],
+                'seating_capacity' => $table['seatingCapacity'],
+                'revision' => $table['revision'],
+                'is_deleted' => $table['isDeleted'],
+            ];
+            $obTable->attributes = $arPropValues;
+            if (!$obTable->save()) {
+                throw new Exception("Failed to save table instance, error: " . print_r($obTable->errors, true));
+            }
         }
     }
 }

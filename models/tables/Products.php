@@ -65,6 +65,6 @@ class Products extends Base
 
     public function getProductSizePrices()
     {
-        return $this->hasMany(SizePrice::class, ['id' => 'product_id']);
+        return $this->hasMany(SizePrice::class, ['product_id' => 'id']);
     }
 }
