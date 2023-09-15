@@ -230,23 +230,23 @@ class OrderController extends OrderableController
         return $result;
     }
 
-    // /**
-    //  * @SWG\Post(path="/api/order/copy",
-    //  *     tags={"Order"},
-    //  *      @SWG\Parameter(
-    //  *      name="id",
-    //  *      in="formData",
-    //  *      type="string",
-    //  *      description="Ид заказа"
-    //  *      ),
-    //  *     description="Копирование заказа (содержимого корзины)",
-    //  *     @SWG\Response(
-    //  *         response = 200,
-    //  *         description = "Содержимое корзины",
-    //  *         @SWG\Schema(ref = "#/definitions/Products")
-    //  *     ),
-    //  * )
-    //  */
+    /**
+     * @SWG\Post(path="/api/order/copy",
+     *     tags={"Order"},
+     *      @SWG\Parameter(
+     *      name="id",
+     *      in="formData",
+     *      type="string",
+     *      description="Ид заказа"
+     *      ),
+     *     description="Копирование заказа (содержимого корзины)",
+     *     @SWG\Response(
+     *         response = 200,
+     *         description = "Содержимое корзины",
+     *         @SWG\Schema(ref = "#/definitions/Products")
+     *     ),
+     * )
+     */
     // public function actionCopy()
     // {
     //     $request = \Yii::$app->request;
@@ -381,28 +381,28 @@ class OrderController extends OrderableController
     }
 
 
-    // /**
-    //  * @SWG\POST(path="/api/order/archive",
-    //  *     tags={"Order"},
-    //  *      @SWG\Parameter(
-    //  *      name="limit",
-    //  *      in="formData",
-    //  *      type="string",
-    //  *      description="число на страницу"
-    //  *      ),
-    //  *      @SWG\Parameter(
-    //  *      name="from",
-    //  *      in="formData",
-    //  *      type="string",
-    //  *      description="количество записей (не страниц) которые пропускаем"
-    //  *      ),
-    //  *     @SWG\Response(
-    //  *         response = 200,
-    //  *         description = "User collection response",
-    //  *         @SWG\Schema(ref = "#/definitions/AddressList")
-    //  *     ),
-    //  * )
-    //  */
+    /**
+     * @SWG\POST(path="/api/order/archive",
+     *     tags={"Order"},
+     *      @SWG\Parameter(
+     *      name="limit",
+     *      in="formData",
+     *      type="string",
+     *      description="число на страницу"
+     *      ),
+     *      @SWG\Parameter(
+     *      name="from",
+     *      in="formData",
+     *      type="string",
+     *      description="количество записей (не страниц) которые пропускаем"
+     *      ),
+     *     @SWG\Response(
+     *         response = 200,
+     *         description = "User collection response",
+     *         @SWG\Schema(ref = "#/definitions/AddressList")
+     *     ),
+     * )
+     */
     // public function actionArchive()
     // {
     //     $request = \Yii::$app->request;

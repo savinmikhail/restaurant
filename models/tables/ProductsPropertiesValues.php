@@ -9,7 +9,7 @@ class ProductsPropertiesValues extends Base
     public function rules()
     {
         return [
-            [['product_id', 'property_id', 'value'], 'required'],
+            [['product_id', 'property_id', ], 'required'],
             [['value'], 'string'],
             [['property_id', 'product_id'], 'integer'],
         ];

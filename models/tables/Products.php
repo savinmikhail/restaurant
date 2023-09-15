@@ -3,6 +3,12 @@
 namespace app\models\tables;
 
 use app\models\Base;
+use app\models\tables\SizePrice;
+use app\models\tables\Modifier;
+use app\models\tables\GroupModifier;
+use app\models\tables\ProductsPropertiesValues;
+use app\models\tables\ProductsImages;
+use app\models\tables\Categories;
 
 class Products extends Base
 {
@@ -13,7 +19,7 @@ class Products extends Base
     public function rules()
     {
         return [
-            [['name', 'sort', 'category_id', 'base_price'], 'required'],
+            [['name', 'sort', ], 'required'],
             [['base_price', ], 'double'],
             [['sort', 'active', 'category_id'], 'integer'],
             [[ 'active',  ], 'boolean'],
@@ -37,7 +43,7 @@ class Products extends Base
         return $this->hasOne(Categories::class, ['id' => 'category_id']);
     }
 
-    public function getProductProperties()
+    public function getProductPropertiesValues()
     {
         return $this->hasMany(ProductsPropertiesValues::class, ['product_id' => 'id']);
     }
@@ -47,13 +53,18 @@ class Products extends Base
         return $this->hasMany(ProductsImages::class, ['product_id' => 'id']);
     }
 
-    public function getTariff()
+    public function getProductGroupModifiers()
     {
-        return $this->hasMany(TariffTable::class, ['product_id' => 'id']);
+        return $this->hasMany(GroupModifier::class, ['product_id' => 'id']);
     }
 
-    public function getProductsPromotions()
+    public function getProductModifiers()
     {
-        return $this->hasMany(ProductsPromotions::class, ['product_id' => 'id']);
+        return $this->hasMany(Modifier::class, ['product_id' => 'id']);
+    }
+
+    public function getProductSizePrices()
+    {
+        return $this->hasMany(SizePrice::class, ['id' => 'product_id']);
     }
 }

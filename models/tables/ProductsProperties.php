@@ -9,12 +9,9 @@ class ProductsProperties extends Base
     public function rules()
     {
         return [
-            [['name', 'sort'], 'required'],
-            [['name', 'external_id', 'code'], 'string'],
+            [['code'], 'required'],
+            [['name', 'code'], 'string'],
             [['sort'], 'integer'],
-            [['in_filter'], 'boolean'],
-            //[['language_id'], 'exist', 'skipOnError' => true, 'targetClass' => Language::class, 'targetAttribute' => ['language_id' => 'id']],
-            //[['line_id'], 'exist', 'skipOnError' => true, 'targetClass' => Line::class, 'targetAttribute' => ['line_id' => 'id']],
         ];
     }
 
