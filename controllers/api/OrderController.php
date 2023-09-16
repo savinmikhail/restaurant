@@ -6,7 +6,12 @@ use app\controllers\api\OrderableController;
 use app\models\forms\OrderForm;
 use app\models\tables\Order;
 use app\models\tables\Table;
-use yii\filters\AccessControl;
+use Endroid\QrCode\Color\Color;
+use Endroid\QrCode\Encoding\Encoding;
+use Endroid\QrCode\ErrorCorrectionLevel\ErrorCorrectionLevelLow;
+use Endroid\QrCode\QrCode;
+use Endroid\QrCode\RoundBlockSizeMode\RoundBlockSizeModeMargin;
+use Endroid\QrCode\Writer\PngWriter;
 
 class OrderController extends OrderableController
 {
@@ -91,6 +96,36 @@ class OrderController extends OrderableController
         return $this->asJson($result);
     }
 
+    public function actionRenderQR()
+    {
+        $data = Table::getTable()->id;
+        $writer = new PngWriter();
+
+        // Create QR code
+        $qrCode = QrCode::create($data)
+            ->setEncoding(new Encoding('UTF-8'))
+            ->setErrorCorrectionLevel(new ErrorCorrectionLevelLow())
+            ->setSize(300)
+            ->setMargin(10)
+            ->setRoundBlockSizeMode(new RoundBlockSizeModeMargin())
+            ->setForegroundColor(new Color(0, 0, 0))
+            ->setBackgroundColor(new Color(255, 255, 255));
+
+        $result = $writer->write($qrCode);
+
+        // Validate the result
+        $writer->validateResult($result, $data);
+
+        header('Content-Type: ' . $result->getMimeType());
+
+        // Save it to a file
+        // $result->saveToFile('web/upload/QRs/qrcode.png');
+
+        // Generate a data URI to include image data inline (i.e. inside an <img> tag)
+        $dataUri = $result->getDataUri();
+        echo $result->getString();
+
+    }
     /**
      * @SWG\Post(path="/api/order/fastcopy",
      *     tags={"Order"},
@@ -108,8 +143,8 @@ class OrderController extends OrderableController
      *     ),
      * )
      */
-   
-/* 
+
+    /* 
    public function actionFastcopy()
     {
         $request = \Yii::$app->request;
@@ -181,7 +216,7 @@ class OrderController extends OrderableController
             'https://smth.smth',
             []
         ];
-     /*   $returnUrl = "https://mp.kv.tomsk.ru/api/payment/redirect?orderId={$last_order_id}&success=true";
+        /*   $returnUrl = "https://mp.kv.tomsk.ru/api/payment/redirect?orderId={$last_order_id}&success=true";
         $failUrl = "https://mp.kv.tomsk.ru/api/payment/redirect?orderId={$last_order_id}&success=false";
         $host = 'https://mp.kv.tomsk.ru/api/payment/callback';
         //$token = 'auaclh27bt0pejpl05pf138f0';

@@ -22,7 +22,9 @@
         "yii2mod/yii2-swagger": "*",
         "hail812/yii2-adminlte3": "~1.1",
         "yiisoft/yii2-httpclient": "^2.0",
-        "marqu3s/yii2-summernote": "dev-master"
+        "marqu3s/yii2-summernote": "dev-master",
+        "endroid/qrcode": "^4.8",
+        "khanamiryan/qrcode-detector-decoder": "^2.0"
     },
     "require-dev": {
         "yiisoft/yii2-debug": "~2.1.0",
