@@ -340,6 +340,12 @@ class OrderController extends OrderableController
      * @SWG\POST(path="/api/order/list",
      *     tags={"Order"},
      *      @SWG\Parameter(
+     *      name="status",
+     *      in="formData",
+     *      type="string",
+     *      description="Статусы заказа. Принимает значения new, created, in_process, in_path. По умолчанию фильтрую по всем статусам"
+     *      ),
+     *      @SWG\Parameter(
      *      name="limit",
      *      in="formData",
      *      type="string",
@@ -366,6 +372,7 @@ class OrderController extends OrderableController
         }
         $obTable = Table::getTable();
         $filter = ['orders.table_id' => $obTable->id];
+        $statuses = $request->post('status') ? [$request->post('status')] : [Order::STATUS_NEW, Order::STATUS_CREATED, Order::STATUS_INPROCESS, Order::STATUS_INPATH];
         if ($request->isPost) {
             $from = (($request->post('from'))) ? intval($request->post('from')) : 0;
             $limit = (($request->post('limit'))) ? intval($request->post('limit')) : 20;
@@ -373,7 +380,7 @@ class OrderController extends OrderableController
 
         $orders = Order::find()->where($filter)->joinWith('basket')->joinWith('basket.items')->joinWith('basket.items.product')
             ->andWhere(['canceled' => 0])
-            ->andWhere(['in', 'orders.status', [Order::STATUS_CREATED, Order::STATUS_INPROCESS, Order::STATUS_INPATH]])
+            ->andWhere(['in', 'orders.status', $statuses])
             ->addGroupBy('orders.id')
             ->addOrderBy(['orders.id' => SORT_DESC]);
         $ordersList = $orders->asArray()->all();
