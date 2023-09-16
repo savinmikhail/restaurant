@@ -4,6 +4,7 @@ namespace app\controllers\api;
 
 use app\models\tables\Basket;
 use app\controllers\api\OrderableController;
+use app\models\tables\Table;
 
 class BasketController extends OrderableController
 {
@@ -34,13 +35,15 @@ class BasketController extends OrderableController
      */
     public function actionIndex()
     {
+        $obTable = Table::getTable();
+
         list($result, $total) = $this->getBasketItems();
 
         return $this->asJson([
             'list' => $result,
             'count' => $this->getBasketItemsCount(),
             'total' => $total,
-            'table_number' => \Yii::$app->session->get('table_number'),
+            'table_number' => $obTable->table_number,
         ]);
     }
 
@@ -72,13 +75,6 @@ class BasketController extends OrderableController
      * @SWG\Post(path="/api/basket/add",
      *     tags={"Basket"},
      *      @SWG\Parameter(
-     *      name="address",
-     *      in="formData",
-     *      type="string",
-     *      required=true,
-     *      description="Ид адреса"
-     *      ),
-     *      @SWG\Parameter(
      *      name="product_id",
      *      in="formData",
      *      type="string"
@@ -105,6 +101,7 @@ class BasketController extends OrderableController
             return $this->asJson(['status' => 0, 'error' => $e->getMessage(), 'code' => $e->getCode()]);
         }
         list($result, $total) = $this->getBasketItems();
+        $obTable = Table::getTable();
 
         return $this->asJson([
             'status' => 1,
@@ -113,7 +110,7 @@ class BasketController extends OrderableController
             'list' => $result,
             'count' => $this->getBasketItemsCount(),
             'total' => $total,
-            'table_number' => \Yii::$app->session->get('table_number'),
+            'table_number' => $obTable->table_number,
         ]);
     }
 
@@ -150,6 +147,7 @@ class BasketController extends OrderableController
 
         $this->getBasket()->updateItem($request->post('id'), $request->post('quantity'));
         list($result, $total) = $this->getBasketItems();
+        $obTable = Table::getTable();
 
         return $this->asJson([
             'status' => 1,
@@ -158,7 +156,7 @@ class BasketController extends OrderableController
             'list' => $result,
             'count' => $this->getBasketItemsCount(),
             'total' => $total,
-            'table_number' => \Yii::$app->session->get('table_number'),
+            'table_number' => $obTable->table_number,
         ]);
     }
 
@@ -190,6 +188,7 @@ class BasketController extends OrderableController
 
         $this->getBasket()->deleteItem($request->post('id'));
         list($result, $total) = $this->getBasketItems();
+        $obTable = Table::getTable();
 
         return $this->asJson(
             [
@@ -199,7 +198,7 @@ class BasketController extends OrderableController
                 'list' => $result,
                 'count' => $this->getBasketItemsCount(),
                 'total' => $total,
-                'table_number' => \Yii::$app->session->get('table_number'),
+                'table_number' => $obTable->table_number,
             ]
         );
     }
@@ -230,6 +229,7 @@ class BasketController extends OrderableController
     {
         $this->getBasket()->clear();
         list($result, $total) = $this->getBasketItems();
+        $obTable = Table::getTable();
 
         return $this->asJson(
             [
@@ -239,19 +239,21 @@ class BasketController extends OrderableController
                 'list' => $result,
                 'count' => $this->getBasketItemsCount(),
                 'total' => $total,
-                'table_number' => \Yii::$app->session->get('table_number'),
+                'table_number' => $obTable->table_number,
             ]
         );
     }
 
     private function getBasketItemsCount()
     {
+        $obTable = Table::getTable();
+
         return Basket::find()
             ->joinWith('items')
             ->joinWith('items.product')
             ->where(
                 [
-                    'table_id' => \Yii::$app->session->get('table_number'),
+                    'table_id' => $obTable->id,
                     'order_id' => null
                 ]
             )

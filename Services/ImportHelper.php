@@ -6,6 +6,7 @@ use app\models\tables\Categories;
 use app\models\tables\Group;
 use app\models\tables\GroupModifier;
 use app\models\tables\Modifier;
+use app\models\tables\PaymentType;
 use app\models\tables\Price;
 use app\models\tables\Products;
 use app\models\tables\ProductsImages;
@@ -68,7 +69,7 @@ class ImportHelper
         }
     }
 
-    private function handleError(string $modelName, $obModel)
+    private static function handleError(string $modelName, $obModel)
     {
         throw new Exception("$modelName save failed: " . print_r($obModel->errors, true));
     }
@@ -290,7 +291,29 @@ class ImportHelper
             ];
             $obTable->attributes = $arPropValues;
             if (!$obTable->save()) {
-                throw new Exception("Failed to save table instance, error: " . print_r($obTable->errors, true));
+                self::handleError('Table', $obTable);
+            }
+        }
+    }
+
+    public static function processPaymentTypes(array $arPaymentTypes)
+    {
+        foreach ($arPaymentTypes as $paymentType) {
+            $obPaymentType = PaymentType::find()->where(['external_id' => $paymentType['id']])->one();
+            if (!$obPaymentType) {
+                $obPaymentType = new PaymentType;
+                $obPaymentType->external_id = $paymentType['id'];
+            }
+            $arPaymentTypeVals = [
+                'code' => $paymentType['code'],
+                'name' => $paymentType['name'],
+                'is_deleted' => $paymentType['isDeleted'],
+                'payment_processing_type' => $paymentType['paymentProcessingType'],
+                'payment_type_kind' => $paymentType['paymentTypeKind'],
+            ];
+            $obPaymentType->attributes = $arPaymentTypeVals;
+            if (!$obPaymentType->save()) {
+                self::handleError('PaymentType', $obPaymentType);
             }
         }
     }

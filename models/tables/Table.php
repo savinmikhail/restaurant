@@ -31,4 +31,9 @@ class Table extends Base
     {
         return 'tables';
     }
+
+    public static function getTable()
+    {
+        return Table::find()->where(['table_number' => 1/*\Yii::$app->session->get('table_number')*/])->one();
+    }
 }

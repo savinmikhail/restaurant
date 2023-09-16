@@ -46,7 +46,7 @@ class OrderController extends OrderableController
      * @SWG\Post(path="/api/order",
      *     tags={"Order"},
      *      @SWG\Parameter(
-     *      name="basket",
+     *      name="basket_id",
      *      in="formData",
      *      type="string",
      *      description="Ид корзины"
@@ -329,8 +329,8 @@ class OrderController extends OrderableController
         if (!$request->isPost) {
             return $this->asJson(['error' => 'empty request']);
         }
-        $table = Table::find()->where(['table_number' => \Yii::$app->session->get('table_number')])->one();
-        $filter = ['orders.table_id' => $table->id];
+        $obTable = Table::getTable();
+        $filter = ['orders.table_id' => $obTable->id];
         if ($request->isPost) {
             $from = (($request->post('from'))) ? intval($request->post('from')) : 0;
             $limit = (($request->post('limit'))) ? intval($request->post('limit')) : 20;
@@ -368,7 +368,7 @@ class OrderController extends OrderableController
         if (!$request->isPost) {
             return $this->asJson(['error' => 'empty request']);
         }
-        $table = $this->getTable();
+        $table = Table::getTable();
         if (!$table) {
             return $this->asJson(['success' => false, 'list' => []]);
         }
@@ -461,7 +461,7 @@ class OrderController extends OrderableController
             return $this->asJson(['error' => 'empty request']);
         }
 
-        $table = $this->getTable();
+        $table = Table::getTable();
         if (!$table) {
             return $this->asJson(['success' => false, 'list' => []]);
         }

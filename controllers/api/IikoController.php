@@ -3,6 +3,10 @@
 namespace app\controllers\api;
 
 use app\controllers\ApiController;
+use app\models\tables\Order;
+use app\models\tables\PaymentType;
+use app\models\tables\ProductsPropertiesValues;
+use app\models\tables\Table;
 use app\Services\ImportHelper;
 use Yii;
 
@@ -140,6 +144,13 @@ class IikoController extends ApiController
         $outData = curl_exec($ch);
         curl_close($ch);
         $outData = json_decode($outData, true);
+        if (!$outData) {
+            $this->actionKey();
+            dd("Probably token has been expired");
+        }
+
+        ImportHelper::processPaymentTypes($outData['paymentTypes']);
+
         dd($outData);
     }
 
@@ -171,8 +182,8 @@ class IikoController extends ApiController
         $outData = curl_exec($ch);
         curl_close($ch);
         $outData = json_decode($outData, true);
-        
-        if(!$outData){
+
+        if (!$outData) {
             $this->actionKey();
             dd("Probably token has been expired");
         }
@@ -218,37 +229,18 @@ class IikoController extends ApiController
     {
         $token = Yii::$app->session->get('apiToken');
         if (!$token) {
-            dd('Token not found');
+            throw new \Exception('Iiko API token has been expired');
         }
 
-        $url = 'https://api-ru.iiko.services/api/1/nomenclature';
-        $data = [
-            'organizationId' => self::ORG_ID,
-            'terminalGroupId' => self::TERMINAL_GROUP_ID,
-            'order' => [
-                'tableIds' => [
-                    0 => (string) $uuid
-                ],
-                'externalNumber',
-                'items' => [
-                    0 => [
-                        'productId' =>(string)  $uuid,
-                        'price' => (double) $price,
-                        'type' => (string) 'Product'/'Compound',
-                        'amount' => (double) $quantity,
+        $request = Yii::$app->request;
+        if (!$request->isPost || !$request->post('id')) {
+            return $this->asJson(['error' => 'empty request']);
+        }
 
-                    ]
-                ],
-                'payments' => [
-                    0 => [
-                        'paymentTypeKind' => (string) 'Cash'/ 'IikoCard'/ 'Card' / 'External',
-                        'sum' => (double) $sum,
-                        'paymentTypeId' => (string) $uuid,
-                        'isProcessedExternally' => (bool) $false
-                    ],
-                ],
-            ]
-        ];
+        $data = $this->prepareDataForOrder($request->post('id'));
+
+        $url = 'https://api-ru.iiko.services/api/1/order/create';
+
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_URL, $url);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
@@ -264,9 +256,73 @@ class IikoController extends ApiController
         curl_close($ch);
         $outData = json_decode($outData, true);
         if ($outData) {
-            file_put_contents('../runtime/logs/menu.txt', serialize($outData));
-            dump($outData);
+            dd($outData);
         }
         return 'Token expired';
+    }
+    private function prepareDataForOrder(int $orderId): array
+    {
+        $table = Table::getTable();
+        if (!$table) {
+            throw new \Exception('Table is undefined');
+        }
+
+        $filter = [
+            'orders.table_id' => $table->id,
+            'orders.id' => $orderId
+        ];
+
+        $order = Order::find()->where($filter)
+            ->joinWith('basket')
+            ->joinWith('basket.items')
+            ->joinWith('basket.items.product')
+            ->joinWith('productPropertiesValues.property')
+            ->asArray()
+            ->one();
+
+        $arItems = [];
+        foreach ($order['basket']['items'] as $item) {
+            $productPropVal = ProductsPropertiesValues::find()
+                ->joinWith('property')
+                ->where(['products_properties.code' => 'orderItemType'])
+                ->andWhere(['products_properties_values.product_id' => $item['product']['id']])
+                ->one();
+            if ($productPropVal->value === 'Compound') {
+                $arItem['primaryComponent'] = [
+                    'productId' => $item['product']['external_id']
+                ];
+            }
+            $arItem['productId'] = $item['product']['external_id'];
+            $arItem['price'] = $item['price'];
+            $arItem['type'] = $productPropVal->value;
+            $arItem['amount'] = $item['quantity'];
+            $arItems[] = $arItem;
+        }
+        $paymentType = PaymentType::find()->where(['payment_type_kind' => $order['payment_method']])->one();
+
+        if(!$paymentType || $paymentType->is_deleted){
+            throw new \Exception('Choosen payment method is unavailable');
+        }
+
+        $data = [
+            'organizationId' => self::ORG_ID,
+            'terminalGroupId' => self::TERMINAL_GROUP_ID,
+            'order' => [
+                'tableIds' => [
+                    0 => (string) $table->external_id
+                ],
+                'externalNumber',
+                'items' => $arItems,
+                'payments' => [
+                    0 => [
+                        'paymentTypeKind' => $order['payment_method'],
+                        'sum' => (float) $order['order_sum'],
+                        'paymentTypeId' => (string) 'b1d53e5f-81c0-413e-8ad0-ea8d5cc7eb18', //$paymentType->external_id,    //пока заглушка так ка доступна только оплата бонусами да и то она удалена
+                        'isProcessedExternally' => (bool) $order['payment_method'] === 'External' ? true : false,
+                    ],
+                ],
+            ]
+        ];
+        return $data;
     }
 }

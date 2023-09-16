@@ -2,6 +2,7 @@
 
 namespace app\models\tables;
 
+use app\common\Util;
 use app\models\Base;
 use Yii;
 
@@ -34,9 +35,10 @@ class Order extends Base
     public function rules()
     {
         return [
-            [['table_id', 'payment_method', 'order_sum',], 'required'],
+            [['table_id', 'payment_method', 'order_sum',], 'required'], //payment method must be in 'Cash' / 'IikoCard' / 'Card' / 'External'
             [['external_id', 'status'], 'string'],
             [['payed',], 'integer'],
+            [['payment_method'], 'in', 'range' => ['Cash', 'IikoCard', 'Card', 'External']],
             [['created_at', 'updated_at'], 'datetime', 'format' => 'php:Y-m-d H:i:s'],
         ];
     }
@@ -125,25 +127,34 @@ class Order extends Base
     {
         $this->load($orderVars, '');
 
-        $table = Table::find()->where(['table_number' => \Yii::$app->session->get('table_number')])->one();
-        $this->table_id = $table->id;
+        $obTable = Table::getTable();
+        if (!$obTable)
+            throw new \Exception("Table number is missing in current session");
 
-        $orderBasket = Basket::find()->where(['baskets.id' => $orderVars['basket']])->one();
+        $this->table_id = $obTable->id;
+
+        $orderBasket = Basket::find()->where(['baskets.id' => $orderVars['basket_id']])->one();
         $result = Basket::find()
             ->joinWith('items')
             ->joinWith('items.product')
-            ->where(['baskets.id' => $orderVars['basket']])->cache(false)->asArray()->one();
+            ->joinWith('items.product.productSizePrices.price')
+            ->where(['baskets.id' => $orderVars['basket_id']])
+            ->cache(false)->asArray()->one();
+
         $basket_total = 0;
         if (isset($result['items'])) {
-            $basket_total = \app\common\Util::prepareItems($result['items']);
+            $basket_total = Util::prepareItems($result['items']);
         }
 
         $this->order_sum = $basket_total;
         $this->status = Order::STATUS_NEW;
-
+        $this->basket_id = (int) $orderVars['basket_id'];
+        
         if ($success = $this->save()) {
             $orderBasket->order_id = $this->id;
-            $orderBasket->save();
+            if(!$orderBasket->save()){
+                throw new \Exception("Error occured while saving basket: " . print_r($orderBasket->errors, true));
+            }
         }
 
         return $success;

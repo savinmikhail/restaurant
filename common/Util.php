@@ -14,11 +14,19 @@ class Util
 
         foreach ($items as &$item) {
             $obBasketItem = BasketItem::find()->where(['id' => $item['id']])->one();
-            if ($item['quantity'] === 0.5) {
-                $item['price'] = $item['product']['half_price'];
-            } else {
-                $item['price'] = $item['product']['base_price'];
+            if($item['product']['productSizePrices']){
+                foreach($item['product']['productSizePrices'] as $sizePrice){
+                    if($sizePrice['price']['is_included_in_menu'] === 1 && $sizePrice['price']['current_price']){
+                        $item['price'] = $sizePrice['price']['current_price'];
+                        break;
+                    }
+                }
             }
+            // if ($item['quantity'] === 0.5) {
+            //     $item['price'] = $item['product']['half_price'];
+            // } else {
+            //     $item['price'] = $item['product']['base_price'];
+            // }
             $obBasketItem->price = $item['price'];
             $obBasketItem->save();
         }

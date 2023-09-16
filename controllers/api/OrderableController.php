@@ -17,15 +17,12 @@ class OrderableController extends ApiController
         return Yii::$app->user->identity;
     }
 
-    public function getTable()
-    {
-        return Table::find()->where(['table_number' => \Yii::$app->session->get('table_number')])->one();
-    }
-
     protected function getBasketItems()
     {
+        $obTable= Table::getTable();
+
         $filter = [
-            'table_id' => Yii::$app->session->get('table_number'),
+            'table_id' => $obTable->id,
             'order_id' => null
         ];
         $result = $this->getBasketItemsByFilter($filter);
@@ -42,6 +39,7 @@ class OrderableController extends ApiController
             ->joinWith('items')
             ->joinWith('items.product')
             ->joinWith('items.product.categories')
+            ->joinWith('items.product.productSizePrices.price')
             ->where($arFilter)->cache(false)->asArray()->one();
     }
 
@@ -62,7 +60,10 @@ class OrderableController extends ApiController
 
     protected function getBasket()
     {
-        $obTable = Table::find()->where(['table_number' => \Yii::$app->session->get('table_number')])->one();
+        $obTable = Table::getTable();
+        if(!$obTable){
+            throw new \Exception("Session has been expired");
+        }
         if (!$this->basket) {
             $obBasket = Basket::find()->where(['table_id' => $obTable->id, 'order_id' => null])->one();
             if (!$obBasket) {
