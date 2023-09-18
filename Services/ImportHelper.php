@@ -21,6 +21,10 @@ class ImportHelper
 {
     public function parse(array $data)
     {
+        Price::deleteAll();
+        SizePrice::deleteAll();
+        ProductsImages::deleteAll();
+
         foreach ($data['groups'] as $arGroup) {
             $this->processGroups($arGroup);
         }
@@ -174,7 +178,6 @@ class ImportHelper
 
     private function processProductImages(array $imageLinks, int $productId)
     {
-        ProductsImages::deleteAll(['product_id' => $productId]);
 
         foreach ($imageLinks as $link) {
             $obProductImage = new ProductsImages;
@@ -222,17 +225,16 @@ class ImportHelper
 
     private function processSizePrices(array $arSizePrice, int $productId)
     {
-        SizePrice::deleteAll(['product_id' => $productId]);
+
         $obSizePrice = new SizePrice;
-        if ($arSizePrice['sizeId']) {
+        $obSizePrice->size_id = null;
+        $obSizePrice->product_id = $productId;
+
+        if (!is_null($arSizePrice['sizeId'])) {
             $size = Size::find()->where(['external_id' => $arSizePrice['sizeId']])->one();
+            $obSizePrice->size_id = $size->id;
         }
 
-        $obSizePriceValues = [
-            'size_id' => isset($size) ? $size->id : null,
-            'product_id' => $productId
-        ];
-        $obSizePrice->load($obSizePriceValues, '');
         if (!$obSizePrice->save()) {
             $this->handleError('SizePrice', $obSizePrice);
         }
@@ -241,7 +243,6 @@ class ImportHelper
 
     private function processPrices(array $arPrice, int $sizePriceId)
     {
-        Price::deleteAll(['size_price_id' => $sizePriceId]);
         $obPrice = new Price;
         $obPriceValues = [
             'size_price_id' => $sizePriceId,
