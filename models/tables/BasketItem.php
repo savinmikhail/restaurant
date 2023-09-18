@@ -10,9 +10,19 @@ class BasketItem extends ActiveRecord
     {
         return [
             [['basket_id', 'product_id'], 'required'],
-            [['basket_id', 'product_id', 'quantity'], 'integer'],
+            [['basket_id', 'product_id', 'quantity', 'modifier_id', 'modifier_quantity', 'size_id'], 'integer'],
             [['price'], 'double'],
+            [['modifier_quantity'], 'validateModifierQuantity','skipOnEmpty' => true, 'skipOnError' => false],
+            
         ];
+    }
+    public function validateModifierQuantity($attribute_name, $modifier_quantity = null)
+    {
+        $obModifier = Modifier::find()->where(['id' => $this->$attribute_name])->one();
+        if ($this->modifier_quantity > $obModifier->max_amount) {
+            $this->addError($attribute_name, 'Превышено маскимально допустимое количество модификатора');
+            return false;
+        }
     }
 
     public static function tableName()

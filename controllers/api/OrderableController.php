@@ -5,7 +5,6 @@ namespace app\controllers\api;
 use app\models\tables\Basket;
 use Yii;
 use app\controllers\ApiController;
-use app\models\tables\BasketItem;
 use app\models\tables\Table;
 
 class OrderableController extends ApiController
@@ -27,8 +26,9 @@ class OrderableController extends ApiController
         ];
         $result = $this->getBasketItemsByFilter($filter);
         $total = 0;
-        if (isset($result['items'])) {
-            $total = \app\common\Util::prepareItems($result['items']);
+        if (isset($result['items'][0]['basket_id'])) {
+            $obBasket = Basket::find()->where(['id' => $result['items'][0]['basket_id']])->one();
+            $total = $obBasket ? $obBasket->basket_total : 0;
         }
         return [$result, $total];
     }
@@ -69,9 +69,11 @@ class OrderableController extends ApiController
             if (!$obBasket) {
                 $obBasket = new Basket();
                 $obBasket->table_id = $obTable->id;
-                $obBasket->created_at = time();
-                $obBasket->updated_at = time();
-                $obBasket->save();
+                $obBasket->created_at = date('Y-m-d H:i:s');
+                $obBasket->updated_at = date('Y-m-d H:i:s');
+                if(!$obBasket->save()){
+                    throw new \Exception("Failed to save Basket: " . print_r($obBasket->errors, true));
+                }
             }
             $this->basket = $obBasket;
         }

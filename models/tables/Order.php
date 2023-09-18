@@ -35,7 +35,7 @@ class Order extends Base
     public function rules()
     {
         return [
-            [['table_id', 'payment_method', 'order_sum',], 'required'], //payment method must be in 'Cash' / 'IikoCard' / 'Card' / 'External'
+            [['table_id', 'payment_method', 'order_sum',], 'required'], 
             [['external_id', 'status'], 'string'],
             [['payed',], 'integer'],
             [['payment_method'], 'in', 'range' => ['Cash', 'IikoCard', 'Card', 'External']],

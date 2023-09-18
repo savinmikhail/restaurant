@@ -10,7 +10,7 @@ class Basket extends Base
     {
         return [
             [['table_id'], 'required'],
-            [['order_id', 'table_id'], 'integer'],
+            [['order_id', 'table_id', 'basket_total'], 'integer'],
             [['created_at', 'updated_at'], 'datetime', 'format' => 'php:Y-m-d H:i:s'],
         ];
     }
@@ -53,7 +53,7 @@ class Basket extends Base
         $this->save();
     }
 
-    public function addItem($productId, $quantity)
+    public function addItem(int $productId, int $quantity, int $modifierId, int $modifierQuantity, int $sizeId)
     {
         $arProduct = Products::find()->where(['id' => $productId])->asArray()->one();
         if (!$arProduct['id']) {
@@ -62,13 +62,18 @@ class Basket extends Base
         $obBasketItem = BasketItem::find()->where(['basket_id' => $this->id, 'product_id' => $productId])->one();
         if ($obBasketItem) {
             $obBasketItem->quantity += $quantity;
-            $obBasketItem->save();
-            return [$obBasketItem->id, ''];
+        } else {
+            $obBasketItem = new BasketItem();
+            $obBasketItem->load(['product_id' => $productId, 'quantity' => $quantity, 'basket_id' => $this->id,], '');
         }
-        $obBasketItem = new BasketItem();
-        $obBasketItem->load(['product_id' => $productId, 'quantity' => $quantity, 'basket_id' => $this->id], '');
-        $obBasketItem->save();
-        return [$obBasketItem->id, ''];
+        $obBasketItem->modifier_id = $modifierId;
+        $obBasketItem->modifier_quantity = $modifierQuantity;
+        $obBasketItem->size_id = $sizeId;
+
+        if(!$obBasketItem->save()){
+            throw new \Exception("Failed to save Basket Item: " . print_r($obBasketItem->errors, true));
+        }
+        return $obBasketItem;
     }
 
     public function deleteItem($id)
@@ -92,7 +97,7 @@ class Basket extends Base
                 $obBasketItem->quantity = $quantity;
                 $obBasketItem->save();
                 return [$obBasketItem->id, ''];
-            } 
+            }
         }
         $obBasketItem = new BasketItem();
         $obBasketItem->load(['id' => $id, 'quantity' => $quantity, 'basket_id' => $this->id], '');

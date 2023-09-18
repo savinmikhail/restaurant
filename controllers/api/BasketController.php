@@ -2,6 +2,7 @@
 
 namespace app\controllers\api;
 
+use app\common\Util;
 use app\models\tables\Basket;
 use app\controllers\api\OrderableController;
 use app\models\tables\Table;
@@ -35,16 +36,7 @@ class BasketController extends OrderableController
      */
     public function actionIndex()
     {
-        $obTable = Table::getTable();
-
-        list($result, $total) = $this->getBasketItems();
-
-        return $this->asJson([
-            'list' => $result,
-            'count' => $this->getBasketItemsCount(),
-            'total' => $total,
-            'table_number' => $obTable->table_number,
-        ]);
+        return $this->returnResponse();
     }
 
     /**
@@ -77,12 +69,27 @@ class BasketController extends OrderableController
      *      @SWG\Parameter(
      *      name="product_id",
      *      in="formData",
-     *      type="string"
+     *      type="integer"
      *      ),
      *      @SWG\Parameter(
      *      name="quantity",
      *      in="formData",
-     *      type="string"
+     *      type="integer"
+     *      ),
+     *      @SWG\Parameter(
+     *      name="modifier_id",
+     *      in="formData",
+     *      type="integer"
+     *      ),
+     *      @SWG\Parameter(
+     *      name="modifier_quantity",
+     *      in="formData",
+     *      type="integer"
+     *      ),
+     *      @SWG\Parameter(
+     *      name="size_id",
+     *      in="formData",
+     *      type="integer"
      *      ),
      *     @SWG\Response(
      *         response = 200,
@@ -95,12 +102,29 @@ class BasketController extends OrderableController
     {
         $request = \Yii::$app->request;
 
+        list($productId, $quantity, $modifierId, $modifierQuantity, $sizeId) = [
+            $request->post('product_id'),
+            $request->post('quantity'),
+            $request->post('modifier_id'),
+            $request->post('modifier_quantity'),
+            $request->post('size_id')
+        ];
+
         try {
-            $this->getBasket()->addItem($request->post('product_id'), $request->post('quantity'));
+            $this->getBasket()->addItem($productId, $quantity, $modifierId, $modifierQuantity, $sizeId);
         } catch (\Exception $e) {
             return $this->asJson(['status' => 0, 'error' => $e->getMessage(), 'code' => $e->getCode()]);
         }
+        list($result) = $this->getBasketItems();
+        Util::prepareItems($result['items']);
+
+        return $this->returnResponse();
+    }
+
+    private function returnResponse()
+    {
         list($result, $total) = $this->getBasketItems();
+
         $obTable = Table::getTable();
 
         return $this->asJson([
@@ -146,18 +170,7 @@ class BasketController extends OrderableController
         $request = \Yii::$app->request;
 
         $this->getBasket()->updateItem($request->post('id'), $request->post('quantity'));
-        list($result, $total) = $this->getBasketItems();
-        $obTable = Table::getTable();
-
-        return $this->asJson([
-            'status' => 1,
-            'error' => 0,
-            'message' => '',
-            'list' => $result,
-            'count' => $this->getBasketItemsCount(),
-            'total' => $total,
-            'table_number' => $obTable->table_number,
-        ]);
+        return $this->returnResponse();
     }
 
     /**
@@ -187,20 +200,7 @@ class BasketController extends OrderableController
         $request = \Yii::$app->request;
 
         $this->getBasket()->deleteItem($request->post('id'));
-        list($result, $total) = $this->getBasketItems();
-        $obTable = Table::getTable();
-
-        return $this->asJson(
-            [
-                'status' => 1,
-                'error' => 0,
-                'message' => '',
-                'list' => $result,
-                'count' => $this->getBasketItemsCount(),
-                'total' => $total,
-                'table_number' => $obTable->table_number,
-            ]
-        );
+        return $this->returnResponse();
     }
 
     /**
@@ -228,20 +228,7 @@ class BasketController extends OrderableController
     public function actionClear()
     {
         $this->getBasket()->clear();
-        list($result, $total) = $this->getBasketItems();
-        $obTable = Table::getTable();
-
-        return $this->asJson(
-            [
-                'status' => 1,
-                'error' => 0,
-                'message' => '',
-                'list' => $result,
-                'count' => $this->getBasketItemsCount(),
-                'total' => $total,
-                'table_number' => $obTable->table_number,
-            ]
-        );
+        return $this->returnResponse();
     }
 
     private function getBasketItemsCount()

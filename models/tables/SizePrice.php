@@ -25,7 +25,7 @@ class SizePrice extends Base
     {
         return [
             [['product_id'], 'required'],
-            [['size_id',  'product_id'], 'integer']
+            [['size_id', 'product_id'], 'integer']
         ];
     }
     public function getPrice()
