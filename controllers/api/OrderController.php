@@ -96,6 +96,15 @@ class OrderController extends OrderableController
         return $this->asJson($result);
     }
 
+    /** @SWG\Post(path="/api/order/render-q-r",
+     *     tags={"Order"},
+     *     @SWG\Response(
+     *         response = 200,
+     *         description = "QR picture",
+     *         @SWG\Schema(ref = "#/definitions/Products")
+     *     ),
+     * )
+     */
     public function actionRenderQR()
     {
         $data = Table::getTable()->id;
@@ -124,7 +133,6 @@ class OrderController extends OrderableController
         // Generate a data URI to include image data inline (i.e. inside an <img> tag)
         $dataUri = $result->getDataUri();
         echo $result->getString();
-
     }
     /**
      * @SWG\Post(path="/api/order/fastcopy",
@@ -360,7 +368,7 @@ class OrderController extends OrderableController
      *     @SWG\Response(
      *         response = 200,
      *         description = "User collection response",
-     *         @SWG\Schema(ref = "#/definitions/AddressList")
+     *         @SWG\Schema(ref = "#/definitions/Products")
      *     ),
      * )
      */
@@ -400,7 +408,7 @@ class OrderController extends OrderableController
      *     @SWG\Response(
      *         response = 200,
      *         description = "User collection response",
-     *         @SWG\Schema(ref = "#/definitions/AddressList")
+     *         @SWG\Schema(ref = "#/definitions/Products")
      *     ),
      * )
      */
@@ -441,7 +449,7 @@ class OrderController extends OrderableController
      *     @SWG\Response(
      *         response = 200,
      *         description = "User collection response",
-     *         @SWG\Schema(ref = "#/definitions/AddressList")
+     *         @SWG\Schema(ref = "#/definitions/Products")
      *     ),
      * )
      */
@@ -492,7 +500,7 @@ class OrderController extends OrderableController
      *     @SWG\Response(
      *         response = 200,
      *         description = "User collection response",
-     *         @SWG\Schema(ref = "#/definitions/AddressList")
+     *         @SWG\Schema(ref = "#/definitions/Products")
      *     ),
      * )
      */

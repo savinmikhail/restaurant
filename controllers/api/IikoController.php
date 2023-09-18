@@ -16,7 +16,15 @@ class IikoController extends ApiController
     const ORG_ID = "884babb3-8dbb-44e4-a446-8f61e502e06f";
     const TERMINAL_GROUP_ID = '40a6ea3e-38b0-e5ee-0184-7476df710064';
 
-    //get auth token from iiko
+    /**
+     * @SWG\Post(path="/api/iiko/key",
+     *     tags={"Iiko"},
+     *     @SWG\Response(
+     *         response = 200,
+     *         description = "get auth token from iiko",
+     *     ),
+     * )
+     */
     public function actionKey()
     {
         $data = ['apiLogin' => self::API_KEY];
@@ -38,15 +46,23 @@ class IikoController extends ApiController
 
         $outData = json_decode($outData, true);
         Yii::$app->session->set('apiToken', $outData['token']);
-        dd($outData['token']);
+        return ($outData['token']);
     }
 
-    //get organization id from iiko
+    /**
+     * @SWG\Post(path="/api/iiko/id",
+     *     tags={"Iiko"},
+     *     @SWG\Response(
+     *         response = 200,
+     *         description = "get organization id from iiko",
+     *     ),
+     * )
+     */
     public function actionId()
     {
         $token = Yii::$app->session->get('apiToken');
         if (!$token) {
-            dd('Token not found');
+            return $this->asJson(['success' => false, 'data' => 'Token not found']);
         }
         $url =  'https://api-ru.iiko.services/api/1/organizations';
         $data = '{}';
@@ -73,12 +89,20 @@ class IikoController extends ApiController
         return $this->asJson(['success' => false, 'data' => []]);
     }
 
-    //get menu from iiko, serialize and  store it in the file
+    /**
+     * @SWG\Post(path="/api/iiko/menu",
+     *     tags={"Iiko"},
+     *     @SWG\Response(
+     *         response = 200,
+     *         description = "get menu from iiko, serialize and  store it in the file",
+     *     ),
+     * )
+     */
     public function actionMenu()
     {
         $token = Yii::$app->session->get('apiToken');
         if (!$token) {
-            dd('Token not found');
+            return $this->asJson(['success' => false, 'data' => 'Token not found']);
         }
 
         $url = 'https://api-ru.iiko.services/api/1/nomenclature';
@@ -97,34 +121,44 @@ class IikoController extends ApiController
         $outData = curl_exec($ch);
         curl_close($ch);
         $outData = json_decode($outData, true);
-        if ($outData) {
-            file_put_contents('../runtime/logs/menu.txt', serialize($outData));
-            dump($outData);
+        if (!$outData) {
+            return $this->asJson(['success' => false, 'data' => 'Token has been expired']);
         }
-        return 'Token expired';
+        file_put_contents('../runtime/logs/menu.txt', serialize($outData));
+        dump($outData);
     }
 
-    //parse menu from the file to the DB
+    /**
+     * @SWG\Post(path="/api/iiko/export",
+     *     tags={"Iiko"},
+     *     @SWG\Response(
+     *         response = 200,
+     *         description = "parse menu from the file to the DB",
+     *     ),
+     * )
+     */
     public function actionExport()
     {
         $menuData = unserialize(file_get_contents('../runtime/logs/menu.txt'));
-        //if enabled try - catch block, cant receive the stack trace of the error
-
-        // try {
         $menuParser = new ImportHelper();
         $menuParser->parse($menuData);
-        // } catch (Exception $e) {
-        //     echo 'Error: ' . $e->getMessage();
-        //     exit; 
-        // }
+        return $this->asJson(['success' => true, 'data' => 'DB was fullfilled']);
     }
 
-    //типы оплаты от айко
+    /**
+     * @SWG\Post(path="/api/iiko/get-payment-type-id",
+     *     tags={"Iiko"},
+     *     @SWG\Response(
+     *         response = 200,
+     *         description = "get the available payment types from iiko",
+     *     ),
+     * )
+     */
     public function actionGetPaymentTypeId()
     {
         $token = Yii::$app->session->get('apiToken');
         if (!$token) {
-            dd('Token not found');
+            return $this->asJson(['success' => false, 'data' => 'Token not found']);
         }
 
         $url = 'https://api-ru.iiko.services/api/1/payment_types';
@@ -145,26 +179,29 @@ class IikoController extends ApiController
         curl_close($ch);
         $outData = json_decode($outData, true);
         if (!$outData) {
-            $this->actionKey();
-            dd("Probably token has been expired");
+            return $this->asJson(['success' => false, 'data' => 'Token has been expired']);
         }
 
         ImportHelper::processPaymentTypes($outData['paymentTypes']);
-
-        dd($outData);
+        return $this->asJson(['success' => true, 'data' => $outData]);
     }
 
-    //получаю айди столов от айко
+    /**
+     * @SWG\Post(path="/api/iiko/get-table-ids",
+     *     tags={"Iiko"},
+     *     @SWG\Response(
+     *         response = 200,
+     *         description = "get the table info from iiko",
+     *     ),
+     * )
+     */
     public function actionGetTableIds()
     {
         $token = Yii::$app->session->get('apiToken');
         if (!$token) {
-            dd('Token not found');
+            return $this->asJson(['success' => false, 'data' => 'Token not found']);
         }
-        $organizationId = Yii::$app->session->get('organizationId');
-        if (!$organizationId) {
-            dd('Organization Id not found');
-        }
+
         $url = 'https://api-ru.iiko.services/api/1/reserve/available_restaurant_sections';
         $data = ['terminalGroupIds' => [self::TERMINAL_GROUP_ID]];
 
@@ -184,20 +221,30 @@ class IikoController extends ApiController
         $outData = json_decode($outData, true);
 
         if (!$outData) {
-            $this->actionKey();
-            dd("Probably token has been expired");
+            return $this->asJson(['success' => false, 'data' => 'Token has been expired']);
         }
+
         ImportHelper::processTables($outData['restaurantSections'][0]['tables']);
 
-        dd($outData);
+        return $this->asJson(['success' => true, 'data' => $outData]);
+
     }
 
+    /**
+     * @SWG\Post(path="/api/iiko/terminal",
+     *     tags={"Iiko"},
+     *     @SWG\Response(
+     *         response = 200,
+     *         description = "get the terminal info from the iiko",
+     *     ),
+     * )
+     */
     //получаю айди терминала
     public function actionTerminal()
     {
         $token = Yii::$app->session->get('apiToken');
         if (!$token) {
-            dd('Token not found');
+            return $this->asJson(['success' => false, 'data' => 'Token not found']);
         }
 
         $url = 'https://api-ru.iiko.services/api/1/terminal_groups';
@@ -218,26 +265,41 @@ class IikoController extends ApiController
         curl_close($ch);
         $outData = json_decode($outData, true);
         if (!$outData) {
-            $this->actionKey();
-            dd("Probably token has been expired");
+            return $this->asJson(['success' => false, 'data' => 'Token has been expired']);
         }
-        dd($outData);
+        return $this->asJson(['success' => true, 'data' => $outData]);
+
     }
 
+    /**
+     * @SWG\Post(path="/api/iiko/order",
+     *     tags={"Iiko"},
+     *      @SWG\Parameter(
+     *      name="orderId",
+     *      in="formData",
+     *      type="integer"
+     *      ),
+     *     @SWG\Response(
+     *         response = 200,
+     *         description = "Отправить заказ в айко",
+     *         @SWG\Schema(ref = "#/definitions/Products")
+     *     ),
+     * )
+     */
     //создать заказ
     public function actionOrder()
     {
         $token = Yii::$app->session->get('apiToken');
         if (!$token) {
-            throw new \Exception('Iiko API token has been expired');
+            return $this->asJson(['success' => false, 'data' => 'Token not found']);
         }
 
         $request = Yii::$app->request;
-        if (!$request->isPost || !$request->post('id')) {
+        if (!$request->isPost || !$request->post('orderId')) {
             return $this->asJson(['error' => 'empty request']);
         }
 
-        $data = $this->prepareDataForOrder($request->post('id'));
+        $data = $this->prepareDataForOrder($request->post('orderId'));
 
         $url = 'https://api-ru.iiko.services/api/1/order/create';
 
@@ -255,16 +317,17 @@ class IikoController extends ApiController
         $outData = curl_exec($ch);
         curl_close($ch);
         $outData = json_decode($outData, true);
-        if ($outData) {
-            dd($outData);
+        if (!$outData) {
+            return $this->asJson(['success' => false, 'data' => 'Token has been expired']);
         }
-        return 'Token expired';
+        return $this->asJson(['success' => true, 'data' => $outData]);
     }
-    private function prepareDataForOrder(int $orderId): array
+
+    private function prepareDataForOrder(int $orderId)
     {
         $table = Table::getTable();
         if (!$table) {
-            throw new \Exception('Table is undefined');
+            return $this->asJson(['success' => false, 'data' => 'Table not found']);
         }
 
         $filter = [
@@ -276,9 +339,12 @@ class IikoController extends ApiController
             ->joinWith('basket')
             ->joinWith('basket.items')
             ->joinWith('basket.items.product')
-            ->joinWith('productPropertiesValues.property')
             ->asArray()
             ->one();
+
+        if (!$order) {
+            return $this->asJson(['success' => false, 'data' => 'Order not found']);
+        }
 
         $arItems = [];
         foreach ($order['basket']['items'] as $item) {
@@ -300,8 +366,8 @@ class IikoController extends ApiController
         }
         $paymentType = PaymentType::find()->where(['payment_type_kind' => $order['payment_method']])->one();
 
-        if(!$paymentType || $paymentType->is_deleted){
-            throw new \Exception('Choosen payment method is unavailable');
+        if (!$paymentType || $paymentType->is_deleted) {
+            return $this->asJson(['success' => false, 'data' => 'Choosen payment method is unavailable']);
         }
 
         $data = [

@@ -50,7 +50,7 @@ class UserController extends ApiController
      *     @SWG\Response(
      *         response = 200,
      *         description = "User collection response",
-     *         @SWG\Schema(ref = "#/definitions/AddressList")
+     *         @SWG\Schema(ref = "#/definitions/Products")
      *     ),
      * )
      */
@@ -78,7 +78,7 @@ class UserController extends ApiController
      *     @SWG\Response(
      *         response = 200,
      *         description = "User collection response",
-     *         @SWG\Schema(ref = "#/definitions/AddressList")
+     *         @SWG\Schema(ref = "#/definitions/Products")
      *     ),
      * )
      */
@@ -122,7 +122,7 @@ class UserController extends ApiController
      *     @SWG\Response(
      *         response = 200,
      *         description = "User collection response",
-     *         @SWG\Schema(ref = "#/definitions/AddressList")
+     *         @SWG\Schema(ref = "#/definitions/Products")
      *     ),
      * )
      */
@@ -161,8 +161,8 @@ class UserController extends ApiController
      *      ),
      *     @SWG\Response(
      *         response = 200,
-     *         description = "Тарифы пользователя по адресу",
-     *         @SWG\Schema(ref = "#/definitions/AddressList")
+     *         description = "User collection response",
+     *         @SWG\Schema(ref = "#/definitions/Products")
      *     ),
      * )
      */
@@ -192,8 +192,8 @@ class UserController extends ApiController
      *      ),
      *     @SWG\Response(
      *         response = 200,
-     *         description = "Уведомления",
-     *         @SWG\Schema(ref = "#/definitions/AddressList")
+     *         description = "User collection response",
+     *         @SWG\Schema(ref = "#/definitions/Products")
      *     ),
      * )
      */
@@ -223,8 +223,8 @@ class UserController extends ApiController
      *     tags={"User"},
      *     @SWG\Response(
      *         response = 200,
-     *         description = "Уведомления",
-     *         @SWG\Schema(ref = "#/definitions/AddressList")
+     *         description = "User collection response",
+     *         @SWG\Schema(ref = "#/definitions/Products")
      *     ),
      * )
      */
@@ -648,8 +648,8 @@ class UserController extends ApiController
      *     tags={"User"},
      *     @SWG\Response(
      *         response = 200,
-     *         description = "Log out user",
-     *         @SWG\Schema(ref = "#/definitions/AddressList")
+     *         description = "User collection response",
+     *         @SWG\Schema(ref = "#/definitions/Products")
      *     ),
      * )
      */
@@ -692,8 +692,8 @@ class UserController extends ApiController
      *      ),
      *     @SWG\Response(
      *         response = 200,
-     *         description = "результат быстрой реги",
-     *         @SWG\Schema(ref = "#/definitions/AddressList")
+     *         description = "User collection response",
+     *         @SWG\Schema(ref = "#/definitions/Products")
      *     ),
      * )
      */

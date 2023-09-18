@@ -2,9 +2,7 @@
 
 namespace app\models\tables;
 
-use app\common\Util;
 use app\models\Base;
-use Yii;
 
 class Order extends Base
 {
@@ -71,57 +69,6 @@ class Order extends Base
     }
 
 
-    // быстрое создание заказа (создаем сущность таблицы и товаров в таблице)
-    // public function makeFast($result, $total, $address, $is_express, $return_bottles, $bonus_add, $bonus_remove, $payment_method, $period, $period_comment, $pledge_price)
-    // {
-    //     $transaction = Yii::$app->db->beginTransaction();
-    //     $period = json_decode($period, 1);
-    //     $period_comment = json_decode($period_comment, 1);
-    //     $orderVars = [
-    //         'user_id' => Yii::$app->user->identity->getId(),
-    //         'address_id' => $address,
-    //         'payment_method' => $payment_method,
-    //         'order_sum' => $total,
-    //         'status' => Order::STATUS_NEW,
-    //         'updated' => date('Y-m-d H:i:s'),
-    //         'period_start' => date('Y-m-d H:i:s', @$period['start']),
-    //         'period_end' => date('Y-m-d H:i:s', @$period['end']),
-    //         'period_id' => ((isset($period['period_id'])) ? $period['period_id'] : 0),
-    //         'period_comment' => ((isset($period_comment['correction_id'])) ? $period_comment['correction_id'] : ""),
-    //         'period_comment_text' => (isset($period_comment['correction_name']) ? $period_comment['correction_name'] : ""),
-    //     ];
-    //     $this->load($orderVars, '');
-    //     $orderBasket = new Basket();
-    //     // $orderBasket->fuser_id = \app\models\Fuser::getUserId();
-    //     $orderBasket->is_express = $is_express;
-    //     $this->order_sum = $this->order_sum - $this->bonus_remove + $pledge_price;
-    //     $this->save();
-    //     if ($this->errors) {
-    //         $transaction->rollBack();
-    //         //$this->errors[] = 'cant save order';
-    //         return [false, $this->errors];
-    //     }
-    //     $orderBasket->order_id = $this->id;
-    //     $orderBasket->save();
-
-    //     foreach ($result['items'] as $item) {
-    //         $obBasketItem = new BasketItem();
-    //         $obBasketItem->basket_id = $orderBasket->id;
-    //         $obBasketItem->product_id = $item['product']['id'];
-    //         $obBasketItem->quantity = $item['quantity'];
-    //     }
-
-    //     if ($orderBasket->errors) {
-    //         $transaction->rollBack();
-    //         $orderBasket->errors[] = 'cant save basket item';
-    //         return [false, $orderBasket->errors];
-    //     }
-    //     $transaction->commit();
-    //     $this->updateBonusBalance();
-    //     return [true, []];
-    // }
-
-
     // создание заказа
     public function make($orderVars)
     {
@@ -129,34 +76,23 @@ class Order extends Base
 
         $obTable = Table::getTable();
         if (!$obTable)
-            throw new \Exception("Table number is missing in current session");
+            throw new \Exception("Table number is missing");
 
         $this->table_id = $obTable->id;
 
         $orderBasket = Basket::find()->where(['baskets.id' => $orderVars['basket_id']])->one();
-        $result = Basket::find()
-            ->joinWith('items')
-            ->joinWith('items.product')
-            ->joinWith('items.product.productSizePrices.price')
-            ->where(['baskets.id' => $orderVars['basket_id']])
-            ->cache(false)->asArray()->one();
 
-        $basket_total = 0;
-        if (isset($result['items'])) {
-            $basket_total = Util::prepareItems($result['items']);
-        }
-
-        $this->order_sum = $basket_total;
+        $this->order_sum = $orderBasket->basket_total;
         $this->status = Order::STATUS_NEW;
         $this->basket_id = (int) $orderVars['basket_id'];
         
-        if ($success = $this->save()) {
-            $orderBasket->order_id = $this->id;
-            if(!$orderBasket->save()){
-                throw new \Exception("Error occured while saving basket: " . print_r($orderBasket->errors, true));
-            }
+        if (!$this->save()) {
+            throw new \Exception("Error occured while saving Order: " . print_r($this->errors, true));
         }
-
-        return $success;
+        $orderBasket->order_id = $this->id;
+        if (!$orderBasket->save()) {
+            throw new \Exception("Error occured while saving basket: " . print_r($orderBasket->errors, true));
+        }
+        return true;
     }
 }
