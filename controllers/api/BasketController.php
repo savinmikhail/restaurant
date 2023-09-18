@@ -77,14 +77,11 @@ class BasketController extends OrderableController
      *      type="integer"
      *      ),
      *      @SWG\Parameter(
-     *      name="modifier_id",
+     *      name="modifiers[]",
      *      in="formData",
-     *      type="integer"
-     *      ),
-     *      @SWG\Parameter(
-     *      name="modifier_quantity",
-     *      in="formData",
-     *      type="integer"
+     *      type="array",
+     *      collectionFormat="multi",
+     *      @SWG\Items(ref = "#/definitions/requestModifiers") 
      *      ),
      *      @SWG\Parameter(
      *      name="size_id",
@@ -93,25 +90,22 @@ class BasketController extends OrderableController
      *      ),
      *     @SWG\Response(
      *         response = 200,
-     *         description = "Положить товар в корзину",
+     *         description = "Добавить товар в корзину",
      *         @SWG\Schema(ref = "#/definitions/Products")
      *     ),
      * )
      */
     public function actionAdd()
     {
-        $request = \Yii::$app->request;
-
-        list($productId, $quantity, $modifierId, $modifierQuantity, $sizeId) = [
-            $request->post('product_id'),
-            $request->post('quantity'),
-            $request->post('modifier_id'),
-            $request->post('modifier_quantity'),
-            $request->post('size_id')
+        $request = \Yii::$app->request->post();
+        list($productId, $quantity, $modifiers, $sizeId) = [
+            $request['product_id'],
+            $request['quantity'],
+            $request['modifiers'],
+            $request['size_id']
         ];
-
         try {
-            $this->getBasket()->addItem($productId, $quantity, $modifierId, $modifierQuantity, $sizeId);
+            $this->getBasket()->addItem($productId, $quantity, $modifiers, $sizeId);
         } catch (\Exception $e) {
             return $this->asJson(['status' => 0, 'error' => $e->getMessage(), 'code' => $e->getCode()]);
         }

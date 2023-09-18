@@ -39,6 +39,7 @@ class OrderableController extends ApiController
             ->joinWith('items')
             ->joinWith('items.product')
             ->joinWith('items.product.categories')
+            ->joinWith('items.modifiers')
             ->joinWith('items.product.productSizePrices.price')
             ->where($arFilter)->cache(false)->asArray()->one();
     }
