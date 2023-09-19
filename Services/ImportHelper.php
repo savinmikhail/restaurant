@@ -48,7 +48,7 @@ class ImportHelper
         $obGroupValues = [
             'external_id' => $arGroup['id'],
             'name' => $arGroup['name'],
-            'active' => !$arGroup['isDeleted']
+            'is_deleted' => $arGroup['isDeleted']
         ];
         $obGroup->load($obGroupValues, '');
         if (!$obGroup->save()) {
@@ -65,7 +65,7 @@ class ImportHelper
         $obCategoryValues = [
             'external_id' => $arCategory['id'],
             'name' => $arCategory['name'],
-            'active' => !$arCategory['isDeleted']
+            'is_deleted' => $arCategory['isDeleted']
         ];
         $obCategory->load($obCategoryValues, '');
         if (!$obCategory->save()) {
@@ -99,7 +99,7 @@ class ImportHelper
             'external_id' => $arProduct['id'],
             'name' => $arProduct['name'],
             'description' => $arProduct['description'] ?? '',
-            'active' => !$arProduct['isDeleted'],
+            'is_deleted' => $arProduct['isDeleted'],
             'sort' => $arProduct['order'],
             'category_id' => $category ? $category->id : null
         ];

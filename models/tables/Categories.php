@@ -6,9 +6,6 @@ use app\models\Base;
 
 class Categories extends Base
 {
-    protected $int_vals = [
-        'active',
-    ];
 
     public function rules()
     {
@@ -16,7 +13,7 @@ class Categories extends Base
             [['name'], 'required'],
             [['name', 'image', 'description', 'external_id'], 'string'],
             [['image'], 'string', 'skipOnEmpty' => true],
-            [['sort', /*'parent_id', */'active'], 'integer'],
+            [['sort', 'is_deleted'], 'integer'],
         ];
     }
 

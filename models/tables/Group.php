@@ -24,9 +24,9 @@ class Group extends Base
     public function rules()
     {
         return [
-            [['name',  'active', 'external_id'], 'required'],
+            [['name',  'is_deleted', 'external_id'], 'required'],
             [['external_id', 'name'], 'string'],
-            [['active'], 'boolean'],
+            [['is_deleted'], 'boolean'],
         ];
     }
 }

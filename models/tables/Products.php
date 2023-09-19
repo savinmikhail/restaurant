@@ -12,17 +12,14 @@ use app\models\tables\Categories;
 
 class Products extends Base
 {
-    protected $int_vals = [
-        'active',
-    ];
 
     public function rules()
     {
         return [
             [['name', 'sort', ], 'required'],
             [['base_price', ], 'double'],
-            [['sort', 'active', 'category_id'], 'integer'],
-            [[ 'active',  ], 'boolean'],
+            [['sort', 'is_deleted', 'category_id'], 'integer'],
+            [['is_deleted',  ], 'boolean'],
             [['description', 'name', 'external_id'], 'string'],
             [['image'], 'string', 'skipOnEmpty' => true],
         ];
