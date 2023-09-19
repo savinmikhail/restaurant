@@ -66,6 +66,8 @@ $config = [
                 ],
                 '/admin/order/<id:\d+>' => 'admin/orders/content',
                 '/admin/tables' => 'admin/table/index',
+                '/admin/settings' => 'admin/setting/index',
+
 
                 ['class' => 'yii\rest\UrlRule', 'controller' => 'api/product'],
                 ['class' => 'yii\rest\UrlRule', 'controller' => 'api/basket'],

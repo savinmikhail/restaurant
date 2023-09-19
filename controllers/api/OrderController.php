@@ -5,6 +5,7 @@ namespace app\controllers\api;
 use app\controllers\api\OrderableController;
 use app\models\forms\OrderForm;
 use app\models\tables\Order;
+use app\models\tables\Setting;
 use app\models\tables\Table;
 use Endroid\QrCode\Color\Color;
 use Endroid\QrCode\Encoding\Encoding;
@@ -199,7 +200,10 @@ class OrderController extends OrderableController
 */
     private function finalAction($order, $request)
     {
-
+        $obSetting = Setting::find()->where(['name' => 'order_limit'])->one();
+        if ($obSetting && $order->order_sum > $obSetting->value) {
+            return $this->asJson(['success' => true, 'data' => 'You need to call the waiter for further processing']);
+        }
         if ($request->post('payment_method') === 'cash') {
             $obQueue = new \app\models\tables\Queue();
             $obQueue->order_id = $order->id;

@@ -4,9 +4,9 @@
 <aside class="main-sidebar sidebar-dark-primary elevation-4">
     <!-- Brand Logo -->
     <a href="/admin/" class="brand-link">
-        <img src="/upload/logo.png" alt="Ключевая вода APP" class="brand-image img-circle elevation-3"
+        <img src="/upload/logo.png" alt="Ключевая вода APP" class=""
             style="opacity: 1;background-color:#fff;">
-        <span class="brand-text font-weight-light">Ключевая Вода</span>
+        <span class="brand-text font-weight-light">Кинцуги</span>
     </a>
 
     <!-- Sidebar -->
@@ -33,8 +33,8 @@
                     ['label' => 'Товары', 'iconStyle' => 'far', 'url' => ['/admin/products'], 'visible' => (!Yii::$app->user->isGuest)],
                     ['label' => 'Заказы', 'iconStyle' => 'far', 'url' => ['/admin/orders'], 'visible' => (!Yii::$app->user->isGuest)],
                     ['label' => 'Стол', 'iconStyle' => 'far', 'url' => ["/admin/tables"], 'visible' => (!Yii::$app->user->isGuest)],
+                    ['label' => 'Настройки', 'iconStyle' => 'far', 'url' => ["/admin/settings"], 'visible' => (!Yii::$app->user->isGuest)],
                     ['label' => 'Выход', 'iconClass' => 'nav-icon fas fa-sign-out-alt', 'url' => ['/admin/logout'], 'visible' => (!Yii::$app->user->isGuest)],
-                   
                 ],
             ]);
             ?>
