@@ -38,7 +38,7 @@ class CatalogController extends ApiController
      */
     public function actionCategories()
     {
-        $categories = Categories::find()->where(['active' => 1])->addOrderBy(['sort' => SORT_ASC])->all();
+        $categories = Categories::find()->where(['is_deleted' => 0])->addOrderBy(['sort' => SORT_ASC])->all();
         if ($categories) {
             foreach ($categories as &$cat) {
                 $cat['image'] = ($cat['image']) ? $cat['image'] . '?t=' . time() : '';
@@ -120,7 +120,7 @@ class CatalogController extends ApiController
     public function actionPopular()
     {
         $result = Products::find()
-            ->where(['products.active' => 1, 'products.is_popular' => 1])
+            ->where(['products.is_deleted' => 0, 'products.is_popular' => 1])
             ->andWhere(['>', 'products.quantity', 0])
             ->joinWith([
                 'productProperties',
@@ -198,7 +198,7 @@ class CatalogController extends ApiController
             $limit = (($request->post('limit'))) ? intval($request->post('limit')) : 2000;
             $result = [];
             $result = Products::find()
-                ->where(['products.active' => 1])
+                ->where(['products.is_deleted' => 0])
                 ->joinWith([
                     'productProperties',
                     'productProperties.property',
@@ -243,7 +243,7 @@ class CatalogController extends ApiController
     {
         $result = [];
         $result = Products::find()
-            ->where(['products.active' => 1])
+            ->where(['products.is_deleted' => 0])
             ->andWhere(['>', 'products.quantity', "0"])
             ->joinWith([
                 'productImages',

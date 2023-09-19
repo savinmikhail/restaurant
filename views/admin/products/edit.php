@@ -55,13 +55,13 @@ use yii\helpers\Html;
                         ->label('Наименование')
                         ->textInput(['placeholder' => $model->getAttributeLabel('Наименование')]); ?>
                     
-                    <?= $form->field($model, 'active', [
+                    <?= $form->field($model, 'is_deleted', [
                         'options' => ['class' => 'form-group'],
                         'template' => '{label}{beginWrapper}{input}{error}{endWrapper}',
                         'wrapperOptions' => ['class' => 'mb-3'],
                     ])
                         ->label('Активность')
-                        ->checkbox(['value' => 1, 'checked' => ($model->active == 1)])->label('Активность'); ?>
+                        ->checkbox(['value' => 1, 'checked' => ($model->is_deleted == 0)])->label('Активность'); ?>
                     
                     <? /* $form->field($model, 'is_popular', [
                         'options' => ['class' => 'form-group'],
@@ -94,94 +94,6 @@ use yii\helpers\Html;
                     ])
                         ->dropdownList($categories)->label('Категория'); ?>
 
-                    <?= $form->field($model, 'base_price', [
-                        'options' => ['class' => 'form-group'],
-                        'template' => '{label}{beginWrapper}{input}{error}{endWrapper}',
-                        'wrapperOptions' => ['class' => 'input-group mb-3'],
-                    ])
-                        ->label('Базовая стоимость')
-                        ->textInput(['placeholder' => $model->getAttributeLabel('Базовая стоимость')]); ?>
-                    
-                    <? //$form->field($model, 'delivery_separately', [
-                    //     'options' => ['class' => 'form-group'],
-                    //     'template' => '{label}{beginWrapper}{input}{error}{endWrapper}',
-                    //     'wrapperOptions' => ['class' => 'mb-3'],
-                    // ])
-                    //     ->label('Раздельная доставка')
-                    //     ->checkbox(['value' => 1, 'checked' => ($model->delivery_separately == 1)])->label('Раздельная доставка'); ?>
-
-                    <?/*= $form->field($model, 'is_bonus_item', [
-                        'options' => ['class' => 'form-group'],
-                        'template' => '{label}{beginWrapper}{input}{error}{endWrapper}',
-                        'wrapperOptions' => ['class' => 'mb-3'],
-                    ])
-                        ->label('Бонусный товар')
-                        ->checkbox(['value' => 1, 'checked' => ($model->is_bonus_item == 1)])->label('Бонусный товар');*/ ?>
-                    
-                    <?/*= $form->field($model, 'bonus_price', [
-                        'options' => ['class' => 'form-group'],
-                        'template' => '{label}{beginWrapper}{input}{error}{endWrapper}',
-                        'wrapperOptions' => ['class' => 'input-group mb-3'],
-                    ])
-                        ->label('Стомость в бонусах')
-                        ->textInput(['placeholder' => $model->getAttributeLabel('Стомость в бонусах')]); */?> 
-
-                    <?/*= $form->field($model, 'pack_count', [
-                        'options' => ['class' => 'form-group'],
-                        'template' => '{label}{beginWrapper}{input}{error}{endWrapper}',
-                        'wrapperOptions' => ['class' => 'input-group mb-3'],
-                    ])
-                        ->label('Кол-во в упаковке')
-                        ->textInput(['placeholder' => $model->getAttributeLabel('Кол-во в упаковке')]); */?> 
-
-                    <?/*= $form->field($model, 'visibility', [
-                        'options' => ['class' => 'form-group'],
-                        'template' => '{label}{beginWrapper}{input}{error}{endWrapper}',
-                        'wrapperOptions' => ['class' => 'mb-3'],
-                    ])
-                        ->label('Видимость')
-                        ->checkbox(['value' => 1, 'checked' => ($model->visibility == 1)])->label('Видимость'); */?>
-                    
-                    <?/*= $form->field($model, 'express_delivery_enabled', [
-                        'options' => ['class' => 'form-group'],
-                        'template' => '{label}{beginWrapper}{input}{error}{endWrapper}',
-                        'wrapperOptions' => ['class' => 'mb-3'],
-                    ])
-                        ->label(false)
-                        ->checkbox(['value' => 1, 'checked' => ($model->express_delivery_enabled == 1)])->label('Доступна быстрая доставка'); */?>
-                                        
-                    <?/*= $form->field($model, 'express_delivery_price', [
-                        'options' => ['class' => 'form-group'],
-                        'template' => '{label}{beginWrapper}{input}{error}{endWrapper}',
-                        'wrapperOptions' => ['class' => 'input-group mb-3'],
-                    ])
-                        ->label('Стоимость экспресс-доставки')
-                        ->textInput(['placeholder' => $model->getAttributeLabel('Стоимость экспресс-доставки')]); */?>    
-                    
-                    <?/*= $form->field($model, 'cashback_percent', [
-                        'options' => ['class' => 'form-group'],
-                        'template' => '{label}{beginWrapper}{input}{error}{endWrapper}',
-                        'wrapperOptions' => ['class' => 'input-group mb-3'],
-                    ])
-                        ->label('Процент кэшбека')
-                        ->textInput(['placeholder' => $model->getAttributeLabel('Процент кэшбека')]); */?>    
-                    
-                    <?/*= $form->field($model, 'allow_cashback', [
-                        'options' => ['class' => 'form-group'],
-                        'template' => '{label}{beginWrapper}{input}{error}{endWrapper}',
-                        'wrapperOptions' => ['class' => 'mb-3'],
-                    ])
-                        ->label(false)
-                        ->checkbox(['value' => 1, 'checked' => ($model->allow_cashback == 1)])->label('Кэшбек разрешен'); */?>
-                    
-                    <?/*= $form->field($model, 'quantity', [
-                        'options' => ['class' => 'form-group'],
-                        'template' => '{label}{beginWrapper}{input}{error}{endWrapper}',
-                        'wrapperOptions' => ['class' => 'input-group mb-3'],
-                    ])
-                        ->label('В наличии')
-                        ->textInput(['placeholder' => $model->getAttributeLabel('В наличии шт')]);*/ ?>    
-                    
                     <?= $form->field($model, 'image', [
                         'options' => ['class' => 'form-group'],
                         'template' => '{label} {beginWrapper}{input}{error}{endWrapper}',

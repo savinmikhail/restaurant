@@ -20,6 +20,8 @@ $this->title = 'Стол';
                 </div>
 
                 <?= Html::submitButton('Применить', ['class' => 'btn btn-primary btn-sm align-self-center mt-4']); ?>
+                <a href="/admin/table/close-table"><b>Закрыть стол</b></a>
             </div>
         </div>
     </div>
+</form>

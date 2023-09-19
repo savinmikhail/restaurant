@@ -58,6 +58,8 @@ $config = [
 
                 ['class' => 'yii\rest\UrlRule', 'controller' => 'admin/category'],
                 ['class' => 'yii\rest\UrlRule', 'controller' => 'admin/product'],
+                ['class' => 'yii\rest\UrlRule', 'controller' => 'admin/table'],
+
                 [
                     'class' => 'yii\rest\UrlRule', 'controller' => 'admin/orders',
                     'extraPatterns' => [
@@ -65,7 +67,6 @@ $config = [
                     ]
                 ],
                 '/admin/order/<id:\d+>' => 'admin/orders/content',
-                '/admin/tables' => 'admin/table/index',
                 '/admin/settings' => 'admin/setting/index',
 
 

@@ -10,7 +10,7 @@ use yii\base\Model;
  */
 class CategoryForm extends Model
 {
-    public $name, $description, $sort, $image, $parent_id, $id, $active, $removeImage;
+    public $name, $description, $sort, $image, $parent_id, $id, $is_deleted, $removeImage;
     /**
      * @return array the validation rules.
      */
@@ -18,7 +18,7 @@ class CategoryForm extends Model
     {
         return [
             [['name', 'sort'], 'required'],
-            [['parent_id', 'sort', 'active'], 'integer'],
+            [['parent_id', 'sort', 'is_deleted'], 'integer'],
             [['description', 'name'], 'string'],
             ['image', 'string', 'skipOnEmpty' => true]
         ];

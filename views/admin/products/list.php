@@ -57,7 +57,7 @@ $this->title = 'Товары';
                     <?= $item->id; ?>
                 </td>
                 <td>
-                    <?= ($item->active == 1) ? 'Да' : 'Нет'; ?>
+                    <?= ($item->is_deleted == 0) ? 'Да' : 'Нет'; ?>
                 </td>
                 <td>
                     <img src="<?= $item->image ?: 'noimage.jpg'; ?>" width=100>

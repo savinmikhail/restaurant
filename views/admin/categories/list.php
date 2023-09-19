@@ -17,7 +17,7 @@
                     <?= $cat->id ?>
                 </td>
                 <td>
-                    <?= ($cat->active == 1) ? 'Да' : 'Нет' ?>
+                    <?= ($cat->is_deleted == 0) ? 'Да' : 'Нет' ?>
                 </td>
                 <td>
                     <img src="<?= $cat->image ?: 'noimage.jpg' ?>" width=100>

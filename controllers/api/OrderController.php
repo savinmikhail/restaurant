@@ -204,11 +204,12 @@ class OrderController extends OrderableController
         if ($obSetting && $order->order_sum > $obSetting->value) {
             return $this->asJson(['success' => true, 'data' => 'You need to call the waiter for further processing']);
         }
-        if ($request->post('payment_method') === 'cash') {
+        if ($request->post('payment_method') === 'Cash') {
             $obQueue = new \app\models\tables\Queue();
             $obQueue->order_id = $order->id;
             $obQueue->retries = 0;
             $obQueue->save();
+            return $this->asJson(['success' => true, 'data' => 'You need to call the waiter for further processing']);
         }
 
         $result = [

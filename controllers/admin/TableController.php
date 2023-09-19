@@ -4,6 +4,8 @@ namespace app\controllers\admin;
 
 use Yii;
 use \app\controllers\AdminController;
+use app\models\tables\Basket;
+use app\models\tables\Order;
 use app\models\tables\Table;
 
 class TableController extends AdminController
@@ -25,4 +27,21 @@ class TableController extends AdminController
         ]);
     }
 
+    public function actionCloseTable()
+    {
+        $table = Table::getTable();
+        //очистить корзину
+        $basket = Basket::find()->where(['table_id' => $table->id])->one();
+        $basket->clear();
+        //удалить заказы с этого стола
+        $orders = Order::find()->where(['table_id' => $table->id])->all();
+        if(is_array($orders)){
+            foreach($orders as $order){
+                $order->delete();
+            }
+        }
+        return $this->render('/admin/table/view', [
+            'table' => $table,
+        ]);
+    }
 }

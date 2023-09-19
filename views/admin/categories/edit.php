@@ -56,13 +56,13 @@ use yii\helpers\Html;
                         ->textInput(['placeholder' => $model->getAttributeLabel('Сортировка')]) ?>
 
 
-                    <?= $form->field($model, 'active', [
+                    <?= $form->field($model, 'is_deleted', [
                         'options' => ['class' => 'form-group'],
                         'template' => '{beginWrapper}{input}{error}{endWrapper}',
                         'wrapperOptions' => ['class' => 'mb-3']
                     ])
                         ->label(false)
-                        ->checkbox(['value' => 1, 'checked' => ($model->active == 1)])->label('Активность') ?>
+                        ->checkbox(['value' => 1, 'checked' => ($model->is_deleted == 0)])->label('Активность') ?>
 
                     <?/*= $form->field($model, 'parent_id', [
                         'options' => ['class' => 'form-group'],
