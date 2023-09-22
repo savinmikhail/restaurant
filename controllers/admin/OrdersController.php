@@ -2,11 +2,13 @@
 
 namespace app\controllers\admin;
 
+use app\common\Util;
 use app\models\forms\AdminOrderForm;
 use app\models\tables\Order;
 use Yii;
 use yii\data\Pagination;
 use \app\controllers\AdminController;
+use app\models\tables\Basket;
 use app\models\tables\BasketItem;
 use app\models\tables\Products;
 use app\models\tables\Size;
@@ -133,8 +135,28 @@ class OrdersController extends AdminController
         $this->editQuantities($form, $obOrder);
         $this->editIds($form);
         $this->editSize($form);
+        $this->setPrice($obOrder);
     }
 
+    private function setPrice(Order $obOrder)
+    {
+        $result = Basket::find()
+            ->joinWith('items')
+            ->joinWith('items.product')
+            ->joinWith('items.product.productSizePrices.price')
+            ->where(['baskets.id' => $obOrder->basket_id])
+            ->cache(false)
+            ->asArray()
+            ->one();
+
+        $total = Util::prepareItems($result['items']);
+
+        $obOrder->order_sum = $total;
+        if(!$obOrder->save()){
+            throw new \Exception("Failed to save order: " . print_r($obOrder->errors, true));
+        }
+        
+    }
     private function editQuantities(AdminOrderForm $form, Order $obOrder)
     {
         foreach ($form->product_quantity as $itemId => $quantity) {
@@ -145,8 +167,8 @@ class OrdersController extends AdminController
                     $obItem->basket_id = $obOrder->basket_id;
                     $obItem->product_id = $form->product_id[0];
                     $obItem->quantity = $quantity;
-                    $obItem->size_id = $form->product_size[0]; 
-                    $obItem->price = 200; //MAGIC VALUE
+                    $obItem->size_id = $form->product_size[0];
+                    $obItem->price = 0;
                     if (!$obItem->save()) {
                         throw new \Exception("Failed to update item quantity" . print_r($obItem->errors, true));
                     }
@@ -187,7 +209,7 @@ class OrdersController extends AdminController
 
     private function editSize(AdminOrderForm $form)
     {
-        foreach ($form->product_size as $itemId => $size_id) { //TODO: доставать объекты в родителе и передавать на изменение, в 3 раза меньше обращений в бд
+        foreach ($form->product_size as $itemId => $size_id) { 
             if ($itemId !== 0) {
                 $obItem = BasketItem::find()->where(['id' => $itemId])->one();
                 if ($obItem) {
@@ -222,7 +244,7 @@ class OrdersController extends AdminController
         ];
 
         $products = Products::find()
-            /*->where(['is_deleted' => 0])*/
+            /*->where(['is_deleted' => 0])*///TODO раскоментить когда будет нормальное меню
             // ->joinWith('productSizePrices.price')
             ->asArray()
             ->all();
@@ -233,6 +255,7 @@ class OrdersController extends AdminController
             $arAllSizes[$size['id']] = $size['name'];
         }
         //TODO: нужен джаваскрипт, чтоб для каждого продукта отображались только доступные ему размеры 
+
         // foreach ($products as $product) {
         //     foreach ($product['productSizePrices'] as $sizePrice) {
         //         if ($sizePrice['size_id']) {

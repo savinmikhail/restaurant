@@ -10,7 +10,7 @@ class Basket extends Base
     {
         return [
             [['table_id'], 'required'],
-            [['order_id', 'table_id', 'basket_total'], 'integer'],
+            [[/*'order_id', */'table_id', 'basket_total'], 'integer'],
             [['created_at', 'updated_at'], 'datetime', 'format' => 'php:Y-m-d H:i:s'],
         ];
     }

@@ -8,7 +8,6 @@ use app\models\tables\Modifier;
 use app\models\tables\Price;
 use app\models\tables\Products;
 use app\models\tables\SizePrice;
-use Yii;
 
 class Util
 {
@@ -56,7 +55,7 @@ class Util
                 }
             }
 
-            //если не существует (size_id = null)
+            //если не существует какого либо размера (size_id = null), применим первую попавшуюся
             if ($item['price'] === 0) {
                 foreach ($item['product']['productSizePrices'] as $sizePrice) {
                     //применяем ее цену, если она активна
