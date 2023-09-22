@@ -30,4 +30,9 @@ class Modifier extends Base
             [['required', 'hide_if_default_amount', 'splittable'], 'boolean'],
         ];
     }
+
+    public function getProduct()
+    {
+        return $this->hasOne(Products::class, ['external_id' => 'external_id']);
+    }
 }

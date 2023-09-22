@@ -23,7 +23,7 @@ class Util
 
             self::calcMainPrice($item);
 
-            self::applyModifiers($item); //calculate the sum of the modifiers
+            // self::applyModifiers($item); //calculate the sum of the modifiers
 
             $obBasketItem->price = $item['price'];
             $obBasketItem->save();

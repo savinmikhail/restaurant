@@ -33,14 +33,10 @@ class BasketItemModifier extends ActiveRecord
         return 'basket_item_modifiers';
     }
 
-    public function getProduct()
+    public function getModifier()
     {
-        return $this->hasOne(Products::class, ['id' => 'product_id']);
+        return $this->hasOne(Modifier::class, ['id' => 'modifier_id']);
     }
 
 
-    public function getBasket()
-    {
-        return $this->hasOne(Basket::class, ['id' => 'basket_id']);
-    }
 }

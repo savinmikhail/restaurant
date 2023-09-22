@@ -53,7 +53,7 @@ class Basket extends Base
         $this->save();
     }
 
-    public function addItem(int $productId, int $quantity, array $modifiers, int $sizeId)
+    public function addItem(int $productId, int $quantity, /*array $modifiers,*/ int $sizeId)
     {
         $arProduct = Products::find()->where(['id' => $productId])->asArray()->one();
         if (!$arProduct['id']) {
@@ -72,7 +72,7 @@ class Basket extends Base
             throw new \Exception("Failed to save Basket Item: " . print_r($obBasketItem->errors, true));
         }
 
-        $this->addModifier($modifiers, $obBasketItem->id);
+        // $this->addModifier($modifiers, $obBasketItem->id);
         return $obBasketItem;
     }
 

@@ -98,14 +98,14 @@ class BasketController extends OrderableController
     public function actionAdd()
     {
         $request = \Yii::$app->request->post();
-        list($productId, $quantity, $modifiers, $sizeId) = [
+        list($productId, $quantity, /*$modifiers,*/ $sizeId) = [
             $request['product_id'],
             $request['quantity'],
-            $request['modifiers'],
+            /*$request['modifiers'],*/
             $request['size_id']
         ];
         try {
-            $this->getBasket()->addItem($productId, $quantity, $modifiers, $sizeId);
+            $this->getBasket()->addItem($productId, $quantity, /*$modifiers,*/ $sizeId);
         } catch (\Exception $e) {
             return $this->asJson(['status' => 0, 'error' => $e->getMessage(), 'code' => $e->getCode()]);
         }
