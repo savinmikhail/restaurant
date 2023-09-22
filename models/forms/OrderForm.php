@@ -3,9 +3,6 @@
 namespace app\models\forms;
 
 use app\models\tables\Basket;
-use app\models\tables\Bonus;
-use app\models\User;
-use Yii;
 use yii\base\Model;
 
 /**

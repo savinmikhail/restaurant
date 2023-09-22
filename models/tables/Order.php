@@ -58,7 +58,7 @@ class Order extends Base
 
     public function getBasket()
     {
-        return $this->hasOne(\app\models\tables\Basket::class, ['order_id' => 'id']);
+        return $this->hasOne(\app\models\tables\Basket::class, ['id' => 'basket_id']);
     }
 
 

@@ -59,14 +59,16 @@ $config = [
                 ['class' => 'yii\rest\UrlRule', 'controller' => 'admin/category'],
                 ['class' => 'yii\rest\UrlRule', 'controller' => 'admin/product'],
                 ['class' => 'yii\rest\UrlRule', 'controller' => 'admin/table'],
+                ['class' => 'yii\rest\UrlRule', 'controller' => 'admin/orders'],
 
-                [
-                    'class' => 'yii\rest\UrlRule', 'controller' => 'admin/orders',
-                    'extraPatterns' => [
-                        'GET,POST' => 'index',
-                    ]
-                ],
-                '/admin/order/<id:\d+>' => 'admin/orders/content',
+
+                // [
+                //     'class' => 'yii\rest\UrlRule', 'controller' => 'admin/orders',
+                //     'extraPatterns' => [
+                //         'GET,POST' => 'index',
+                //     ]
+                // ],
+                // '/admin/order/<id:\d+>' => 'admin/orders/content',
                 '/admin/settings' => 'admin/setting/index',
 
 
