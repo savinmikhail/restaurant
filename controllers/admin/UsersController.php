@@ -71,4 +71,45 @@ class UsersController extends AdminController
 
         return Yii::$app->response->redirect(['/admin/users']);
     }
+
+    /**
+     * @SWG\Post(path="/admin/user/create",
+     *     tags={"User"},
+     *     summary="User registration.",
+     *     @SWG\Parameter(
+     *         name="login",
+     *         in="formData",
+     *         description="login",
+     *         required=true,
+     *         type="string"
+     *     ),
+     *     @SWG\Parameter(
+     *         name="password",
+     *         in="formData",
+     *         description="password",
+     *         required=true,
+     *         type="string"
+     *     ),
+     *     @SWG\Response(
+     *         response = 200,
+     *         description = "User object response",
+     *         @SWG\Schema(ref = "#/definitions/User")
+     *     ),
+     * )
+     */
+    public function actionCreate()
+    {
+        $userForm = new CreateUserForm;
+        $obUser = new User();
+        $obUser->load($userForm->getAttributes(), '');
+        $obUser->role = 'WAITER';
+
+        if (!$obUser->save()) {
+            return $this->asJson(['result' => false, 'errors' => $obUser->errors]);
+        }
+        Yii::$app->user->login($obUser, 3600 * 24 * 30);
+
+        return $this->asJson($obUser);
+    }
+
 }

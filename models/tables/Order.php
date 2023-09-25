@@ -68,7 +68,6 @@ class Order extends Base
         return $this->hasOne(\app\models\tables\Table::class, ['id' => 'table_id']);
     }
 
-
     // создание заказа
     public function make($orderVars)
     {
