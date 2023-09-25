@@ -85,13 +85,7 @@ class ImportHelper
             $obProduct = new Products;
         }
 
-        if (isset($arProduct['imageLinks']) && !empty($arProduct['imageLinks'])) {
-            $image = $arProduct['imageLinks'][0];
-            //если несколько картинок
-            if (isset($arProduct['imageLinks'][1])) {
-                $this->processProductImages($arProduct['imageLinks'], $obProduct->id);
-            }
-        }
+        $image = $this->processProductImages($arProduct, $obProduct->id);
 
         $category = Categories::find()->where(['external_id' => $arProduct['productCategoryId']])->one();
         $obProductValues = [
@@ -109,83 +103,122 @@ class ImportHelper
         }
 
         $this->processProductProps($arProduct, $obProduct->id);
-        foreach ($arProduct['sizePrices'] as $arSizePrice) {
-            $this->processSizePrices($arSizePrice, $obProduct->id);
-        }
-        if ($arProduct['modifiers']) {
-            $this->processProductModifiers($arProduct['modifiers'], $obProduct->id);
-        }
+        $this->processSizePrices($arProduct, $obProduct->id);
+        $this->processProductModifiers($arProduct, $obProduct->id);
+        $this->processProductGroupModifiers($arProduct, $obProduct->id);
+    }
+
+    private function processProductGroupModifiers(array $arProduct, int $productId)
+    {
         if ($arProduct['groupModifiers']) {
-            $this->processProductGroupModifiers($arProduct['groupModifiers'], $obProduct->id);
+            $groupModifiers = $arProduct['groupModifiers'];
+
+            foreach ($groupModifiers as $groupModifier) {
+                $obGroupModifier = GroupModifier::find()->where(['product_id' => $productId, 'external_id' => $groupModifier['id']])->one();
+                if (!$obGroupModifier) {
+                    $obGroupModifier = new GroupModifier;
+                    $obGroupModifier->product_id = $productId;
+                    $obGroupModifier->external_id = $groupModifier['id'];
+                }
+                $obGroupModifierValues = [
+                    "default_amount" => $groupModifier['defaultAmount'],
+                    "min_amount" => $groupModifier['minAmount'],
+                    "max_amount" => $groupModifier['maxAmount'],
+                    "required" => $groupModifier['required'],
+                    "hide_if_default_amount" => $groupModifier['hideIfDefaultAmount'],
+                    "splittable" => $groupModifier['splittable'],
+                    "free_of_charge_amount" => $groupModifier['freeOfChargeAmount'],
+                    'child_modifiers_have_min_max_restrictions' => $groupModifier['childModifiersHaveMinMaxRestrictions'],
+                ];
+                $obGroupModifier->load($obGroupModifierValues, '');
+                if (!$obGroupModifier->save()) {
+                    $this->handleError('Modifier', $obGroupModifier);
+                }
+                if ($groupModifier['childModifiers']) {
+                    $this->processProductModifiers($groupModifier['childModifiers'], $productId, $obGroupModifier->id);
+                }
+            }
         }
     }
 
-    private function processProductGroupModifiers(array $groupModifiers, int $productId)
+    private function processProductModifiers(array $arProduct, int $productId, $parentModifierId = null)
     {
-        foreach ($groupModifiers as $groupModifier) {
-            $obGroupModifier = GroupModifier::find()->where(['product_id' => $productId, 'external_id' => $groupModifier['id']])->one();
-            if (!$obGroupModifier) {
-                $obGroupModifier = new GroupModifier;
-                $obGroupModifier->product_id = $productId;
-                $obGroupModifier->external_id = $groupModifier['id'];
-            }
-            $obGroupModifierValues = [
-                "default_amount" => $groupModifier['defaultAmount'],
-                "min_amount" => $groupModifier['minAmount'],
-                "max_amount" => $groupModifier['maxAmount'],
-                "required" => $groupModifier['required'],
-                "hide_if_default_amount" => $groupModifier['hideIfDefaultAmount'],
-                "splittable" => $groupModifier['splittable'],
-                "free_of_charge_amount" => $groupModifier['freeOfChargeAmount'],
-                'child_modifiers_have_min_max_restrictions' => $groupModifier['childModifiersHaveMinMaxRestrictions'],
-            ];
-            $obGroupModifier->load($obGroupModifierValues, '');
-            if (!$obGroupModifier->save()) {
-                $this->handleError('Modifier', $obGroupModifier);
-            }
-            if ($groupModifier['childModifiers']) {
-                $this->processProductModifiers($groupModifier['childModifiers'], $productId, $obGroupModifier->id);
+        if ($arProduct['modifiers']) {
+            $modifiers = $arProduct['modifiers'];
+            foreach ($modifiers as $modifier) {
+                $obModifier = Modifier::find()->where(['product_id' => $productId, 'external_id' => $modifier['id']])->one();
+                if (!$obModifier) {
+                    $obModifier = new Modifier;
+                    $obModifier->product_id = $productId;
+                    $obModifier->external_id = $modifier['id'];
+                }
+                $obModifierValues = [
+                    "min_amount" => $modifier['minAmount'],
+                    "max_amount" => $modifier['maxAmount'],
+                    "required" => $modifier['required'],
+                    "hide_if_default_amount" => $modifier['hideIfDefaultAmount'],
+                    "default_amount" => $modifier['defaultAmount'],
+                    "splittable" => $modifier['splittable'],
+                    "free_of_charge_amount" => $modifier['freeOfChargeAmount'],
+                    'group_modifier_id' => $parentModifierId,
+                ];
+
+                $obModifier->load($obModifierValues, '');
+                if (!$obModifier->save()) {
+                    $this->handleError('Modifier', $obModifier);
+                }
             }
         }
     }
 
-    private function processProductModifiers(array $modifiers, int $productId, $parentModifierId = null)
+    private function processProductImages(array $arProduct, int $productId)
     {
-        foreach ($modifiers as $modifier) {
-            $obModifier = Modifier::find()->where(['product_id' => $productId, 'external_id' => $modifier['id']])->one();
-            if (!$obModifier) {
-                $obModifier = new Modifier;
-                $obModifier->product_id = $productId;
-                $obModifier->external_id = $modifier['id'];
-            }
-            $obModifierValues = [
-                "min_amount" => $modifier['minAmount'],
-                "max_amount" => $modifier['maxAmount'],
-                "required" => $modifier['required'],
-                "hide_if_default_amount" => $modifier['hideIfDefaultAmount'],
-                "default_amount" => $modifier['defaultAmount'],
-                "splittable" => $modifier['splittable'],
-                "free_of_charge_amount" => $modifier['freeOfChargeAmount'],
-                'group_modifier_id' => $parentModifierId,
-            ];
+        if (isset($arProduct['imageLinks']) && !empty($arProduct['imageLinks'])) {
+            $imageLinks = $arProduct['imageLinks'];
+            $imagesLocalPaths = [];
+            foreach ($imageLinks as $link) {
 
-            $obModifier->load($obModifierValues, '');
-            if (!$obModifier->save()) {
-                $this->handleError('Modifier', $obModifier);
+                $fileName = basename(parse_url($link, PHP_URL_PATH));
+                $imagesDir = 'web/upload/productImages/'; 
+                $storagePath = $imagesDir . $fileName;
+
+                $obProductImage = new ProductsImages;
+                $obProductImage->product_id = $productId;
+                if ($this->downloadImage($link, $storagePath)) {
+                    $imagesLocalPaths[] = $storagePath;
+
+                    $obProductImage->image = $storagePath;
+                } else {
+
+                    $obProductImage->image = $link;
+                }
+                if(!$obProductImage->save()){
+                    $this->handleError('Product Image', $obProductImage);
+                }
+
             }
+            return !empty($imagesLocalPaths) ? $imagesLocalPaths[0] : null;
         }
+        return null;
     }
 
-    private function processProductImages(array $imageLinks, int $productId)
+
+    private function downloadImage($url, $storagePath)
     {
+        $ch = curl_init($url);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+        $data = curl_exec($ch);
+        curl_close($ch);
 
-        foreach ($imageLinks as $link) {
-            $obProductImage = new ProductsImages;
-            $obProductImage->product_id = $productId;
-            $obProductImage->image = $link;
-            $obProductImage->save();
+        if (file_put_contents($storagePath, $data)) {
+            return true;
+        } else {
+            return false;
         }
     }
+
     private function processProductProps(array $arProduct, int $productId)
     {
         //исключаю все то, что уже лежит в products, или в отдельных таблицах, или является массивом (и подлежит лежанию в отдельной таблице)
@@ -223,22 +256,23 @@ class ImportHelper
         }
     }
 
-    private function processSizePrices(array $arSizePrice, int $productId)
+    private function processSizePrices(array $arProduct, int $productId)
     {
+        foreach ($arProduct['sizePrices'] as $arSizePrice) {
+            $obSizePrice = new SizePrice;
+            $obSizePrice->size_id = null;
+            $obSizePrice->product_id = $productId;
 
-        $obSizePrice = new SizePrice;
-        $obSizePrice->size_id = null;
-        $obSizePrice->product_id = $productId;
+            if (!is_null($arSizePrice['sizeId'])) {
+                $size = Size::find()->where(['external_id' => $arSizePrice['sizeId']])->one();
+                $obSizePrice->size_id = $size->id;
+            }
 
-        if (!is_null($arSizePrice['sizeId'])) {
-            $size = Size::find()->where(['external_id' => $arSizePrice['sizeId']])->one();
-            $obSizePrice->size_id = $size->id;
+            if (!$obSizePrice->save()) {
+                $this->handleError('SizePrice', $obSizePrice);
+            }
+            $this->processPrices($arSizePrice['price'], $obSizePrice->id);
         }
-
-        if (!$obSizePrice->save()) {
-            $this->handleError('SizePrice', $obSizePrice);
-        }
-        $this->processPrices($arSizePrice['price'], $obSizePrice->id);
     }
 
     private function processPrices(array $arPrice, int $sizePriceId)

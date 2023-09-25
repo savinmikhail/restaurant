@@ -29,7 +29,7 @@ class CategoryController extends AdminController
 
     public function actionAdd()
     {
-        return $this->editObject(['id' => 0]);
+        return $this->editObject();
     }
     public function actionEdit()
     {
@@ -42,9 +42,8 @@ class CategoryController extends AdminController
         return $this->editObject($category);
     }
 
-    public function editObject($category)
+    public function editObject($category = [])
     {
-        $upload = new UploadForm();
         // $parentCategories = Categories::find()->where(['parent_id' => 0])->asArray()->all();
 
         // $items[0] = '--Верхний уровень--';
@@ -59,7 +58,7 @@ class CategoryController extends AdminController
             if ($categoryForm->validate()) {
 
                 $result = false;
-                if ($category['id'] > 0) {
+                if (isset($category['id'])) {
                     $model = Categories::find()->where(['id' => $category['id']])->one();
                     $redirect = false;
                 } else {
@@ -69,16 +68,10 @@ class CategoryController extends AdminController
                 $formAttributes = $categoryForm->getAttributes();
                 unset($formAttributes['image']);
                 $model->attributes = $formAttributes;
-                $upload->image = \yii\web\UploadedFile::getInstanceByName('CategoryForm[image]');
 
                 if ($result = $model->save()) {
 
-                    if ($upload->validate()) {
-                        $imageName = $upload->upload('cat_' . $model->id);
-                        $model->image = '/upload/' . $imageName;
-                        $model->save();
-                    }
-                    $this->deleteImage($model);
+                    $this->updateMainImage($model, $this->request->post());
 
                     if ($redirect) {
                         return Yii::$app->response->redirect(['/admin/category/edit', 'id' => $model->id, 'success' => true]);
@@ -97,16 +90,29 @@ class CategoryController extends AdminController
         ]);
     }
 
-    public function deleteImage($category)
+    public function updateMainImage(Categories $category, $request)
     {
-        if(isset($_POST['CategoryForm']['removeImage'])){
-            $isRemovable = $_POST['CategoryForm']['removeImage'];
-            if($isRemovable == 1){
+        if (isset($request['CategoryForm']['removeImage'])) {
+
+            if ((int) $request['CategoryForm']['removeImage'] === 1) {
+
                 if (file_exists($category->image)) {
                     unlink($category->image);
                 }
                 $category->image = '';
-                $category->save();
+
+            } else {
+
+                $upload = new UploadForm();
+                $upload->image = \yii\web\UploadedFile::getInstanceByName('CategoryForm[image]');
+
+                if ($upload->validate()) {
+                    $imageName = $upload->upload('cat_' . $category->id);
+                    $category->image = '/upload/' . $imageName;
+                }
+            }
+            if(!$category->save()){
+                throw new \Exception('Failed to save Category' . print_r($category->errors));
             }
         }
     }
@@ -122,7 +128,7 @@ class CategoryController extends AdminController
 
     public function actionIndex()
     {
-        $categories = Categories::find()->/*joinWith('parent as p')->*/addOrderBy([/*'p.sort' => SORT_ASC,*/ 'sort' => SORT_ASC])->all();
+        $categories = Categories::find()->/*joinWith('parent as p')->*/addOrderBy([/*'p.sort' => SORT_ASC,*/'sort' => SORT_ASC])->all();
         $view = new yii\web\View();
         $view->title = 'Категории';
         return $this->render('/admin/categories/list', [

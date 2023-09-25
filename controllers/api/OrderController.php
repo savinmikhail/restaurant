@@ -13,6 +13,7 @@ use Endroid\QrCode\ErrorCorrectionLevel\ErrorCorrectionLevelLow;
 use Endroid\QrCode\QrCode;
 use Endroid\QrCode\RoundBlockSizeMode\RoundBlockSizeModeMargin;
 use Endroid\QrCode\Writer\PngWriter;
+use Endroid\QrCode\Writer\SvgWriter;
 
 class OrderController extends OrderableController
 {
@@ -109,7 +110,8 @@ class OrderController extends OrderableController
     public function actionRenderQR()
     {
         $data = Table::getTable()->id;
-        $writer = new PngWriter();
+        $writer = new SvgWriter();
+        // $writer = new PngWriter();
 
         // Create QR code
         $qrCode = QrCode::create($data)
@@ -124,7 +126,7 @@ class OrderController extends OrderableController
         $result = $writer->write($qrCode);
 
         // Validate the result
-        $writer->validateResult($result, $data);
+        // $writer->validateResult($result, $data);
 
         header('Content-Type: ' . $result->getMimeType());
 

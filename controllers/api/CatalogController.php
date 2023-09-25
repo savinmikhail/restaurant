@@ -63,7 +63,7 @@ class CatalogController extends ApiController
      *     ),
      * )
      */
-    public function actionFilter()
+    public function actionFilter()//deprecated
     {
         $request = \Yii::$app->request;
         if (!$request->isPost || !$request->post('category')) {
@@ -239,7 +239,7 @@ class CatalogController extends ApiController
         return $result;
     }
 
-    private function getProductsByFilter($filter, $from = 0, $limit = 20, $sort = 'sort')
+    private function getProductsByFilter($filter, $from = 0, $limit = 20, $sort = 'sort')//deprecated
     {
         $result = [];
         $result = Products::find()
