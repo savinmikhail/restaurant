@@ -63,7 +63,7 @@ class OrderableController extends ApiController
     {
         $obTable = Table::getTable();
         if(!$obTable){
-            throw new \Exception("Session has been expired");
+            die(json_encode(['success' => false, 'data' => 'Unable to define table']));
         }
         if (!$this->basket) {
             $obBasket = Basket::find()->where(['table_id' => $obTable->id, 'order_id' => null])->one();

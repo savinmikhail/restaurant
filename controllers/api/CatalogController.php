@@ -63,7 +63,7 @@ class CatalogController extends ApiController
      *     ),
      * )
      */
-    public function actionFilter()//deprecated
+    public function actionFilter() //deprecated
     {
         $request = \Yii::$app->request;
         if (!$request->isPost || !$request->post('category')) {
@@ -211,12 +211,12 @@ class CatalogController extends ApiController
             $count = $result->count();
         }
 
-        $list = $this->prepareCatalogData($list);
+        $this->prepareCatalogData($list);
 
         return $this->asJson(['list' => $list, 'count' => $count, 'from' => $from, 'limit' => $limit, 'sorting' => $this->getSorting()]);
     }
 
-    private function prepareCatalogData($list)
+    private function prepareCatalogData(&$list)//deprecated
     {
         //TODO: вывести дисконтную цену для продуктов если они нужны
         foreach ($list as $k => &$product) {
@@ -225,8 +225,6 @@ class CatalogController extends ApiController
                 $product['base_price_yurga'] =  $product['base_price'];
             }
         }
-
-        return $list;
     }
 
     private function getSorting()
@@ -239,7 +237,7 @@ class CatalogController extends ApiController
         return $result;
     }
 
-    private function getProductsByFilter($filter, $from = 0, $limit = 20, $sort = 'sort')//deprecated
+    private function getProductsByFilter($filter, $from = 0, $limit = 20, $sort = 'sort') //deprecated
     {
         $result = [];
         $result = Products::find()

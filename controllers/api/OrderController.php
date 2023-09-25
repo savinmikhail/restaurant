@@ -7,6 +7,7 @@ use app\models\forms\OrderForm;
 use app\models\tables\Order;
 use app\models\tables\Setting;
 use app\models\tables\Table;
+use app\Services\Payment;
 use Endroid\QrCode\Color\Color;
 use Endroid\QrCode\Encoding\Encoding;
 use Endroid\QrCode\ErrorCorrectionLevel\ErrorCorrectionLevelLow;
@@ -137,80 +138,16 @@ class OrderController extends OrderableController
         $dataUri = $result->getDataUri();
         echo $result->getString();
     }
-    /**
-     * @SWG\Post(path="/api/order/fastcopy",
-     *     tags={"Order"},
-     *      @SWG\Parameter(
-     *      name="id",
-     *      in="formData",
-     *      type="string",
-     *      description="Ид заказа"
-     *      ),
-     *     description="Копирование заказа (быстрое)",
-     *     @SWG\Response(
-     *         response = 200,
-     *         description = "Содержимое корзины",
-     *         @SWG\Schema(ref = "#/definitions/Products")
-     *     ),
-     * )
-     */
 
-    /* 
-   public function actionFastcopy()
-    {
-        $request = \Yii::$app->request;
-        if (!$request->isPost) {
-            return $this->asJson(['error' => 'empty request']);
-        }
-        $quantities = null;
-        if ($request->post('products')) {
-            $quantities = $this->prepareQuantitites($request->post('products'));
-        }
-        $sourceOrder = Order::find()->where(['id' => $request->post('id')])->one();
-        list($result, $total) =  $this->getBasketItemsFromOrder($sourceOrder->id, $request->post('address'), $quantities, $request->post('is_express'));
-        if ($request->post('save')) {
-            $order = new Order();
-            list($success, $errors) = $order->makeFast(
-                $result,
-                $total,
-                intval($request->post('address')),
-                $request->post('is_express'),
-                $request->post('return_bottles'),
-                $request->post('bonus_add'),
-                $request->post('bonus_remove'),
-                $request->post('payment_method'),
-                $request->post('period'),
-                $request->post('period_comment'),
-                $request->post('pledge_price')
-            );
-
-            if ($success) {
-                return $this->finalAction($order, $request);
-            } else {
-                return $this->asJson(['success' => false, 'errors' => $errors]);
-            }
-        }
-        return $this->asJson(
-            [
-                'list' => $result,
-                'count' => count($result['items']),
-                'total' => $total,
-                'time_intervals' => $this->getBasket()->getTimeIntervals(intval($request->post('address')), $result['hasCoolers'])
-            ]
-        );
-    }
-*/
     private function finalAction($order, $request)
     {
         $obSetting = Setting::find()->where(['name' => 'order_limit'])->one();
+
         if ($obSetting && $order->order_sum > $obSetting->value) {
             return $this->asJson(['success' => true, 'data' => 'You need to call the waiter for further processing']);
         }
+
         if ($request->post('payment_method') === 'Cash') {
-            $obQueue = new \app\models\tables\Queue();
-            $obQueue->order_id = $order->id;
-            $obQueue->retries = 0;
-            $obQueue->save();
             return $this->asJson(['success' => true, 'data' => 'You need to call the waiter for further processing']);
         }
 
@@ -218,58 +155,14 @@ class OrderController extends OrderableController
             'success' => true,
             'order_id' => $order->id
         ];
+
         if ($request->post('payment_method') !== 'cash') {
-            list($status, $result['paymentUrl'], $result['bankUrl']) = $this->createPaymentUrl($order->id, $order->order_sum);
+            list($status, $result['paymentUrl'], $result['bankUrl']) = Payment::createSberPaymentUrl($order->id, $order->order_sum);
         }
+        
         return $this->asJson($result);
     }
 
-    private function createPaymentUrl($last_order_id, $amount)
-    {
-        return [
-            1,
-            'https://smth.smth',
-            []
-        ];
-        /*   $returnUrl = "https://mp.kv.tomsk.ru/api/payment/redirect?orderId={$last_order_id}&success=true";
-        $failUrl = "https://mp.kv.tomsk.ru/api/payment/redirect?orderId={$last_order_id}&success=false";
-        $host = 'https://mp.kv.tomsk.ru/api/payment/callback';
-        //$token = 'auaclh27bt0pejpl05pf138f0';
-        $token = 'l08ccs6936bvhai03i5p2fu8fr';   //prod
-        $amount = round($amount * 100, 0);
-        $arrContextOptions = [
-            'ssl' => [
-                'verify_peer' => false,
-                'verify_peer_name' => false,
-            ],
-        ];
-        //$url = 'https://3dsec.sberbank.ru/payment/rest/register.do'
-        $url = 'https://securepayments.sberbank.ru/payment/rest/register.do'  //prod
-        . "?amount={$amount}&orderNumber=M{$last_order_id}"
-        . '&token=' . $token
-            //    .'&dynamicCallbackUrl='.$host
-            . '&pageView=MOBILE'
-            . '&returnUrl=' . $returnUrl
-            . '&failUrl=' . $failUrl;
-        $response = json_decode(file_get_contents($url, false, stream_context_create($arrContextOptions)));
-
-        if (isset($response->formUrl)) {
-            return [
-                1,
-                $response->formUrl,
-                []
-            ];
-        } else {
-            return [
-                0,
-                [
-                    'code' => $response->errorCode,
-                    'message' => $response->errorMessage,
-                ],
-                ['url' => $url]
-            ];
-        }*/
-    }
     private function prepareQuantitites($json)
     {
         $result = [];

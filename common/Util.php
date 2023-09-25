@@ -18,14 +18,10 @@ class Util
         }
 
         foreach ($items as &$item) {
-            $obBasketItem = BasketItem::find()->where(['id' => $item['id']])->one();
-
             self::calcMainPrice($item);
-
             // self::applyModifiers($item); //calculate the sum of the modifiers
 
-            $obBasketItem->price = $item['price'];
-            $obBasketItem->save();
+            BasketItem::updateAll(['price' => $item['price']], ['id' => $item['id']]);
         }
         unset($item);
 

@@ -76,7 +76,7 @@ class Order extends Base
 
         $obTable = Table::getTable();
         if (!$obTable)
-            throw new \Exception("Table number is missing");
+            die(json_encode("Table number is missing"));
 
         $this->table_id = $obTable->id;
 
