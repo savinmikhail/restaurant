@@ -5,6 +5,7 @@ namespace app\controllers\api;
 use app\controllers\api\OrderableController;
 use app\models\forms\OrderForm;
 use app\models\tables\Order;
+use app\models\tables\Queue;
 use app\models\tables\Setting;
 use app\models\tables\Table;
 use app\Services\Payment;
@@ -173,41 +174,6 @@ class OrderController extends OrderableController
         return $result;
     }
 
-    /**
-     * @SWG\Post(path="/api/order/copy",
-     *     tags={"Order"},
-     *      @SWG\Parameter(
-     *      name="id",
-     *      in="formData",
-     *      type="string",
-     *      description="Ид заказа"
-     *      ),
-     *     description="Копирование заказа (содержимого корзины)",
-     *     @SWG\Response(
-     *         response = 200,
-     *         description = "Содержимое корзины",
-     *         @SWG\Schema(ref = "#/definitions/Products")
-     *     ),
-     * )
-     */
-    // public function actionCopy()
-    // {
-    //     $request = \Yii::$app->request;
-    //     if (!$request->isPost) {
-    //         return $this->asJson(['error' => 'empty request']);
-    //     }
-    //     $sourceOrder = Order::find()->where(['id' => $request->post('id')])->one();
-    //     $sourceOrderBasket = $sourceOrder->getBasket()->one();
-    //     $this->getBasket()->clear();
-
-    //     foreach ($sourceOrderBasket->getItems()->all() as $obBasketItem) {
-    //         $this->getBasket()->addItem($obBasketItem->product_id, $obBasketItem->quantity);
-    //     }
-    //     $this->getBasket()->setBasketExpressStatus(intval($sourceOrderBasket->is_express));
-    //     list($result, $total) = $this->getBasketItems($sourceOrder->address_id);
-
-    //     return $this->asJson(['result' => true, 'address' => $sourceOrder->address_id, 'basket' => $result, 'total' => $total]);
-    // }
 
     /**
      * @SWG\Post(path="/api/order/cancel",

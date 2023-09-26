@@ -5,6 +5,7 @@ namespace app\controllers\api;
 use app\common\Util;
 use app\models\tables\Basket;
 use app\controllers\api\OrderableController;
+use app\models\tables\PaymentType;
 use app\models\tables\Table;
 
 class BasketController extends OrderableController
@@ -52,13 +53,11 @@ class BasketController extends OrderableController
      */
     public function actionPaymentmethods()
     {
+        $paymentTypes = PaymentType::find()->asArray()->pluck('name')->all();
+
         return $this->asJson(
             [
-                'list' =>
-                [
-                    'cash' => 'Оплата при получении',
-                    'online' => 'Оплатить онлайн'
-                ]
+                'list' => $paymentTypes
             ]
         );
     }

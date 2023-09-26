@@ -3,14 +3,7 @@
 namespace app\controllers\api;
 
 use app\controllers\ApiController;
-use app\models\AddressForm;
-use app\models\forms\CreateUserForm;
-use app\models\PassportForm;
-use app\models\RegisterUserForm;
-use app\models\tables\AddressTariffs;
-use app\models\tables\Notifications;
-use app\models\User;
-use app\models\tables\UserAddress;
+use app\models\tables\User;
 use yii;
 use yii\debug\models\search\Mail;
 use yii\filters\AccessControl;

@@ -44,12 +44,8 @@ class CategoryController extends AdminController
 
     public function editObject($category = [])
     {
-        // $parentCategories = Categories::find()->where(['parent_id' => 0])->asArray()->all();
+        $upload = new UploadForm();
 
-        // $items[0] = '--Верхний уровень--';
-        // foreach ($parentCategories as $cat) {
-        //     $items[$cat['id']] = $cat['name'];
-        // }
         $categoryForm = new CategoryForm();
 
         if ($this->request->isPost) {
@@ -85,7 +81,6 @@ class CategoryController extends AdminController
         return $this->render('/admin/categories/edit', [
             'model' => $categoryForm,
             'id' => $category['id'],
-            // 'parentCategories' => $items,
             'success' => ($this->request->isPost ? $result : (($this->getReqParam('success')) ? true : false))
         ]);
     }

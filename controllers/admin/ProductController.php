@@ -7,7 +7,6 @@ use app\models\forms\ProductForm;
 use app\models\tables\Categories;
 use app\models\tables\Products;
 use app\models\tables\ProductsImages;
-use app\models\tables\ProductsProperties;
 use app\models\tables\ProductsPropertiesValues;
 use app\models\forms\UploadForm;
 use Yii;
@@ -98,22 +97,6 @@ class ProductController extends AdminController
             $cats[$cat['id']] = $cat;
         }
 
-        // foreach ($items as $id => $item) {
-        //     if ($id == 0) {
-        //         continue;
-        //     }
-        //     if ($cats[$id]['parent_id'] > 0) {
-        //         $item = $cats[$cats[$id]['parent_id']]['name'].' / '.$item;
-        //         $items[$id] = $item;
-        //     }
-        // }
-        
-        // $vals = $productPropertiesValues->find()->where(['product_id' => $Product['id']])->asArray()->all();
-        // $productPropsVals = [];
-        // foreach ($vals as $val) {
-        //     $productPropsVals[$val['property_id']] = $val;
-        // }
-
         return $this->render('/admin/products/edit', [
             'model' => $ProductForm,
             'id' => $Product['id'],
@@ -136,12 +119,7 @@ class ProductController extends AdminController
                 $obProp->property_id = $property_id;
             }
             $obProp->value = $arProp['value'];
-            if (isset($arProp['hex_color'])) {
-                $obProp->hex_color = $arProp['hex_color'];
-            }
-            if (isset($arProp['is_white'])) {
-                $obProp->is_white = $arProp['is_white'];
-            }
+
             if ($arProp['value']) {
                 $obProp->save();
             } else {
