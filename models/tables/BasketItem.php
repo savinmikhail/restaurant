@@ -36,9 +36,10 @@ class BasketItem extends ActiveRecord
         return $this->hasOne(Basket::class, ['id' => 'basket_id']);
     }
 
-    public function getModifiers()
+
+    public function getSize()
     {
-        return $this->hasMany(BasketItemModifier::class, ['basket_item_id' => 'id']);
+        return $this->hasOne(Size::class, ['id' => 'size_id']);
     }
 
 }

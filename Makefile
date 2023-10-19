@@ -1,11 +1,13 @@
+CONTAINER_NAME = apache
+
 .PHONY: start
 start:
-	sudo docker-compose build && sudo docker-compose up -d
+	cd ./.docker/stage && sudo docker-compose build && sudo docker-compose up -d
 
 .PHONY: bash
 bash:
-	sudo docker-compose exec kintsugi bash
+	cd ./.docker/stage && sudo docker-compose exec $(CONTAINER_NAME) bash
 
 .PHONY: restart
 restart:
-	sudo docker-compose down && sudo docker-compose build && sudo docker-compose up -d --remove-orphans
+	cd ./.docker/stage && sudo docker-compose down && sudo docker-compose build && sudo docker-compose up -d --remove-orphans

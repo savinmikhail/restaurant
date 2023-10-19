@@ -3,6 +3,8 @@
 namespace app\models\tables;
 
 use app\models\Base;
+use app\models\tables\Size;
+use app\models\tables\Price;
 
 class SizePrice extends Base
 {
@@ -31,5 +33,10 @@ class SizePrice extends Base
     public function getPrice()
     {
         return $this->hasOne(Price::class, ['size_price_id' => 'id']);
+    }
+
+    public function getSize()
+    {
+        return $this->hasOne(Size::class, ['id' => 'size_id']);
     }
 }

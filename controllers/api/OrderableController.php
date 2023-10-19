@@ -39,34 +39,34 @@ class OrderableController extends ApiController
             ->joinWith('items')
             ->joinWith('items.product')
             ->joinWith('items.product.categories')
-            ->joinWith('items.modifiers')
             ->joinWith('items.product.productSizePrices.price')
-            ->where($arFilter)->cache(false)->asArray()->one();
+            ->joinWith('items.product.productSizePrices.size')
+
+            /*->where($arFilter)*/->cache(false)->asArray()->one();
     }
 
-    protected function getBasketItemsFromOrder($orderId, $address_id = 0, $new_quantities = [], $is_express = false)
+    protected function getBasketItemsFromOrder($orderId)
     {
-        $result = $this->getBasketItemsByFilter(['order_id' => $orderId], $address_id);
+        $result = $this->getBasketItemsByFilter(['order_id' => $orderId]);
         $total = 0;
         if (isset($result['items'])) {
             foreach ($result['items'] as &$item) {
-                $item['bonus'] = $item['price'] = $item['promotion_id'] = $item['tariff_id'] = null;
+                $item['price'] = null;
             }
             unset($item);
         }
 
-        $result['is_express'] = (string)(($is_express) ? 1 : 0);
         return [$result, $total];
     }
 
-    protected function getBasket()
+    protected function getBasket(): Basket
     {
         $obTable = Table::getTable();
         if(!$obTable){
             die(json_encode(['success' => false, 'data' => 'Unable to define table']));
         }
         if (!$this->basket) {
-            $obBasket = Basket::find()->where(['table_id' => $obTable->id, 'order_id' => null])->one();
+            $obBasket = Basket::find()->where(['table_id' => $obTable->id])->one();
             if (!$obBasket) {
                 $obBasket = new Basket();
                 $obBasket->table_id = $obTable->id;

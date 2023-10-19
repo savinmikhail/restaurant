@@ -11,23 +11,26 @@ use app\models\tables\Table;
 class BasketController extends OrderableController
 {
 
+    public function behaviors()
+    {
+        $behaviors = parent::behaviors();
+
+        $behaviors['verbs'] = [
+            'class' => \yii\filters\VerbFilter::class,
+            'actions' => [
+                'index'  => ['GET'],
+                'add' => ['POST'],
+                'set' => ['PUT'],
+                'delete' => ['DELETE'],
+            ],
+        ];
+
+        return $behaviors;
+    }
 
     /**
-     * @SWG\Post(path="/api/basket",
+     * @SWG\Get(path="/api/basket",
      *     tags={"Basket"},
-     *      @SWG\Parameter(
-     *      name="address",
-     *      in="formData",
-     *      type="string",
-     *      required=true,
-     *      description="Ид адреса"
-     *      ),
-     *      @SWG\Parameter(
-     *      name="is_express",
-     *      in="formData",
-     *      type="string",
-     *      description="флаг влючения экспресс-доставки 0 / 1"
-     *      ),
      *     @SWG\Response(
      *         response = 200,
      *         description = "Содержимое корзины",
@@ -37,13 +40,51 @@ class BasketController extends OrderableController
      */
     public function actionIndex()
     {
-        return $this->returnResponse();
+        list($result, $total) = $this->getBasketItems();
+
+        $output = [];
+
+        foreach ($result['items'] as $item) {
+            $sizeName = '';
+
+            // Find the matching size name
+            foreach ($item['product']['productSizePrices'] as $sizePrice) {
+                if ($sizePrice['size_id'] == $item['size_id']) {
+                    $sizeName = $sizePrice['size']['name'];
+                    break; // Break out of the loop once the correct size name is found
+                }
+            }
+
+            $restructuredItem = [
+                'productId' => $item['product_id'],
+                'image'     => $item['product']['image'],
+                'name'      => $item['product']['name'],
+                'quantity'  => $item['quantity'],
+                'price'     => $item['price'],
+                'size'      => $sizeName,
+                'sizeId'    => $item['size_id']
+            ];
+
+            $output[] = $restructuredItem;
+        }
+
+
+        $data = [
+            'data' => [
+                'list' => $output,
+                'count' => $this->getBasketItemsCount(),
+                'total' => $total,
+            ]
+
+        ];
+        
+        $this->sendResponse(200, $data);
     }
 
     /**
      * @SWG\Post(path="/api/basket/paymentmethods",
      *     tags={"Basket"},
-     *     description="справочник способов оплаты",
+     *     description="Справочник способов оплаты",
      *     @SWG\Response(
      *         response = 200,
      *         description = "Содержимое корзины",
@@ -63,24 +104,12 @@ class BasketController extends OrderableController
     }
 
     /**
-     * @SWG\Post(path="/api/basket/add",
+     * @SWG\Post(path="/api/basket",
      *     tags={"Basket"},
      *      @SWG\Parameter(
      *      name="product_id",
      *      in="formData",
      *      type="integer"
-     *      ),
-     *      @SWG\Parameter(
-     *      name="quantity",
-     *      in="formData",
-     *      type="integer"
-     *      ),
-     *      @SWG\Parameter(
-     *      name="modifiers[]",
-     *      in="formData",
-     *      type="array",
-     *      collectionFormat="multi",
-     *      @SWG\Items(ref = "#/definitions/requestModifiers") 
      *      ),
      *      @SWG\Parameter(
      *      name="size_id",
@@ -97,16 +126,15 @@ class BasketController extends OrderableController
     public function actionAdd()
     {
         $request = \Yii::$app->request->post();
-        list($productId, $quantity, /*$modifiers,*/ $sizeId) = [
+        list($productId, $quantity,  $sizeId) = [
             $request['product_id'],
-            $request['quantity'],
-            /*$request['modifiers'],*/
+            1,
             $request['size_id']
         ];
         try {
-            $this->getBasket()->addItem($productId, $quantity, /*$modifiers,*/ $sizeId);
+            $this->getBasket()->addItem($productId, $quantity, $sizeId);
         } catch (\Exception $e) {
-            return $this->asJson(['status' => 0, 'error' => $e->getMessage(), 'code' => $e->getCode()]);
+            return $this->asJson(['status' => 0, 'error' => $e->getMessage()]);
         }
         list($result) = $this->getBasketItems();
         Util::prepareItems($result['items']);
@@ -118,31 +146,22 @@ class BasketController extends OrderableController
     {
         list($result, $total) = $this->getBasketItems();
 
-        $obTable = Table::getTable();
+        $data = [
+            'data' => [
+                'list' => $result,
+                'count' => $this->getBasketItemsCount(),
+                'total' => $total,
+            ]
 
-        return $this->asJson([
-            'status' => 1,
-            'error' => 0,
-            'message' => '',
-            'list' => $result,
-            'count' => $this->getBasketItemsCount(),
-            'total' => $total,
-            'table_number' => $obTable->table_number,
-        ]);
+        ];
+        $this->sendResponse(200, $data);
     }
 
     /**
-     * @SWG\Post(path="/api/basket/set",
+     * @SWG\Put(path="/api/basket",
      *     tags={"Basket"},
      *      @SWG\Parameter(
-     *      name="address",
-     *      in="formData",
-     *      type="string",
-     *      required=true,
-     *      description="Ид адреса"
-     *      ),
-     *      @SWG\Parameter(
-     *      name="id",
+     *      name="productId",
      *      in="formData",
      *      type="string"
      *      ),
@@ -162,20 +181,13 @@ class BasketController extends OrderableController
     {
         $request = \Yii::$app->request;
 
-        $this->getBasket()->updateItem($request->post('id'), $request->post('quantity'));
+        $this->getBasket()->updateItem($request->post('productId'), $request->post('quantity'));
         return $this->returnResponse();
     }
 
     /**
-     * @SWG\Post(path="/api/basket/delete",
+     * @SWG\Delete(path="/api/basket",
      *     tags={"Basket"},
-     *      @SWG\Parameter(
-     *      name="address",
-     *      in="formData",
-     *      type="string",
-     *      required=true,
-     *      description="Ид адреса"
-     *      ),
      *      @SWG\Parameter(
      *      name="id",
      *      in="formData",
@@ -199,21 +211,9 @@ class BasketController extends OrderableController
     /**
      * @SWG\Post(path="/api/basket/clear",
      *     tags={"Basket"},
-     *      @SWG\Parameter(
-     *      name="address",
-     *      in="formData",
-     *      type="string",
-     *      required=true,
-     *      description="Ид адреса"
-     *      ),
-     *      @SWG\Parameter(
-     *      name="id",
-     *      in="formData",
-     *      type="string"
-     *      ),
      *     @SWG\Response(
      *         response = 200,
-     *         description = "Удалить товар из корзины",
+     *         description = "Очистить корзину",
      *         @SWG\Schema(ref = "#/definitions/Products")
      *     ),
      * )
@@ -234,7 +234,6 @@ class BasketController extends OrderableController
             ->where(
                 [
                     'table_id' => $obTable->id,
-                    'order_id' => null
                 ]
             )
             ->cache(false)

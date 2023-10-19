@@ -5,7 +5,6 @@ namespace app\controllers\api;
 use app\controllers\api\OrderableController;
 use app\models\forms\OrderForm;
 use app\models\tables\Order;
-use app\models\tables\Queue;
 use app\models\tables\Setting;
 use app\models\tables\Table;
 use app\Services\Payment;
@@ -14,7 +13,7 @@ use Endroid\QrCode\Encoding\Encoding;
 use Endroid\QrCode\ErrorCorrectionLevel\ErrorCorrectionLevelLow;
 use Endroid\QrCode\QrCode;
 use Endroid\QrCode\RoundBlockSizeMode\RoundBlockSizeModeMargin;
-use Endroid\QrCode\Writer\PngWriter;
+// use Endroid\QrCode\Writer\PngWriter;
 use Endroid\QrCode\Writer\SvgWriter;
 
 class OrderController extends OrderableController
@@ -55,16 +54,10 @@ class OrderController extends OrderableController
      * @SWG\Post(path="/api/order",
      *     tags={"Order"},
      *      @SWG\Parameter(
-     *      name="basket_id",
-     *      in="formData",
-     *      type="string",
-     *      description="Ид корзины"
-     *      ),
-     *      @SWG\Parameter(
      *      name="payment_method",
      *      in="formData",
      *      type="string",
-     *      description="метод оплаты справочник"
+     *      description="метод оплаты"
      *      ),
      *     @SWG\Response(
      *         response = 200,
@@ -160,20 +153,9 @@ class OrderController extends OrderableController
         if ($request->post('payment_method') !== 'cash') {
             list($status, $result['paymentUrl'], $result['bankUrl']) = Payment::createSberPaymentUrl($order->id, $order->order_sum);
         }
-        
+
         return $this->asJson($result);
     }
-
-    private function prepareQuantitites($json)
-    {
-        $result = [];
-        $q = json_decode($json, 1);
-        foreach ($q as $item) {
-            $result[$item['id']] = intval($item['quantity']);
-        }
-        return $result;
-    }
-
 
     /**
      * @SWG\Post(path="/api/order/cancel",
@@ -203,7 +185,6 @@ class OrderController extends OrderableController
         $order->updated_at = time();
         $order->save();
         if ($order->external_id) {
-            // $client = new \app\common\ErpClient();
             // $res = $client->cancelOrder($order);
         }
 
@@ -211,185 +192,71 @@ class OrderController extends OrderableController
     }
 
     /**
-     * @SWG\POST(path="/api/order/list",
+     * Retrieves a list of orders.
+     *
+     * @SWG\Get(path="/api/order/list",
      *     tags={"Order"},
-     *      @SWG\Parameter(
-     *      name="status",
-     *      in="formData",
-     *      type="string",
-     *      description="Статусы заказа. Принимает значения new, created, in_process, in_path. По умолчанию фильтрую по всем статусам"
-     *      ),
-     *      @SWG\Parameter(
-     *      name="limit",
-     *      in="formData",
-     *      type="string",
-     *      description="число на страницу"
-     *      ),
-     *      @SWG\Parameter(
-     *      name="from",
-     *      in="formData",
-     *      type="string",
-     *      description="количество записей (не страниц) которые пропускаем"
-     *      ),
      *     @SWG\Response(
      *         response = 200,
-     *         description = "User collection response",
+     *         description = "Содержимое корзины",
      *         @SWG\Schema(ref = "#/definitions/Products")
      *     ),
      * )
      */
     public function actionList()
     {
-        $request = \Yii::$app->request;
-        if (!$request->isPost) {
-            return $this->asJson(['error' => 'empty request']);
-        }
         $obTable = Table::getTable();
         $filter = ['orders.table_id' => $obTable->id];
-        $statuses = $request->post('status') ? [$request->post('status')] : [Order::STATUS_NEW, Order::STATUS_CREATED, Order::STATUS_INPROCESS, Order::STATUS_INPATH];
-        if ($request->isPost) {
-            $from = (($request->post('from'))) ? intval($request->post('from')) : 0;
-            $limit = (($request->post('limit'))) ? intval($request->post('limit')) : 20;
-        }
 
-        $orders = Order::find()->where($filter)->joinWith('basket')->joinWith('basket.items')->joinWith('basket.items.product')
+        $query = Order::find()
+            ->where($filter)
+            ->joinWith('basket')
+            ->joinWith('basket.items')
+            ->joinWith('basket.items.product')
+            ->joinWith('basket.items.size')
+
+            // // ->joinWith('basket.items.product.productSizePrices.price')
+            // ->joinWith('basket.items.product.productSizePrices.size')
             ->andWhere(['canceled' => 0])
-            ->andWhere(['in', 'orders.status', $statuses])
             ->addGroupBy('orders.id')
             ->addOrderBy(['orders.id' => SORT_DESC]);
-        $ordersList = $orders->asArray()->all();
 
-        $countOrders = clone $orders;
-        $orders->offset($from);
-        $orders->limit($limit);
-        $count = $countOrders->count();
-
-        return $this->asJson(['success' => true, 'list' => $ordersList, 'total' => $count]);
-    }
+        $ordersList = $query->asArray()->all();
 
 
-    /**
-     * @SWG\POST(path="/api/order/last",
-     *     tags={"Order"},
-     *     @SWG\Response(
-     *         response = 200,
-     *         description = "User collection response",
-     *         @SWG\Schema(ref = "#/definitions/Products")
-     *     ),
-     * )
-     */
-    public function actionLast()
-    {
-        $request = \Yii::$app->request;
-        if (!$request->isPost) {
-            return $this->asJson(['error' => 'empty request']);
-        }
-        $table = Table::getTable();
-        if (!$table) {
-            return $this->asJson(['success' => false, 'list' => []]);
-        }
-        $filter = [
-            'orders.table_id' => $table->id,
-        ];
+        // Initialize an empty array to hold the output
+        $output = [];
 
-        $ordersList = Order::find()->where($filter)->limit(1)->addOrderBy(['orders.id' => SORT_DESC])->asArray()->all();
-        return $this->asJson(['success' => true, 'list' => $ordersList]);
-    }
+        // Iterate through the orders list
+        foreach ($ordersList as $order) {
+            // Initialize an empty array to hold the items
+            $items = [];
 
+            // Iterate through the items in the order's basket
+            foreach ($order['basket']['items'] as $item) {
+                // Append a new item with the desired structure to the items array
+                $items[] = [
+                    'productId' => $item['product_id'],
+                    'image' => $item['product']['image'],
+                    'name' => $item['product']['name'],
+                    'quantity' => $item['quantity'],
+                    'price' => $item['price'],
+                    'size' => $item['size']['name'],  // Assuming size name is available
+                    'sizeId' => $item['size_id']
+                ];
+            }
 
-    /**
-     * @SWG\POST(path="/api/order/archive",
-     *     tags={"Order"},
-     *      @SWG\Parameter(
-     *      name="limit",
-     *      in="formData",
-     *      type="string",
-     *      description="число на страницу"
-     *      ),
-     *      @SWG\Parameter(
-     *      name="from",
-     *      in="formData",
-     *      type="string",
-     *      description="количество записей (не страниц) которые пропускаем"
-     *      ),
-     *     @SWG\Response(
-     *         response = 200,
-     *         description = "User collection response",
-     *         @SWG\Schema(ref = "#/definitions/Products")
-     *     ),
-     * )
-     */
-    // public function actionArchive()
-    // {
-    //     $request = \Yii::$app->request;
-    //     if (!$request->isPost) {
-    //         return $this->asJson(['error' => 'empty request']);
-    //     }
-    //     $filter = ['orders.user_id' => $this->getUser()->getId()];
-    //     if ($request->post('address_id')) {
-    //         $filter['orders.address_id'] = $request->post('address_id');
-    //     }
-
-    //     if ($request->isPost) {
-    //         $from = (($request->post('from'))) ? intval($request->post('from')) : 0;
-    //         $limit = (($request->post('limit'))) ? intval($request->post('limit')) : 20;
-    //     }
-
-    //     $orders = Order::find()->where($filter)->joinWith('address')->joinWith('expeditor')->joinWith('basket')->joinWith('basket.items')->joinWith('basket.items.product')
-
-    //         ->andWhere([
-    //             'or',
-    //             ['canceled' => 1],
-    //             ['in', 'orders.status', [Order::STATUS_DONE, Order::STATUS_NEW]],
-    //         ])
-    //         ->addGroupBy('orders.id')
-    //         ->addOrderBy(['orders.id' => SORT_DESC]);
-    //     $countOrders = clone $orders;
-    //     $orders->offset($from);
-    //     $orders->limit($limit);
-    //     $ordersList = $orders->asArray()->all();
-    //     $count = $countOrders->count();
-
-    //     return $this->asJson(['success' => true, 'list' => $ordersList, 'total' => $count]);
-    // }
-
-    /**
-     * @SWG\POST(path="/api/order/view",
-     *     tags={"Order"},
-     *      @SWG\Parameter(
-     *      name="id",
-     *      in="formData",
-     *      type="string",
-     *      description="ид заказа"
-     *      ),
-     *     description = "Получение заказа по его ID",
-     *     @SWG\Response(
-     *         response = 200,
-     *         description = "User collection response",
-     *         @SWG\Schema(ref = "#/definitions/Products")
-     *     ),
-     * )
-     */
-    public function actionView()
-    {
-        $request = \Yii::$app->request;
-        if (!$request->isPost) {
-            return $this->asJson(['error' => 'empty request']);
+            // Append a new order with the desired structure to the output array
+            $output[] = [
+                'id' => $order['id'],
+                'price' => $order['basket']['basket_total'],
+                'status' => $order['paid'] ? 'Оплачен' : 'Не оплачен',
+                'list' => $items
+            ];
         }
 
-        $table = Table::getTable();
-        if (!$table) {
-            return $this->asJson(['success' => false, 'list' => []]);
-        }
+        // Output the result as JSON
+        return $this->asJson($output);
 
-        $filter = [
-            'orders.table_id' => $table->id,
-        ];
-        if ($request->post('id')) {
-            $filter['orders.id'] = $request->post('id');
-        }
-        $orders = Order::find()->where($filter)->joinWith('basket')->joinWith('basket.items')->joinWith('basket.items.product')->asArray()->one();
-
-        return $this->asJson(['success' => true, 'list' => $orders]);
     }
 }

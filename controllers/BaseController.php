@@ -37,4 +37,6 @@ class BaseController extends Controller
     public function isAdmin($user = false) {
         return ACLConst::isAdmin($user);
     }
+
+    
 }
