@@ -58,25 +58,12 @@ class ProductController extends OrderableController
         $productsData = $productsQuery->all();
 
         $result = [];
-        $categoriesIndex = [];
 
         foreach ($productsData as $product) {
-            // if($product['is_deleted'] !== 1){
-            $categoryId = $product['category_id'];
-
-            // check if this category was not added yet
-            if (!isset($categoriesIndex[$categoryId])) {
-                $categoriesIndex[$categoryId] = count($result);  // save current index
-
-                // push to the array
-                $result[] = [
-                    'categoryId' => $categoryId,
-                    'categoryName' => $product['categories']['name'],
-                    'products' => [],
-                ];
-            }
 
             $productData = [
+                'categoryId' =>  $product['category_id'],
+                'categoryName' => $product['categories']['name'],
                 'productId' => $product['id'],
                 'image' => $product['image'],
                 'productName' => $product['name'],
@@ -85,18 +72,14 @@ class ProductController extends OrderableController
             ];
 
             foreach ($product['productSizePrices'] as $sizePrice) {
-                // if ($sizePrice['price']['is_included_in_menu'] === 1) {
                 $productData['sizePrices'][] = [
                     'sizeName' => $sizePrice['size']['name'],
                     'sizeId' => $sizePrice['size']['id'],
                     'price' => $sizePrice['price']['current_price'],
                 ];
-                // }
             }
 
-            $result[$categoriesIndex[$categoryId]]['products'][] = $productData;
-            // }
-
+            $result[] = $productData;
         }
 
         return $this->asJson([
