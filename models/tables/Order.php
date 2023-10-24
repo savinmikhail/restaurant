@@ -46,13 +46,7 @@ class Order extends Base
     // создание заказа
     public function make($orderVars)
     {
-        $this->load($orderVars, '');
-
-        $obTable = Table::getTable();
-        if (!$obTable)
-            die(json_encode("Table number is missing"));
-
-        $this->table_id = $obTable->id;
+        $this->table_id = $orderVars['table_id'];
 
         $orderBasket = Basket::find()->where(['baskets.id' => $orderVars['basket_id']])->one();
 

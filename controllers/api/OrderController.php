@@ -4,6 +4,7 @@ namespace app\controllers\api;
 
 use app\controllers\api\OrderableController;
 use app\models\forms\OrderForm;
+use app\models\tables\Basket;
 use app\models\tables\Order;
 use app\models\tables\Setting;
 use app\models\tables\Table;
@@ -53,12 +54,6 @@ class OrderController extends OrderableController
     /**
      * @SWG\Post(path="/api/order",
      *     tags={"Order"},
-     *      @SWG\Parameter(
-     *      name="payment_method",
-     *      in="formData",
-     *      type="string",
-     *      description="метод оплаты"
-     *      ),
      *     @SWG\Response(
      *         response = 200,
      *         description = "Результат добавления заказа",
@@ -68,29 +63,51 @@ class OrderController extends OrderableController
      */
     public function actionIndex()
     {
-        $request = \Yii::$app->request;
-        if (!$request->isPost) {
-            return $this->asJson(['error' => 'empty request']);
-        }
+        $tableId = Table::getTable()->id;
+        $basket = Basket::find()->where(['table_id' => $tableId])->one();
 
-        $orderForm = new OrderForm();
-
-        $orderForm->load($request->post(), '');
-
-        if (!$orderForm->validate()) {
-            return $this->asJson(['success' => false, 'errors' => $orderForm->errors]);
-        }
         $order = new Order();
-        if ($order->make($orderForm->toArray())) {
-            if (isset($order->id) && $order->id) {
-                return $this->finalAction($order, $request);
-            }
+        if ($order->make(['basket_id' => $basket->id, 'table_id' => $tableId])) {
+            // if (isset($order->id) && $order->id) {
+            //     return $this->finalAction($order, $payment_method);
+            // }
+            $this->sendResponse(201, ['data' => $order]);
         }
-        $result = [
-            'success' => false,
-            'errors' => $order->errors
-        ];
-        return $this->asJson($result);
+
+        $this->sendResponse(400, ['data' => $order->errors]);
+    }
+
+    /**
+     * @SWG\Post(path="/api/order/pay",
+     *     tags={"Order"},
+     *     @SWG\Parameter(
+     *          name="paymentMethod",
+     *          in="formData",
+     *          type="string",
+     *          description="метод оплаты"
+     *     ),
+     *     @SWG\Response(
+     *         response = 200,
+     *         description = "Ссылка на оплату \ вызов официанта",
+     *         @SWG\Schema(ref = "#/definitions/Products")
+     *     ),
+     * )
+     */
+    public function actionPay()
+    {
+        $request = \Yii::$app->request;
+        $paymentMethod = $request->post('paymentMethod');
+        $orderId = $request->post('orderId');
+        
+        $order = Order::find()->where(['id' => $orderId])->one();
+
+        if ($order) {
+            $order->payment_method = $paymentMethod;
+            if (!$order->save()) {
+                return $this->sendResponse(400, ['data' => $order->errors]);
+            }
+            return $this->finalAction($order, $paymentMethod);
+        }
     }
 
     /** @SWG\Post(path="/api/order/render-q-r",
@@ -133,7 +150,7 @@ class OrderController extends OrderableController
         echo $result->getString();
     }
 
-    private function finalAction($order, $request)
+    private function finalAction($order, $paymentMethod)
     {
         $obSetting = Setting::find()->where(['name' => 'order_limit'])->one();
 
@@ -141,20 +158,19 @@ class OrderController extends OrderableController
             return $this->asJson(['success' => true, 'data' => 'You need to call the waiter for further processing']);
         }
 
-        if ($request->post('payment_method') === 'Cash') {
+        if ($paymentMethod === 'Cash') {
             return $this->asJson(['success' => true, 'data' => 'You need to call the waiter for further processing']);
         }
 
         $result = [
-            'success' => true,
             'order_id' => $order->id
         ];
 
-        if ($request->post('payment_method') !== 'cash') {
+        if ($paymentMethod !== 'Cash') {
             list($status, $result['paymentUrl'], $result['bankUrl']) = Payment::createSberPaymentUrl($order->id, $order->order_sum);
         }
 
-        return $this->asJson($result);
+        $this->sendResponse(200, $result);
     }
 
     /**
@@ -214,9 +230,6 @@ class OrderController extends OrderableController
             ->joinWith('basket.items')
             ->joinWith('basket.items.product')
             ->joinWith('basket.items.size')
-
-            // // ->joinWith('basket.items.product.productSizePrices.price')
-            // ->joinWith('basket.items.product.productSizePrices.size')
             ->andWhere(['canceled' => 0])
             ->addGroupBy('orders.id')
             ->addOrderBy(['orders.id' => SORT_DESC]);
@@ -250,13 +263,12 @@ class OrderController extends OrderableController
             $output[] = [
                 'id' => $order['id'],
                 'price' => $order['basket']['basket_total'],
-                'status' => $order['paid'] ? 'Оплачен' : 'Не оплачен',
+                'isPaid' => $order['paid'] ? true : false,
                 'list' => $items
             ];
         }
 
         // Output the result as JSON
         return $this->asJson($output);
-
     }
 }
