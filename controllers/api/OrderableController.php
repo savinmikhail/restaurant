@@ -22,11 +22,10 @@ class OrderableController extends ApiController
 
         $filter = [
             'table_id' => $obTable->id,
-            'order_id' => null
         ];
         $result = $this->getBasketItemsByFilter($filter);
         $total = 0;
-        if (isset($result['items'][0]['basket_id'])) {
+        if ($result && isset($result['items'][0]['basket_id'])) {
             $obBasket = Basket::find()->where(['id' => $result['items'][0]['basket_id']])->one();
             $total = $obBasket ? $obBasket->basket_total : 0;
         }
@@ -42,7 +41,7 @@ class OrderableController extends ApiController
             ->joinWith('items.product.productSizePrices.price')
             ->joinWith('items.product.productSizePrices.size')
 
-            /*->where($arFilter)*/->cache(false)->asArray()->one();
+            ->where($arFilter)->cache(false)->asArray()->one();
     }
 
     protected function getBasketItemsFromOrder($orderId)

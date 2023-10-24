@@ -40,18 +40,23 @@ class BasketController extends OrderableController
      */
     public function actionIndex()
     {
-        list($result, $total) = $this->getBasketItems();
+        return $this->returnResponse();
+    }
 
-        $output = [];
-
+    private function reOrganizeResponseArray(array $result): array
+    {
+        if(empty($result['items'])) {
+            return $result;
+        }
+        
         foreach ($result['items'] as $item) {
             $sizeName = '';
 
             // Find the matching size name
             foreach ($item['product']['productSizePrices'] as $sizePrice) {
-                if ($sizePrice['size_id'] == $item['size_id']) {
+                if ($sizePrice['size_id'] === $item['size_id']) {
                     $sizeName = $sizePrice['size']['name'];
-                    break; // Break out of the loop once the correct size name is found
+                    break; 
                 }
             }
 
@@ -68,21 +73,11 @@ class BasketController extends OrderableController
             $output[] = $restructuredItem;
         }
 
-
-        $data = [
-            'data' => [
-                'list' => $output,
-                'count' => $this->getBasketItemsCount(),
-                'total' => $total,
-            ]
-
-        ];
-        
-        $this->sendResponse(200, $data);
+        return $output;
     }
 
     /**
-     * @SWG\Post(path="/api/basket/paymentmethods",
+     * @SWG\Get(path="/api/basket/paymentmethods",
      *     tags={"Basket"},
      *     description="Справочник способов оплаты",
      *     @SWG\Response(
@@ -107,12 +102,12 @@ class BasketController extends OrderableController
      * @SWG\Post(path="/api/basket",
      *     tags={"Basket"},
      *      @SWG\Parameter(
-     *      name="product_id",
+     *      name="productId",
      *      in="formData",
      *      type="integer"
      *      ),
      *      @SWG\Parameter(
-     *      name="size_id",
+     *      name="sizeId",
      *      in="formData",
      *      type="integer"
      *      ),
@@ -127,15 +122,13 @@ class BasketController extends OrderableController
     {
         $request = \Yii::$app->request->post();
         list($productId, $quantity,  $sizeId) = [
-            $request['product_id'],
+            $request['productId'],
             1,
-            $request['size_id']
+            $request['sizeId']
         ];
-        try {
-            $this->getBasket()->addItem($productId, $quantity, $sizeId);
-        } catch (\Exception $e) {
-            return $this->asJson(['status' => 0, 'error' => $e->getMessage()]);
-        }
+        
+        $this->getBasket()->addItem($productId, $quantity, $sizeId);
+
         list($result) = $this->getBasketItems();
         Util::prepareItems($result['items']);
 
@@ -146,13 +139,14 @@ class BasketController extends OrderableController
     {
         list($result, $total) = $this->getBasketItems();
 
+        $output = $this->reOrganizeResponseArray($result);
+
         $data = [
             'data' => [
-                'list' => $result,
+                'list' => $output,
                 'count' => $this->getBasketItemsCount(),
                 'total' => $total,
             ]
-
         ];
         $this->sendResponse(200, $data);
     }
@@ -163,12 +157,12 @@ class BasketController extends OrderableController
      *      @SWG\Parameter(
      *      name="productId",
      *      in="formData",
-     *      type="string"
+     *      type="integer"
      *      ),
      *      @SWG\Parameter(
      *      name="quantity",
      *      in="formData",
-     *      type="string"
+     *      type="integer"
      *      ),
      *     @SWG\Response(
      *         response = 200,
@@ -179,9 +173,15 @@ class BasketController extends OrderableController
      */
     public function actionSet()
     {
-        $request = \Yii::$app->request;
 
-        $this->getBasket()->updateItem($request->post('productId'), $request->post('quantity'));
+        $request = \Yii::$app->request;
+        $productId = $request->post('productId');
+        $quantity = $request->post('quantity');
+
+        $this->getBasket()->updateItem($productId, $quantity);
+        list($result) = $this->getBasketItems();
+        Util::prepareItems($result['items']);
+
         return $this->returnResponse();
     }
 
@@ -189,9 +189,9 @@ class BasketController extends OrderableController
      * @SWG\Delete(path="/api/basket",
      *     tags={"Basket"},
      *      @SWG\Parameter(
-     *      name="id",
+     *      name="productId",
      *      in="formData",
-     *      type="string"
+     *      type="integer"
      *      ),
      *     @SWG\Response(
      *         response = 200,
@@ -204,7 +204,11 @@ class BasketController extends OrderableController
     {
         $request = \Yii::$app->request;
 
-        $this->getBasket()->deleteItem($request->post('id'));
+        $this->getBasket()->deleteItem($request->post('productId'));
+
+        list($result) = $this->getBasketItems();
+        Util::prepareItems($result['items']);
+
         return $this->returnResponse();
     }
 
@@ -221,6 +225,7 @@ class BasketController extends OrderableController
     public function actionClear()
     {
         $this->getBasket()->clear();
+
         return $this->returnResponse();
     }
 
@@ -230,14 +235,8 @@ class BasketController extends OrderableController
 
         return Basket::find()
             ->joinWith('items')
-            ->joinWith('items.product')
-            ->where(
-                [
-                    'table_id' => $obTable->id,
-                ]
-            )
-            ->cache(false)
-            ->asArray()
-            ->count();
+            ->where(['table_id' => $obTable->id])
+            ->sum('basket_items.quantity') ?? 0;
     }
+
 }

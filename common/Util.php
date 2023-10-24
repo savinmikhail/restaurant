@@ -19,7 +19,6 @@ class Util
 
         foreach ($items as &$item) {
             self::calcMainPrice($item);
-            // self::applyModifiers($item); //calculate the sum of the modifiers
 
             BasketItem::updateAll(['price' => $item['price']], ['id' => $item['id']]);
         }
@@ -64,22 +63,6 @@ class Util
         }
     }
     
-    private static function applyModifiers(array &$item)
-    {
-        
-        if(is_array($item['modifiers'])){
-            foreach($item['modifiers'] as $modifier){
-                $obModifier = Modifier::find()->where(['id' => $modifier['modifier_id']])->one();
-                $obProduct = Products::find()->where(['external_id' => $obModifier->external_id])->one();
-                $obSizePrice = SizePrice::find()->where(['size_id' => $item['size_id']])->andWhere(['product_id' => $obProduct->id])->one();
-                $obPrice = Price::find()->where(['size_price_id' => $obSizePrice->id])->one();
-                if ($obPrice->is_included_in_menu) {
-                    $item['price'] += $obPrice->current_price * $modifier['modifier_quantity'];
-                }
-            }
-        }
-    }
-
     public static function calcTotal($items)
     {
         $total = 0;

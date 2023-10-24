@@ -48,9 +48,11 @@ class Basket extends Base
     {
         $obBasketItems = BasketItem::find()->where(['basket_id' => $this->id])->all();
         foreach ($obBasketItems as $obItem) {
-            $obItem->delete();
+            $wasDeleted = $obItem->delete();
+            if($wasDeleted === false) {
+                throw new \Exception("Failed to delete Basket Item: " . print_r($obItem->errors, true));
+            }
         }
-        $this->save();
     }
 
     public function addItem(int $productId, int $quantity, int $sizeId)
