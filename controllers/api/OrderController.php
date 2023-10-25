@@ -255,39 +255,55 @@ class OrderController extends OrderableController
 
         $ordersList = $query->asArray()->all();
 
-
-        // Initialize an empty array to hold the output
         $output = [];
+        $totalSum = 0;
+        $totalPaid = 0;
+        $unpaidCount = 0;
 
-        // Iterate through the orders list
         foreach ($ordersList as $order) {
-            // Initialize an empty array to hold the items
             $items = [];
+            $orderTotal = $order['basket']['basket_total'];
+
+            // Increment the total sum
+            $totalSum += $orderTotal;
+
+            // Check if the order is paid
+            if ($order['paid']) {
+                $totalPaid += $orderTotal;
+            } else {
+                $unpaidCount++;
+            }
 
             // Iterate through the items in the order's basket
             foreach ($order['basket']['items'] as $item) {
-                // Append a new item with the desired structure to the items array
+
                 $items[] = [
                     'productId' => $item['product_id'],
                     'image' => $item['product']['image'],
                     'name' => $item['product']['name'],
                     'quantity' => $item['quantity'],
                     'price' => $item['price'],
-                    'size' => $item['size']['name'],  // Assuming size name is available
+                    'size' => $item['size']['name'],
                     'sizeId' => $item['size_id']
                 ];
             }
 
             // Append a new order with the desired structure to the output array
-            $output[] = [
+            $output['orders'][] = [
                 'id' => $order['id'],
-                'price' => $order['basket']['basket_total'],
+                'price' => $orderTotal,
                 'isPaid' => $order['paid'] ? true : false,
                 'list' => $items
             ];
         }
 
+        // Add the computed totals to the output
+        $output['totalSum'] = $totalSum;
+        $output['totalPaid'] = $totalPaid;
+        $output['unpaidCount'] = $unpaidCount;
+
         // Output the result as JSON
         return $this->asJson($output);
     }
+
 }
