@@ -19,6 +19,23 @@ use Endroid\QrCode\Writer\SvgWriter;
 
 class OrderController extends OrderableController
 {
+    public function behaviors()
+    {
+        $behaviors = parent::behaviors();
+
+        $behaviors['verbs'] = [
+            'class' => \yii\filters\VerbFilter::class,
+            'actions' => [
+                'index'  => ['POST'],
+                'renderQR'  => ['GET'],
+                'pay' => ['POST'],
+                'cancel' => ['POST'],
+                'list' => ['GET'],
+            ],
+        ];
+
+        return $behaviors;
+    }
     // public function behaviors()
     // {
     //     return [
@@ -67,11 +84,13 @@ class OrderController extends OrderableController
         $basket = Basket::find()->where(['table_id' => $tableId])->one();
 
         $order = new Order();
-        if ($order->make(['basket_id' => $basket->id, 'table_id' => $tableId])) {
-            // if (isset($order->id) && $order->id) {
-            //     return $this->finalAction($order, $payment_method);
-            // }
+        $result = $order->make(['basket_id' => $basket->id, 'table_id' => $tableId, 'basket_total' => $basket->basket_total]);
+
+        if ($result === true) {
             $this->sendResponse(201, ['data' => $order]);
+
+        }elseif(is_array($result)){
+            $this->sendResponse(400, ['data' => $result]);
         }
 
         $this->sendResponse(400, ['data' => $order->errors]);
@@ -110,7 +129,7 @@ class OrderController extends OrderableController
         }
     }
 
-    /** @SWG\Post(path="/api/order/render-q-r",
+    /** @SWG\Get(path="/api/order/render-q-r",
      *     tags={"Order"},
      *     @SWG\Response(
      *         response = 200,

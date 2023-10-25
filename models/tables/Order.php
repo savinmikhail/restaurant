@@ -10,7 +10,7 @@ class Order extends Base
     public function rules()
     {
         return [
-            [['table_id', 'payment_method', 'order_sum',], 'required'], 
+            [['table_id', 'order_sum'], 'required'], 
             [['external_id', 'status'], 'string'],
             [['paid',], 'integer'],
             [['payment_method'], 'in', 'range' => ['Cash', 'IikoCard', 'Card', 'External']],
@@ -48,19 +48,14 @@ class Order extends Base
     {
         $this->table_id = $orderVars['table_id'];
 
-        $orderBasket = Basket::find()->where(['baskets.id' => $orderVars['basket_id']])->one();
-
-        $this->order_sum = $orderBasket->basket_total;
+        $this->order_sum = $orderVars['basket_total'];
         $this->paid = 0;
         $this->basket_id = (int) $orderVars['basket_id'];
         
         if (!$this->save()) {
-            throw new \Exception("Error occured while saving Order: " . print_r($this->errors, true));
+            return ['data' => ["message" => "Error occured while saving Order", 'errors' => $this->errors]];
         }
-        $orderBasket->order_id = $this->id;
-        if (!$orderBasket->save()) {
-            throw new \Exception("Error occured while saving basket: " . print_r($orderBasket->errors, true));
-        }
+
         return true;
     }
 }
