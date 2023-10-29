@@ -10,7 +10,7 @@ class Order extends Base
     public function rules()
     {
         return [
-            [['table_id', 'order_sum'], 'required'], 
+            [['table_id', 'order_sum'], 'required'],
             [['external_id', 'status'], 'string'],
             [['paid',], 'integer'],
             [['payment_method'], 'in', 'range' => ['Cash', 'IikoCard', 'Card', 'External']],
@@ -43,6 +43,11 @@ class Order extends Base
         return $this->hasOne(\app\models\tables\Table::class, ['id' => 'table_id']);
     }
 
+    public function getPaymentType()
+    {
+        return $this->hasOne(\app\models\tables\PaymentType::class, ['payment_type_kind' => 'payment_method']);
+    }
+    
     // создание заказа
     public function make($orderVars)
     {
@@ -51,7 +56,7 @@ class Order extends Base
         $this->order_sum = $orderVars['basket_total'];
         $this->paid = 0;
         $this->basket_id = (int) $orderVars['basket_id'];
-        
+
         if (!$this->save()) {
             return ['data' => ["message" => "Error occured while saving Order", 'errors' => $this->errors]];
         }

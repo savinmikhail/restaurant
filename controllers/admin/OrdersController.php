@@ -54,8 +54,7 @@ class OrdersController extends AdminController
             ->asArray()->one();
 
         if (!$order) {
-            Yii::$app->response->setStatusCode(404);
-            return 'The requested page does not exist.';
+            $this->sendResponse(404, 'The requested page does not exist.');
         }
         $view = new yii\web\View();
         $view->title = 'Заказ';
@@ -69,13 +68,13 @@ class OrdersController extends AdminController
         $id = intval($this->getReqParam('id'));
         $obOrder = Order::find()->where(['id' => $id])->one();
         if (!$obOrder) {
-            throw new NotFoundHttpException('The requested page does not exist.');
+            $this->sendResponse(404, 'The requested page does not exist.');
         }
 
         return $this->editObject($obOrder);
     }
 
-    public function editObject(Order $obOrder)
+    private function editObject(Order $obOrder)
     {
         $result = false;
         $arOrder = Order::find()
@@ -88,26 +87,31 @@ class OrdersController extends AdminController
             ->asArray()->one();
 
         $obOrderForm = new AdminOrderForm();
+
         if ($this->request->isPost) {
             $obOrderForm->load($this->request->post(), 'AdminOrderForm');
+
             if ($obOrderForm->validate()) {
                 $result = true;
                 $redirect = true;
 
                 $formAttributes = $obOrderForm->getAttributes();
-                ($this->editItems($obOrderForm, $obOrder));
+                $this->editItems($obOrderForm, $obOrder);
 
                 $obOrder->attributes = $formAttributes;
                 $result = $obOrder->save();
+
                 if ($result && $redirect) {
                     return Yii::$app->response->redirect(['/admin/orders/edit', 'id' => $obOrder->id, 'success' => true]);
                 }
+
                 if (!$result) {
-                    throw new \Exception("Failed to save order: " . print_r($obOrder->errors, true));
+                    $this->sendResponse(400, "Failed to save order: " . print_r($obOrder->errors, true));
                 }
+
                 $obOrderForm->load($obOrder->attributes, '');
             } else {
-                throw new \Exception("Failed to validate form: " . print_r($obOrderForm->errors, true));
+                $this->sendResponse(400, "Failed to validate form: " . print_r($obOrderForm->errors, true));
             }
         } else {
             $obOrderForm->load($arOrder, '');
@@ -152,16 +156,17 @@ class OrdersController extends AdminController
         $total = Util::prepareItems($result['items']);
 
         $obOrder->order_sum = $total;
-        if(!$obOrder->save()){
-            throw new \Exception("Failed to save order: " . print_r($obOrder->errors, true));
+        if (!$obOrder->save()) {
+            $this->sendResponse(400, "Failed to save order: " . print_r($obOrder->errors, true));
         }
-        
     }
+
     private function editQuantities(AdminOrderForm $form, Order $obOrder)
     {
         foreach ($form->product_quantity as $itemId => $quantity) {
             //добавление новго элемента
             if ($itemId === 0) {
+                //с реквеста летит строка. если строка пустая, то новый айтем не добавляем. если 0 - удаляем.
                 if ($quantity !== '' && $quantity !== '0') {
                     $obItem = new BasketItem; //TODO: находить айтем с таким же продуктом и добавлять ему quantity
                     $obItem->basket_id = $obOrder->basket_id;
@@ -170,7 +175,7 @@ class OrdersController extends AdminController
                     $obItem->size_id = $form->product_size[0];
                     $obItem->price = 0;
                     if (!$obItem->save()) {
-                        throw new \Exception("Failed to update item quantity" . print_r($obItem->errors, true));
+                        $this->sendResponse(400, "Failed to update item quantity" . print_r($obItem->errors, true));
                     }
                 }
                 //редактирование старого
@@ -182,7 +187,7 @@ class OrdersController extends AdminController
                     } else {
                         $obItem->quantity = $quantity;
                         if (!$obItem->save()) {
-                            throw new \Exception("Failed to update item quantity" . print_r($obItem->errors, true));
+                            $this->sendResponse(400, "Failed to update item quantity" . print_r($obItem->errors, true));
                         }
                     }
                 }
@@ -199,7 +204,7 @@ class OrdersController extends AdminController
                     $obItem->product_id = $product_id;
 
                     if (!$obItem->save()) {
-                        throw new \Exception("Failed to update item product" . print_r($obItem->errors, true));
+                        $this->sendResponse(400, "Failed to update item product" . print_r($obItem->errors, true));
                     }
                 }
             }
@@ -209,31 +214,24 @@ class OrdersController extends AdminController
 
     private function editSize(AdminOrderForm $form)
     {
-        foreach ($form->product_size as $itemId => $size_id) { 
+        foreach ($form->product_size as $itemId => $size_id) {
             if ($itemId !== 0) {
                 $obItem = BasketItem::find()->where(['id' => $itemId])->one();
                 if ($obItem) {
                     $obItem->size_id = $size_id;
                     if (!$obItem->save()) {
-                        throw new \Exception("Failed to update item size " . print_r($obItem->errors, true));
+                        $this->sendResponse(400, "Failed to update item size " . print_r($obItem->errors, true));
                     }
                 }
             }
             //если itemId равен 0, то он был уже сохранен методом editQuantities()
-
         }
     }
 
     private function getVariablesForRender()
     {
         $arStatus = array_flip([
-            'Новый' => Order::STATUS_NEW,
-            'Ошибка' => Order::STATUS_ERROR,
-            'Отменен' => Order::STATUS_CANCELED,
-            'Создан' => Order::STATUS_CREATED,
-            'В обработке' => Order::STATUS_INPROCESS,
-            'В пути' => Order::STATUS_INPATH,
-            'Завершен' => Order::STATUS_DONE,
+            'Оплачен' => 1, 'Не оплачен' => 0,
         ]);
 
         $arPayments = [
@@ -244,8 +242,9 @@ class OrdersController extends AdminController
         ];
 
         $products = Products::find()
-            /*->where(['is_deleted' => 0])*///TODO раскоментить когда будет нормальное меню
+            /*->where(['is_deleted' => 0])*/ //TODO раскоментить когда будет нормальное меню
             // ->joinWith('productSizePrices.price')
+            // ->joinWith('productSizePrices.size')
             ->asArray()
             ->all();
 
@@ -258,9 +257,8 @@ class OrdersController extends AdminController
 
         // foreach ($products as $product) {
         //     foreach ($product['productSizePrices'] as $sizePrice) {
-        //         if ($sizePrice['size_id']) {
-        //             $obSize = Size::find()->where(['id' => $sizePrice['size_id']])->one();
-        //             $arAllSizes[$product['id']][$obSize->id] = $obSize->name;
+        //         if ($sizePrice['size']) {
+        //             $arAllSizes[$product['id']][$sizePrice['size']['id']] = $sizePrice['size']['name'];
         //         }
         //     }
         // }

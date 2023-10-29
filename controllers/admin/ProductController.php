@@ -20,7 +20,7 @@ class ProductController extends AdminController
         $id = intval($this->getReqParam('id'));
         $model = Products::find()->where(['id' => $id])->one();
         if (!$model) {
-            throw new NotFoundHttpException('The requested page does not exist.');
+            $this->sendResponse(404,'The requested page does not exist.');
         }
         $model->delete();
 
@@ -37,7 +37,7 @@ class ProductController extends AdminController
         $id = intval($this->getReqParam('id'));
         $Product = Products::find()->where(['id' => $id])->asArray()->one();
         if (!$Product) {
-            throw new NotFoundHttpException('The requested page does not exist.');
+            $this->sendResponse(404, 'The requested page does not exist.');
         }
 
         return $this->editObject($Product);
@@ -63,15 +63,15 @@ class ProductController extends AdminController
                 $formAttributes = $ProductForm->getAttributes();
                 // $arProductProperties = $formAttributes['properties'];
 
-                unset($formAttributes['properties'],$formAttributes['image'], $formAttributes['banner'],$formAttributes['detail_image']);
+                unset($formAttributes['properties'], $formAttributes['image'], $formAttributes['banner'], $formAttributes['detail_image']);
                 $model->attributes = $formAttributes;
 
                 $upload->image = \yii\web\UploadedFile::getInstanceByName('ProductForm[image]');
-                
+
                 if ($result = $model->save()) {
                     // $this->updateProductProperties($model, $arProductProperties);
                     if ($upload->validate()) {
-                        $model->image = '/upload/' . $upload->upload('product_'.$model->id);
+                        $model->image = '/upload/' . $upload->upload('product_' . $model->id);
                         $model->save();
                     }
 
@@ -89,12 +89,11 @@ class ProductController extends AdminController
             $ProductForm->load($Product, '');
         }
 
-        $parentCategories = Categories::find()->asArray()->all();
+        $Categories = Categories::find()->asArray()->all();
 
         $items[0] = '--Верхний уровень--';
-        foreach ($parentCategories as $cat) {
+        foreach ($Categories as $cat) {
             $items[$cat['id']] = $cat['name'];
-            $cats[$cat['id']] = $cat;
         }
 
         return $this->render('/admin/products/edit', [
@@ -138,14 +137,14 @@ class ProductController extends AdminController
         $images = (\yii\web\UploadedFile::getInstancesByName("ProductForm[images]"));
         foreach ($images as $image) {
             $upload = new UploadForm();
-            $upload->image =$image;
+            $upload->image = $image;
 
             $tempName = $image->tempName;
             $tempNames = $_FILES['ProductForm']['tmp_name']['images'];
             $id = array_search($tempName, $tempNames);
 
             if (is_int($id) || ctype_digit($id)) {
-                $productImage = ProductsImages::find()->where(['id'=>$id])->one();
+                $productImage = ProductsImages::find()->where(['id' => $id])->one();
             } else {
                 $productImage = new ProductsImages();
             }
@@ -153,10 +152,10 @@ class ProductController extends AdminController
             $productImage->product_id = $model->id;
             if ($upload->validate()) {
                 $productImage->save();
-                $result = $upload->upload('gallery_'.$model->id.'_'.$productImage->id);
-                $productImage->image = '/upload/'.$result;
+                $result = $upload->upload('gallery_' . $model->id . '_' . $productImage->id);
+                $productImage->image = '/upload/' . $result;
                 $productImage->save();
-            }else {
+            } else {
                 $errors[] = $productImage->errors;
             }
         }
@@ -166,15 +165,15 @@ class ProductController extends AdminController
     public function deleteSelectedImages()
     {
         $ProductForm = Yii::$app->request->post('ProductForm');
-        if(isset($ProductForm['removeImage'])){
+        if (isset($ProductForm['removeImage'])) {
             $arrRemoveImages = $ProductForm['removeImage'];
-            if(isset($arrRemoveImages) && is_array($arrRemoveImages)){
+            if (isset($arrRemoveImages) && is_array($arrRemoveImages)) {
                 foreach ($arrRemoveImages as $imageId => $isChecked) {
                     if ($isChecked == 1) {
                         $imageId = intval($imageId);
-                        $image = ProductsImages::find()->where(['id'=>$imageId])->one();
+                        $image = ProductsImages::find()->where(['id' => $imageId])->one();
                         if ($image) {
-                            $image->delete(); 
+                            $image->delete();
                             if (file_exists($image->image)) {
                                 unlink($image->image);
                             }
@@ -184,15 +183,15 @@ class ProductController extends AdminController
             }
         }
     }
-   
-    
+
+
     public function deleteMainImage($product)
     {
         $ProductForm = Yii::$app->request->post('ProductForm');
-        if(isset($ProductForm['removeMainImage'])){
-        $isRemovable = $ProductForm['removeMainImage'];
-            if(isset($isRemovable)){
-                if($isRemovable == 1){
+        if (isset($ProductForm['removeMainImage'])) {
+            $isRemovable = $ProductForm['removeMainImage'];
+            if (isset($isRemovable)) {
+                if ($isRemovable == 1) {
                     if (file_exists($product->image)) {
                         unlink($product->image);
                     }
@@ -225,20 +224,20 @@ class ProductController extends AdminController
         foreach ($categories as $item) {
             $arrCategories[$item['id']] = $item['name'];
         }
-    
+
         $Products = Products::find();
-    
+
         $countProducts = clone $Products;
         $pages = new Pagination(['totalCount' => $countProducts->count(), 'pageSize' => 50]);
         $Products = $Products->offset($pages->offset)->limit($pages->limit)->addOrderBy(['sort' => SORT_ASC])->all();
-    
+
         return $this->render('/admin/products/list', [
             'products' => $Products,
             'pages' => $pages,
             'categories' => $arrCategories,
         ]);
     }
-    
+
     public function actionFilter()
     {
         $categories = Categories::find()->select(['id', 'name'])->asArray()->all();
@@ -246,24 +245,24 @@ class ProductController extends AdminController
         foreach ($categories as $item) {
             $arrCategories[$item['id']] = $item['name'];
         }
-    
+
         $category_id = trim(Yii::$app->request->post('category_id'));
         $product_name = trim(Yii::$app->request->post('product_name'));
-    
+
         $Products = Products::find();
-    
+
         if (!empty($category_id)) {
             $Products->andWhere('products.category_id=:category_id', [':category_id' => $category_id]);
         }
-    
+
         if (!empty($product_name)) {
             $Products->andWhere('name LIKE :name', [':name' => '%' . $product_name . '%']);
         }
-    
+
         $countProducts = clone $Products;
         $pages = new Pagination(['totalCount' => $countProducts->count(), 'pageSize' => 50]);
         $Products = $Products->offset($pages->offset)->limit($pages->limit)->addOrderBy(['sort' => SORT_ASC])->all();
-    
+
         return $this->render('/admin/products/list', [
             'products' => $Products,
             'pages' => $pages,

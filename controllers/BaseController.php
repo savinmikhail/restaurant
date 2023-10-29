@@ -4,6 +4,9 @@ namespace app\controllers;
 
 use yii\web\Controller;
 use app\controllers\ACLConst;
+use yii\helpers\Json;
+use yii\web\Response;
+use Yii;
 
 class BaseController extends Controller
 {
@@ -38,5 +41,14 @@ class BaseController extends Controller
         return ACLConst::isAdmin($user);
     }
 
-    
+    protected function sendResponse(int $code, $data)
+    {
+        //400 статус ставлю для всех ошибок, так как фронт не может ловить 500-е
+        $response = Yii::$app->response;
+        $response->format = Response::FORMAT_JSON;
+        $response->statusCode = $code;
+        $response->content = Json::encode($data);
+        $response->send();
+        Yii::$app->end();
+    }
 }

@@ -45,7 +45,6 @@ $this->title = 'Товары';
             <th>Активность</th>
             <th>Изображение</th>
             <th>Наименование</th>
-            <th>Базовая цена</th>
             <th>Сортировка</th>
             <th>Действия</th>
         </tr>
@@ -64,9 +63,6 @@ $this->title = 'Товары';
                 </td>
                 <td>
                     <?= $item->name; ?>
-                </td>
-                <td>
-                    <?= $item->base_price; ?>
                 </td>
                 <td>
                     <?= $item->sort; ?>

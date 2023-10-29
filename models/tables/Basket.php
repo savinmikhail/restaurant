@@ -46,13 +46,7 @@ class Basket extends Base
 
     public function clear()
     {
-        $obBasketItems = BasketItem::find()->where(['basket_id' => $this->id])->all();
-        foreach ($obBasketItems as $obItem) {
-            $wasDeleted = $obItem->delete();
-            if($wasDeleted === false) {
-                throw new \Exception("Failed to delete Basket Item: " . print_r($obItem->errors, true));
-            }
-        }
+        BasketItem::deleteAll(['basket_id' => $this->id]);
     }
 
     public function addItem(int $productId, int $quantity, int $sizeId)

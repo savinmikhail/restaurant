@@ -60,7 +60,7 @@ $this->title = 'Заказы';
                         <?= $order->payment_method; ?>
                     </td>
                     <td>
-                        <?= ($order->payed === 1) ? 'Да' : 'Нет'; ?>
+                        <?= ($order->paid === 1) ? 'Да' : 'Нет'; ?>
                     </td>
                     <td>
                         <?= $order->status; ?>

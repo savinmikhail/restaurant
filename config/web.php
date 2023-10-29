@@ -75,6 +75,8 @@ $config = [
 
                 ['class' => 'yii\rest\UrlRule', 'controller' => 'api/order'],
                 '/api/order' => 'api/order/index',
+                '/api/order/waiter' => 'api/order/waiter',
+
 
                 ['class' => 'yii\rest\UrlRule', 'controller' => 'api/catalog'],
                 ['class' => 'yii\rest\UrlRule', 'controller' => 'api/iiko'],

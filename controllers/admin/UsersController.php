@@ -28,7 +28,7 @@ class UsersController extends AdminController
         $id = intval($this->getReqParam('id'));
         $user = User::find()->where(['user_id' => $id])->one();
         if (!$user) {
-            throw new NotFoundHttpException('The requested user does not exist.');
+            $this->sendResponse(404, 'The requested user does not exist.');
         }
 
         return $this->editObject($user);
@@ -65,7 +65,7 @@ class UsersController extends AdminController
         $id = intval($this->getReqParam('id'));
         $model = User::find()->where(['user_id' => $id])->one();
         if (!$model) {
-            throw new NotFoundHttpException('The requested user does not exist.');
+            $this->sendResponse(404, 'The requested user does not exist.');
         }
         $model->delete();
 
@@ -105,7 +105,7 @@ class UsersController extends AdminController
         $obUser->role = 'WAITER';
 
         if (!$obUser->save()) {
-            return $this->asJson(['result' => false, 'errors' => $obUser->errors]);
+            $this->sendResponse(400, "Failed to create user " . print_r($obUser->errors, true));
         }
         Yii::$app->user->login($obUser, 3600 * 24 * 30);
 

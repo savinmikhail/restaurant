@@ -21,7 +21,7 @@ class SettingController extends AdminController
         }
         $obSetting->value = $order_limit;
         if(!$obSetting->save()){
-            throw new \Exception("Failed to save Setting: " . print_r($obSetting->errors, true));
+            $this->sendResponse(400, "Failed to save Setting: " . print_r($obSetting->errors, true));
         }
 
         return $this->render('/admin/settings/view', [

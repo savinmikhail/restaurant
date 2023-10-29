@@ -3,7 +3,6 @@
 namespace app\controllers\api;
 
 use app\controllers\api\OrderableController;
-use app\models\forms\OrderForm;
 use app\models\tables\Basket;
 use app\models\tables\Order;
 use app\models\tables\Setting;
@@ -31,42 +30,12 @@ class OrderController extends OrderableController
                 'pay' => ['POST'],
                 'cancel' => ['POST'],
                 'list' => ['GET'],
+                'callWaiter' => ['GET'],
             ],
         ];
 
         return $behaviors;
     }
-    // public function behaviors()
-    // {
-    //     return [
-    //         'access' => [
-    //             'class' => AccessControl::class,
-    //             'only' => ['index',  'list', 'view'],
-    //             'rules' => [
-    //                 [
-    //                     'allow' => true,
-    //                     'actions' => ['index', 'list', 'view'],
-    //                     'roles' => ['@'],
-    //                 ],
-    //             ],
-    //             'denyCallback' => function ($rule, $action) {
-    //                 return $this->asJson(
-    //                     [
-    //                         'result' => false,
-    //                         'errors' =>
-    //                         [
-    //                             'user' =>
-    //                             [
-    //                                 'message' => 'authorization required',
-    //                                 'code' => '401'
-    //                             ]
-    //                         ]
-    //                     ]
-    //                 );
-    //             },
-    //         ],
-    //     ];
-    // }
 
     /**
      * @SWG\Post(path="/api/order",
@@ -306,4 +275,8 @@ class OrderController extends OrderableController
         return $this->asJson($output);
     }
 
+    public function actionWaiter()
+    {
+        $this->sendResponse(200, 'success');
+    }
 }

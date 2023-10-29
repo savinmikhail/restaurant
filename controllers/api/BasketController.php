@@ -3,10 +3,8 @@
 namespace app\controllers\api;
 
 use app\common\Util;
-use app\models\tables\Basket;
 use app\controllers\api\OrderableController;
 use app\models\tables\PaymentType;
-use app\models\tables\Table;
 
 class BasketController extends OrderableController
 {
@@ -40,7 +38,7 @@ class BasketController extends OrderableController
      */
     public function actionIndex()
     {
-        return $this->returnResponse();
+        $this->returnResponse();
     }
 
     private function reOrganizeResponseArray(array $result): array
@@ -132,7 +130,7 @@ class BasketController extends OrderableController
         list($result) = $this->getBasketItems();
         Util::prepareItems($result['items']);
 
-        return $this->returnResponse();
+        $this->returnResponse();
     }
 
     private function returnResponse()
@@ -144,7 +142,6 @@ class BasketController extends OrderableController
         $data = [
             'data' => [
                 'list' => $output,
-                'count' => $this->getBasketItemsCount(),
                 'total' => $total,
             ]
         ];
@@ -182,7 +179,7 @@ class BasketController extends OrderableController
         list($result) = $this->getBasketItems();
         Util::prepareItems($result['items']);
 
-        return $this->returnResponse();
+        $this->returnResponse();
     }
 
     /**
@@ -209,7 +206,7 @@ class BasketController extends OrderableController
         list($result) = $this->getBasketItems();
         Util::prepareItems($result['items']);
 
-        return $this->returnResponse();
+        $this->returnResponse();
     }
 
     /**
@@ -226,17 +223,7 @@ class BasketController extends OrderableController
     {
         $this->getBasket()->clear();
 
-        return $this->returnResponse();
-    }
-
-    private function getBasketItemsCount()
-    {
-        $obTable = Table::getTable();
-
-        return Basket::find()
-            ->joinWith('items')
-            ->where(['table_id' => $obTable->id])
-            ->sum('basket_items.quantity') ?? 0;
+        $this->returnResponse();
     }
 
 }

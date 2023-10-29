@@ -4,53 +4,79 @@ namespace app\controllers\api;
 
 use app\controllers\ApiController;
 use app\models\tables\Order;
-use app\models\tables\PaymentType;
-use app\models\tables\ProductsPropertiesValues;
 use app\models\tables\Table;
 use app\Services\ImportHelper;
+use Exception;
 use Yii;
 
 class IikoController extends ApiController
 {
-    const API_KEY = 'fbe5d638-20e';
-    const ORG_ID = "884babb3-8dbb-44e4-a446-8f61e502e06f";
-    const TERMINAL_GROUP_ID = '40a6ea3e-38b0-e5ee-0184-7476df710064';
+    private string $IIKO_API_KEY;
+    private string $IIKO_ORG_ID;
+    private string  $IIKO_TERMINAL_GROUP_ID;
+    private string $IIKO_BASE_URL;
 
-    /**
-     * @SWG\Post(path="/api/iiko/key",
-     *     tags={"Iiko"},
-     *     @SWG\Response(
-     *         response = 200,
-     *         description = "get auth token from iiko",
-     *     ),
-     * )
-     */
-    public function actionKey()
+    public function __construct($id, $module, $config = [])
     {
-        $data = ['apiLogin' => self::API_KEY];
-        $url = 'https://api-ru.iiko.services/api/1/access_token';
+        parent::__construct($id, $module,  $config);
+        $this->IIKO_API_KEY = $_ENV['IIKO_API_KEY'];
+        $this->IIKO_ORG_ID = $_ENV['IIKO_ORG_ID'];
+        $this->IIKO_TERMINAL_GROUP_ID = $_ENV['IIKO_TERMINAL_GROUP_ID'];
+        $this->IIKO_BASE_URL = $_ENV['IIKO_BASE_URL'];
+        $this->IIKO_BASE_URL = $_ENV['IIKO_BASE_URL'];
+    }
 
+    private function gateWay($url, $data, $token = null)
+    {
         $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_URL, $this->IIKO_BASE_URL . $url);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_HEADER, false);
         curl_setopt($ch, CURLOPT_POST, true);
         curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
-        curl_setopt($ch, CURLOPT_HTTPHEADER, array(
-            "Content-Type: application/json",
-        ));
+
+        $headers = ["Content-Type: application/json"];
+        if ($token) {
+            $headers[] = "Authorization: Bearer " . $token;
+        }
+        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
 
         $outData = curl_exec($ch);
+        if ($outData === false) {
+            $error = curl_error($ch);
+            curl_close($ch);
+            throw new \Exception("cURL Error: $error");
+        }
 
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
 
-        $outData = json_decode($outData, true);
+        if ($httpCode < 200 || $httpCode >= 300) {
+            throw new \Exception("HTTP Error: Status code $httpCode");
+        }
+
+        $decodedData = json_decode($outData, true);
+        if ($decodedData === null && json_last_error() != JSON_ERROR_NONE) {
+            throw new \Exception("JSON Decode Error: " . json_last_error_msg());
+        }
+
+        return $decodedData;
+    }
+
+    private function actionKey()
+    {
+        $data = ['apiLogin' => $this->IIKO_API_KEY];
+        $url = 'access_token';
+
+        $outData = $this->gateWay($url, $data);
+        if(!$outData) {
+            $this->sendResponse(400, 'Cannot get token');
+        }
         Yii::$app->session->set('apiToken', $outData['token']);
-        return ($outData['token']);
     }
 
     /**
-     * @SWG\Post(path="/api/iiko/id",
+     * @SWG\Get(path="/api/iiko/id",
      *     tags={"Iiko"},
      *     @SWG\Response(
      *         response = 200,
@@ -62,35 +88,21 @@ class IikoController extends ApiController
     {
         $token = Yii::$app->session->get('apiToken');
         if (!$token) {
-            return $this->asJson(['success' => false, 'data' => 'Token not found']);
+            $this->actionKey();
+            $token = Yii::$app->session->get('apiToken');
         }
-        $url =  'https://api-ru.iiko.services/api/1/organizations';
+        $url =  'organizations';
         $data = '{}';
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, $url);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_HEADER, false);
-        curl_setopt($ch, CURLOPT_POST, true);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, array(
-            "Content-Type: application/json",
-            "Authorization: Bearer " . $token
-        ));
-
-        $outData = curl_exec($ch);
-
-        curl_close($ch);
-
-        $outData = json_decode($outData, true);
+        $outData = $this->gateWay($url, $data, $token);
 
         if ($outData) {
-            return $this->asJson(['success' => true, 'data' => $outData['organizations'][0]['id']]);
+            $this->sendResponse(200, $outData['organizations'][0]['id']);
         }
-        return $this->asJson(['success' => false, 'data' => []]);
+        $this->sendResponse(400,  []);
     }
 
     /**
-     * @SWG\Post(path="/api/iiko/menu",
+     * @SWG\Get(path="/api/iiko/menu",
      *     tags={"Iiko"},
      *     @SWG\Response(
      *         response = 200,
@@ -102,30 +114,18 @@ class IikoController extends ApiController
     {
         $token = Yii::$app->session->get('apiToken');
         if (!$token) {
-            return $this->asJson(['success' => false, 'data' => 'Token not found']);
+            $this->actionKey();
+            $token = Yii::$app->session->get('apiToken');
         }
+        $url = 'nomenclature';
+        $data = ['organizationId' => $this->IIKO_ORG_ID];
+        $outData = $this->gateWay($url, $data, $token);
 
-        $url = 'https://api-ru.iiko.services/api/1/nomenclature';
-        $data = ['organizationId' => self::ORG_ID];
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, $url);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_HEADER, false);
-        curl_setopt($ch, CURLOPT_POST, true);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
-        curl_setopt($ch, CURLOPT_HTTPHEADER, array(
-            "Content-Type: application/json",
-            "Authorization: Bearer " . $token
-        ));
-
-        $outData = curl_exec($ch);
-        curl_close($ch);
-        $outData = json_decode($outData, true);
         if (!$outData) {
-            return $this->asJson(['success' => false, 'data' => 'Token has been expired']);
+            $this->sendResponse(400, 'Token has been expired');
         }
         file_put_contents('../runtime/logs/menu.txt', serialize($outData));
-        dump($outData);
+        $this->sendResponse(200, $outData);
     }
 
     /**
@@ -142,7 +142,7 @@ class IikoController extends ApiController
         $menuData = unserialize(file_get_contents('../runtime/logs/menu.txt'));
         $menuParser = new ImportHelper();
         $menuParser->parse($menuData);
-        return $this->asJson(['success' => true, 'data' => 'DB was fullfilled']);
+        $this->sendResponse(200, 'DB was fullfilled');
     }
 
     /**
@@ -150,7 +150,7 @@ class IikoController extends ApiController
      *     tags={"Iiko"},
      *     @SWG\Response(
      *         response = 200,
-     *         description = "get the available payment types from iiko",
+     *         description = "get the available payment types from iiko and store it",
      *     ),
      * )
      */
@@ -158,32 +158,20 @@ class IikoController extends ApiController
     {
         $token = Yii::$app->session->get('apiToken');
         if (!$token) {
-            return $this->asJson(['success' => false, 'data' => 'Token not found']);
+            $this->actionKey();
+            $token = Yii::$app->session->get('apiToken');
         }
 
-        $url = 'https://api-ru.iiko.services/api/1/payment_types';
-        $data = ['organizationIds' => [self::ORG_ID]];
+        $url = 'payment_types';
+        $data = ['organizationIds' => [$this->IIKO_ORG_ID]];
+        $outData = $this->gateWay($url, $data, $token);
 
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, $url);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_HEADER, false);
-        curl_setopt($ch, CURLOPT_POST, true);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
-        curl_setopt($ch, CURLOPT_HTTPHEADER, array(
-            "Content-Type: application/json",
-            "Authorization: Bearer " . $token
-        ));
-
-        $outData = curl_exec($ch);
-        curl_close($ch);
-        $outData = json_decode($outData, true);
         if (!$outData) {
-            return $this->asJson(['success' => false, 'data' => 'Token has been expired']);
+            $this->sendResponse(400, 'Token has been expired');
         }
 
         ImportHelper::processPaymentTypes($outData['paymentTypes']);
-        return $this->asJson(['success' => true, 'data' => $outData]);
+        $this->sendResponse(200, $outData);
     }
 
     /**
@@ -191,7 +179,7 @@ class IikoController extends ApiController
      *     tags={"Iiko"},
      *     @SWG\Response(
      *         response = 200,
-     *         description = "get the table info from iiko",
+     *         description = "get the table info from iiko and store it",
      *     ),
      * )
      */
@@ -199,39 +187,26 @@ class IikoController extends ApiController
     {
         $token = Yii::$app->session->get('apiToken');
         if (!$token) {
-            return $this->asJson(['success' => false, 'data' => 'Token not found']);
+            $this->actionKey();
+            $token = Yii::$app->session->get('apiToken');
         }
 
-        $url = 'https://api-ru.iiko.services/api/1/reserve/available_restaurant_sections';
-        $data = ['terminalGroupIds' => [self::TERMINAL_GROUP_ID]];
+        $url = 'reserve/available_restaurant_sections';
+        $data = ['terminalGroupIds' => [$this->IIKO_TERMINAL_GROUP_ID]];
 
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, $url);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_HEADER, false);
-        curl_setopt($ch, CURLOPT_POST, true);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
-        curl_setopt($ch, CURLOPT_HTTPHEADER, array(
-            "Content-Type: application/json",
-            "Authorization: Bearer " . $token
-        ));
-
-        $outData = curl_exec($ch);
-        curl_close($ch);
-        $outData = json_decode($outData, true);
+        $outData = $this->gateWay($url, $data, $token);
 
         if (!$outData) {
-            return $this->asJson(['success' => false, 'data' => 'Token has been expired']);
+            $this->sendResponse(400, 'Token has been expired');
         }
 
         ImportHelper::processTables($outData['restaurantSections'][0]['tables']);
 
-        return $this->asJson(['success' => true, 'data' => $outData]);
-
+        $this->sendResponse(200, $outData);
     }
 
     /**
-     * @SWG\Post(path="/api/iiko/terminal",
+     * @SWG\Get(path="/api/iiko/terminal",
      *     tags={"Iiko"},
      *     @SWG\Response(
      *         response = 200,
@@ -244,31 +219,19 @@ class IikoController extends ApiController
     {
         $token = Yii::$app->session->get('apiToken');
         if (!$token) {
-            return $this->asJson(['success' => false, 'data' => 'Token not found']);
+            $this->actionKey();
+            $token = Yii::$app->session->get('apiToken');
         }
 
-        $url = 'https://api-ru.iiko.services/api/1/terminal_groups';
-        $data = ['organizationIds' => [self::ORG_ID]];
+        $url = 'terminal_groups';
+        $data = ['organizationIds' => [$this->IIKO_ORG_ID]];
 
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, $url);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_HEADER, false);
-        curl_setopt($ch, CURLOPT_POST, true);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
-        curl_setopt($ch, CURLOPT_HTTPHEADER, array(
-            "Content-Type: application/json",
-            "Authorization: Bearer " . $token
-        ));
+        $outData = $this->gateWay($url, $data, $token);
 
-        $outData = curl_exec($ch);
-        curl_close($ch);
-        $outData = json_decode($outData, true);
         if (!$outData) {
-            return $this->asJson(['success' => false, 'data' => 'Token has been expired']);
+            $this->sendResponse(400, 'Token has been expired');
         }
-        return $this->asJson(['success' => true, 'data' => $outData]);
-
+        $this->sendResponse(200, $outData);
     }
 
     /**
@@ -289,90 +252,65 @@ class IikoController extends ApiController
     //создать заказ
     public function actionOrder()
     {
+        $this->actionKey();
+
         $token = Yii::$app->session->get('apiToken');
         if (!$token) {
-            return $this->asJson(['success' => false, 'data' => 'Token not found']);
+            $this->actionKey();
+            $token = Yii::$app->session->get('apiToken');
         }
 
         $request = Yii::$app->request;
         if (!$request->isPost || !$request->post('orderId')) {
-            return $this->asJson(['error' => 'empty request']);
+            $this->sendResponse(400, 'Empty request');
         }
 
-        $data = $this->prepareDataForOrder($request->post('orderId'));
+        try {
+            $data = $this->prepareDataForOrder($request->post('orderId'));
+        } catch (Exception $e) {
+            $this->sendResponse(400, $e->getMessage());
+        }
 
-        $url = 'https://api-ru.iiko.services/api/1/order/create';
+        $url = 'order/create';
 
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, $url);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_HEADER, false);
-        curl_setopt($ch, CURLOPT_POST, true);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
-        curl_setopt($ch, CURLOPT_HTTPHEADER, array(
-            "Content-Type: application/json",
-            "Authorization: Bearer " . $token
-        ));
+        $outData = $this->gateWay($url, $data, $token);
 
-        $outData = curl_exec($ch);
-        curl_close($ch);
-        $outData = json_decode($outData, true);
         if (!$outData) {
-            return $this->asJson(['success' => false, 'data' => 'Token has been expired']);
+            $this->sendResponse(400, 'Token has been expired');
         }
-        return $this->asJson(['success' => true, 'data' => $outData]);
+        $this->sendResponse(200, $outData);
     }
 
-    private function prepareDataForOrder(int $orderId)
+    /**
+     * Prepares the data for an order.
+     *
+     * @param int $orderId The ID of the order.
+     * @return array The prepared data for the order.
+     */
+    private function prepareDataForOrder(int $orderId): array
     {
+        // Get the table
         $table = Table::getTable();
+
+        // Check if the table exists
         if (!$table) {
-            return $this->asJson(['success' => false, 'data' => 'Table not found']);
+            throw new Exception('Table not found');
         }
 
-        $filter = [
-            'orders.table_id' => $table->id,
-            'orders.id' => $orderId
-        ];
+        $order = $this->getOrder($orderId, $table->id);
 
-        $order = Order::find()->where($filter)
-            ->joinWith('basket')
-            ->joinWith('basket.items')
-            ->joinWith('basket.items.product')
-            ->asArray()
-            ->one();
+        // Prepare the order items
+        $arItems = $this->prepareOrderItems($order);
 
-        if (!$order) {
-            return $this->asJson(['success' => false, 'data' => 'Order not found']);
+        // Check if the payment type is available
+        if (!$order['paymentType'] || $order['paymentType']['is_deleted']) {
+            throw new Exception('Choosen payment method is unavailable');
         }
 
-        $arItems = [];
-        foreach ($order['basket']['items'] as $item) {
-            $productPropVal = ProductsPropertiesValues::find()
-                ->joinWith('property')
-                ->where(['products_properties.code' => 'orderItemType'])
-                ->andWhere(['products_properties_values.product_id' => $item['product']['id']])
-                ->one();
-            if ($productPropVal->value === 'Compound') {
-                $arItem['primaryComponent'] = [
-                    'productId' => $item['product']['external_id']
-                ];
-            }
-            $arItem['productId'] = $item['product']['external_id'];
-            $arItem['price'] = $item['price'];
-            $arItem['type'] = $productPropVal->value;
-            $arItem['amount'] = $item['quantity'];
-            $arItems[] = $arItem;
-        }
-        $paymentType = PaymentType::find()->where(['payment_type_kind' => $order['payment_method']])->one();
-
-        if (!$paymentType || $paymentType->is_deleted) {
-            return $this->asJson(['success' => false, 'data' => 'Choosen payment method is unavailable']);
-        }
-
+        // Prepare the data for the order
         $data = [
-            'organizationId' => self::ORG_ID,
-            'terminalGroupId' => self::TERMINAL_GROUP_ID,
+            'organizationId' => $this->IIKO_ORG_ID,
+            'terminalGroupId' => $this->IIKO_TERMINAL_GROUP_ID,
             'order' => [
                 'tableIds' => [
                     0 => (string) $table->external_id
@@ -383,12 +321,71 @@ class IikoController extends ApiController
                     0 => [
                         'paymentTypeKind' => $order['payment_method'],
                         'sum' => (float) $order['order_sum'],
-                        'paymentTypeId' => (string) 'b1d53e5f-81c0-413e-8ad0-ea8d5cc7eb18', //$paymentType->external_id,    //пока заглушка так ка доступна только оплата бонусами да и то она удалена
-                        'isProcessedExternally' => (bool) $order['payment_method'] === 'External' ? true : false,
+                        'paymentTypeId' => (string) 'b1d53e5f-81c0-413e-8ad0-ea8d5cc7eb18', //$order['$paymentType']['external_id'], //TODO: убрать //пока заглушка так ка доступна только оплата бонусами да и то она удалена
+                        'isProcessedExternally' => (bool) $order['payment_method'] === 'External',
                     ],
                 ],
             ]
         ];
+
         return $data;
+    }
+
+    private function prepareOrderItems(array $order): array
+    {
+        $arItems = [];
+        foreach ($order['basket']['items'] as $item) {
+            $product = $item['product'];
+            $productPropVal = null;
+
+            foreach ($product['productPropertiesValues'] as $propVal) {
+                // Find the product property for order item type
+                if (isset($propVal['property']) && $propVal['property']['code'] === 'orderItemType') {
+                    $productPropVal = $propVal;
+                    break;
+                }
+            }
+
+            // Prepare the order item
+            $arItem = [];
+            if ($productPropVal && $productPropVal['value'] === 'Compound') {
+                $arItem['primaryComponent'] = [
+                    'productId' => $product['external_id']
+                ];
+            }
+
+            $arItem['productId'] = $product['external_id'];
+            $arItem['price'] = $item['price'];
+            $arItem['type'] = $productPropVal['value'] ?? null;
+            $arItem['amount'] = $item['quantity'];
+            $arItems[] = $arItem;
+        }
+        return $arItems;
+    }
+
+    private function getOrder(int $orderId, $tableId)
+    {
+        $filter = [
+            'orders.table_id' => $tableId,
+            'orders.id' => $orderId
+        ];
+
+        $order = Order::find()
+            ->where($filter)
+            ->with([
+                'basket.items.product',
+                'basket.items.product.productPropertiesValues.property' => function ($query) {
+                    $query->andWhere(['code' => 'orderItemType']);
+                },
+                'paymentType'
+            ])
+            ->asArray()
+            ->one();
+
+        if (!$order) {
+            throw new Exception('Order not found');
+        }
+
+        return $order;
     }
 }

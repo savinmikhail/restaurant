@@ -21,7 +21,7 @@ class CategoryController extends AdminController
         $id = intval($this->getReqParam('id'));
         $model = Categories::find()->where(['id' => $id])->one();
         if (!$model) {
-            throw new NotFoundHttpException('The requested page does not exist.');
+            $this->sendResponse(404, 'The requested page does not exist.');
         }
         $model->delete();
         return Yii::$app->response->redirect(['/admin/categories']);
@@ -31,12 +31,13 @@ class CategoryController extends AdminController
     {
         return $this->editObject();
     }
+
     public function actionEdit()
     {
         $id = intval($this->getReqParam('id'));
         $category = Categories::find()->where(['id' => $id])->asArray()->one();
         if (!$category) {
-            throw new NotFoundHttpException('The requested page does not exist.');
+            $this->sendResponse(404, 'The requested page does not exist.');
         }
 
         return $this->editObject($category);
@@ -44,8 +45,6 @@ class CategoryController extends AdminController
 
     public function editObject($category = [])
     {
-        $upload = new UploadForm();
-
         $categoryForm = new CategoryForm();
 
         if ($this->request->isPost) {
@@ -87,28 +86,24 @@ class CategoryController extends AdminController
 
     public function updateMainImage(Categories $category, $request)
     {
-        if (isset($request['CategoryForm']['removeImage'])) {
-
-            if ((int) $request['CategoryForm']['removeImage'] === 1) {
-
-                if (file_exists($category->image)) {
-                    unlink($category->image);
-                }
-                $category->image = '';
-
-            } else {
-
-                $upload = new UploadForm();
-                $upload->image = \yii\web\UploadedFile::getInstanceByName('CategoryForm[image]');
-
-                if ($upload->validate()) {
-                    $imageName = $upload->upload('cat_' . $category->id);
-                    $category->image = '/upload/' . $imageName;
-                }
+        if (isset($request['CategoryForm']['removeImage']) && (int) $request['CategoryForm']['removeImage'] === 1) {
+            // Удаляем картинку
+            if (file_exists($category->image)) {
+                unlink($category->image);
             }
-            if(!$category->save()){
-                throw new \Exception('Failed to save Category' . print_r($category->errors));
+            $category->image = '';
+        } else {
+            //добавляем картинку
+            $upload = new UploadForm();
+            $upload->image = \yii\web\UploadedFile::getInstanceByName('CategoryForm[image]');
+
+            if ($upload->validate()) {
+                $imageName = $upload->upload('cat_' . $category->id);
+                $category->image = '/upload/' . $imageName;
             }
+        }
+        if (!$category->save()) {
+            $this->sendResponse(400, 'Failed to save Category' . print_r($category->errors));
         }
     }
 
@@ -123,7 +118,7 @@ class CategoryController extends AdminController
 
     public function actionIndex()
     {
-        $categories = Categories::find()->/*joinWith('parent as p')->*/addOrderBy([/*'p.sort' => SORT_ASC,*/'sort' => SORT_ASC])->all();
+        $categories = Categories::find()->addOrderBy(['sort' => SORT_ASC])->all();
         $view = new yii\web\View();
         $view->title = 'Категории';
         return $this->render('/admin/categories/list', [
