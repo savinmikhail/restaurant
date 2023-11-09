@@ -1,10 +1,10 @@
 <?php
 
-namespace app\controllers\api;
+namespace app\controllers\api\user_app;
 
 use app\models\tables\Basket;
 use Yii;
-use app\controllers\ApiController;
+use app\controllers\api\ApiController;
 use app\models\tables\Table;
 
 class OrderableController extends ApiController

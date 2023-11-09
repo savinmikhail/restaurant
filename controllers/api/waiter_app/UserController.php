@@ -1,11 +1,10 @@
 <?php
 
-namespace app\controllers\api;
+namespace app\controllers\api\waiter_app;
 
-use app\controllers\ApiController;
-use app\models\tables\User;
+use app\controllers\api\ApiController;
+use app\models\User;
 use yii;
-use yii\debug\models\search\Mail;
 use yii\filters\AccessControl;
 
 class UserController extends ApiController

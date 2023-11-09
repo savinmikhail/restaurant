@@ -1,8 +1,8 @@
 <?php
 
-namespace app\controllers\api;
+namespace app\controllers\api\user_app;
 
-use app\controllers\ApiController;
+use app\controllers\api\ApiController;
 use app\models\tables\Order;
 use app\models\tables\Table;
 use app\Services\ImportHelper;
@@ -45,19 +45,19 @@ class IikoController extends ApiController
         if ($outData === false) {
             $error = curl_error($ch);
             curl_close($ch);
-            throw new \Exception("cURL Error: $error");
+            throw new Exception("cURL Error: $error");
         }
 
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
 
         if ($httpCode < 200 || $httpCode >= 300) {
-            throw new \Exception("HTTP Error: Status code $httpCode");
+            throw new Exception("HTTP Error: Status code $httpCode \n" . print_r(json_decode($outData, true), true));
         }
 
         $decodedData = json_decode($outData, true);
         if ($decodedData === null && json_last_error() != JSON_ERROR_NONE) {
-            throw new \Exception("JSON Decode Error: " . json_last_error_msg());
+            throw new Exception("JSON Decode Error: " . json_last_error_msg());
         }
 
         return $decodedData;
@@ -69,7 +69,7 @@ class IikoController extends ApiController
         $url = 'access_token';
 
         $outData = $this->gateWay($url, $data);
-        if(!$outData) {
+        if (!$outData) {
             $this->sendResponse(400, 'Cannot get token');
         }
         Yii::$app->session->set('apiToken', $outData['token']);
@@ -387,5 +387,91 @@ class IikoController extends ApiController
         }
 
         return $order;
+    }
+
+    /**
+     * @SWG\Get(path="/api/iiko/get-stop-list",
+     *     tags={"Iiko"},
+     *     @SWG\Response(
+     *         response = 200,
+     *         description = "получить стоп лист с айко",
+     *         @SWG\Schema(ref = "#/definitions/Products")
+     *     ),
+     * )
+     */
+    public function actionGetStopList()
+    {
+
+        $token = Yii::$app->session->get('apiToken');
+        if (!$token) {
+            $this->actionKey();
+            $token = Yii::$app->session->get('apiToken');
+        }
+
+        $url = 'stop_lists';
+        $data = [
+            'organizationIds' => [$this->IIKO_ORG_ID],
+            'returnSize' => true,
+            'terminalGroupIds' => $this->IIKO_TERMINAL_GROUP_ID
+        ];
+
+        $outData = $this->gateWay($url, $data, $token);
+
+        if (!$outData) {
+            $this->sendResponse(400, 'Token has been expired');
+        }
+        $this->sendResponse(200, $outData);
+    }
+
+    /**
+     * @SWG\Post(path="/api/iiko/check-in-stop-list",
+     *     tags={"Iiko"},
+     *      @SWG\Parameter(
+     *          name="productId",
+     *          required=true,
+     *          in="formData",
+     *          type="string",
+     *          description="bec96548-905b-4311-8e87-87ddfbfa0397"
+     *      ),
+     *     @SWG\Response(
+     *         response = 200,
+     *         description = "ПРоверить, кончился ли товар",
+     *         @SWG\Schema(ref = "#/definitions/Products")
+     *     ),
+     * )
+     */
+
+    public function actionCheckInStopList()
+    {
+        $token = Yii::$app->session->get('apiToken');
+        if (!$token) {
+            $this->actionKey();
+            $token = Yii::$app->session->get('apiToken');
+        }
+
+        $url = 'stop_lists/check';
+        $data = [
+            'organizationId' => $this->IIKO_ORG_ID,
+            'terminalGroupId' => $this->IIKO_TERMINAL_GROUP_ID,
+            'items' => [
+                [
+                    'productId' => Yii::$app->request->post('productId'),
+                    'price' => 100,
+                    'type' => 'Product',
+                    'amount' => 1000
+                ]
+
+            ]
+        ];
+        try {
+            $outData = $this->gateWay($url, $data, $token);
+        } catch (Exception $e) {
+            $this->sendResponse(400, $e->getMessage());
+        }
+
+        if (!$outData) {
+            $this->sendResponse(400, 'Token has been expired');
+        }
+        $this->sendResponse(200, $outData);
     }
 }

@@ -1,10 +1,10 @@
 <?php
 
-namespace app\controllers\api;
+namespace app\controllers\api\user_app;
 
 use app\common\Util;
-use app\controllers\api\OrderableController;
 use app\models\tables\PaymentType;
+use app\controllers\api\user_app\OrderableController;
 
 class BasketController extends OrderableController
 {
@@ -27,8 +27,8 @@ class BasketController extends OrderableController
     }
 
     /**
-     * @SWG\Get(path="/api/basket",
-     *     tags={"Basket"},
+     * @SWG\Get(path="/api/user_app/basket",
+     *     tags={"UserApp\Basket"},
      *     @SWG\Response(
      *         response = 200,
      *         description = "Содержимое корзины",
@@ -75,8 +75,8 @@ class BasketController extends OrderableController
     }
 
     /**
-     * @SWG\Get(path="/api/basket/paymentmethods",
-     *     tags={"Basket"},
+     * @SWG\Get(path="/api/user_app/basket/paymentmethods",
+     *     tags={"UserApp\Basket"},
      *     description="Справочник способов оплаты",
      *     @SWG\Response(
      *         response = 200,
@@ -97,8 +97,8 @@ class BasketController extends OrderableController
     }
 
     /**
-     * @SWG\Post(path="/api/basket",
-     *     tags={"Basket"},
+     * @SWG\Post(path="/api/user_app/basket",
+     *     tags={"UserApp\Basket"},
      *      @SWG\Parameter(
      *      name="productId",
      *      in="formData",
@@ -124,8 +124,12 @@ class BasketController extends OrderableController
             1,
             $request['sizeId']
         ];
-        
-        $this->getBasket()->addItem($productId, $quantity, $sizeId);
+
+        try {
+            $this->getBasket()->addItem($productId, $quantity, $sizeId);
+        } catch (\Exception $e) {
+            $this->sendResponse(400, $e->getMessage());
+        }
 
         list($result) = $this->getBasketItems();
         Util::prepareItems($result['items']);
@@ -149,8 +153,8 @@ class BasketController extends OrderableController
     }
 
     /**
-     * @SWG\Put(path="/api/basket",
-     *     tags={"Basket"},
+     * @SWG\Put(path="/api/user_app/basket",
+     *     tags={"UserApp\Basket"},
      *      @SWG\Parameter(
      *      name="productId",
      *      in="formData",
@@ -175,7 +179,11 @@ class BasketController extends OrderableController
         $productId = $request->post('productId');
         $quantity = $request->post('quantity');
 
-        $this->getBasket()->updateItem($productId, $quantity);
+        try {
+            $this->getBasket()->updateItem($productId, $quantity);
+        } catch (\Exception $e) {
+            $this->sendResponse(400, $e->getMessage());
+        }
         list($result) = $this->getBasketItems();
         Util::prepareItems($result['items']);
 
@@ -183,8 +191,8 @@ class BasketController extends OrderableController
     }
 
     /**
-     * @SWG\Delete(path="/api/basket",
-     *     tags={"Basket"},
+     * @SWG\Delete(path="/api/user_app/basket",
+     *     tags={"UserApp\Basket"},
      *      @SWG\Parameter(
      *      name="productId",
      *      in="formData",
@@ -199,19 +207,28 @@ class BasketController extends OrderableController
      */
     public function actionDelete()
     {
-        $request = \Yii::$app->request;
+        $productId = \Yii::$app->request;
 
-        $this->getBasket()->deleteItem($request->post('productId'));
+        $productId = (int) \Yii::$app->request->get('productId');//летит delete, но в query params
+
+        try {
+            $this->getBasket()->deleteItem($productId);
+        } catch (\Exception $e) {
+            $this->sendResponse(400, $e->getMessage());
+        }
 
         list($result) = $this->getBasketItems();
-        Util::prepareItems($result['items']);
+        
+        if(!empty($result['items'])) {
+            Util::prepareItems($result['items']);
+        }
 
         $this->returnResponse();
     }
 
     /**
-     * @SWG\Post(path="/api/basket/clear",
-     *     tags={"Basket"},
+     * @SWG\Post(path="/api/user_app/basket/clear",
+     *     tags={"UserApp\Basket"},
      *     @SWG\Response(
      *         response = 200,
      *         description = "Очистить корзину",

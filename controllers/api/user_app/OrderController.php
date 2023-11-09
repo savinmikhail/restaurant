@@ -1,20 +1,13 @@
 <?php
 
-namespace app\controllers\api;
+namespace app\controllers\api\user_app;
 
-use app\controllers\api\OrderableController;
+use app\controllers\api\user_app\OrderableController;
 use app\models\tables\Basket;
 use app\models\tables\Order;
 use app\models\tables\Setting;
 use app\models\tables\Table;
-use app\Services\Payment;
-use Endroid\QrCode\Color\Color;
-use Endroid\QrCode\Encoding\Encoding;
-use Endroid\QrCode\ErrorCorrectionLevel\ErrorCorrectionLevelLow;
-use Endroid\QrCode\QrCode;
-use Endroid\QrCode\RoundBlockSizeMode\RoundBlockSizeModeMargin;
-// use Endroid\QrCode\Writer\PngWriter;
-use Endroid\QrCode\Writer\SvgWriter;
+use app\Services\QRGen;
 
 class OrderController extends OrderableController
 {
@@ -26,7 +19,6 @@ class OrderController extends OrderableController
             'class' => \yii\filters\VerbFilter::class,
             'actions' => [
                 'index'  => ['POST'],
-                'renderQR'  => ['GET'],
                 'pay' => ['POST'],
                 'cancel' => ['POST'],
                 'list' => ['GET'],
@@ -38,8 +30,8 @@ class OrderController extends OrderableController
     }
 
     /**
-     * @SWG\Post(path="/api/order",
-     *     tags={"Order"},
+     * @SWG\Post(path="/api/user_app/order",
+     *     tags={"UserApp\Order"},
      *     @SWG\Response(
      *         response = 200,
      *         description = "Результат добавления заказа",
@@ -51,23 +43,33 @@ class OrderController extends OrderableController
     {
         $tableId = Table::getTable()->id;
         $basket = Basket::find()->where(['table_id' => $tableId])->one();
+        $obSetting = Setting::find()->where(['name' => 'order_limit'])->one();
 
         $order = new Order();
-        $result = $order->make(['basket_id' => $basket->id, 'table_id' => $tableId, 'basket_total' => $basket->basket_total]);
-
-        if ($result === true) {
-            $this->sendResponse(201, ['data' => $order]);
-
-        }elseif(is_array($result)){
-            $this->sendResponse(400, ['data' => $result]);
+        try {
+            $result = $order->make(['basket_id' => $basket->id, 'table_id' => $tableId, 'basket_total' => $basket->basket_total]);
+        } catch (\Exception $e) {
+            $this->sendResponse(400, ['data' => $e->getMessage()]);
         }
 
-        $this->sendResponse(400, ['data' => $order->errors]);
+        if ($obSetting && $order->order_sum >= $obSetting->value) {
+            $this->sendResponse(200, ['data' => 'order limit is reached', 'qr' => QRGen::renderQR($tableId)]);
+        }
+
+        if ($result) {
+            $this->sendResponse(201, ['data' => $order]);
+        }
     }
 
     /**
-     * @SWG\Post(path="/api/order/pay",
-     *     tags={"Order"},
+     * @SWG\Post(path="/api/user_app/order/pay",
+     *     tags={"UserApp\Order"},
+     *     @SWG\Parameter(
+     *          name="orderId",
+     *          in="formData",
+     *          type="integer",
+     *          description="order id"
+     *     ),
      *     @SWG\Parameter(
      *          name="paymentMethod",
      *          in="formData",
@@ -86,84 +88,112 @@ class OrderController extends OrderableController
         $request = \Yii::$app->request;
         $paymentMethod = $request->post('paymentMethod');
         $orderId = $request->post('orderId');
-        
+        is_array($request->post('orderId')) ? $orderIds = $request->post('orderId') : $orderId = $request->post('orderId');
+        if ($orderIds) {
+            $orderId = $this->uniteOrders($orderIds);
+        }
+        if (!$orderId) {
+            $this->sendResponse(400, ['data' => 'Order not found']);
+        }
         $order = Order::find()->where(['id' => $orderId])->one();
 
         if ($order) {
             $order->payment_method = $paymentMethod;
             if (!$order->save()) {
-                return $this->sendResponse(400, ['data' => $order->errors]);
+                $this->sendResponse(400, ['data' => $order->errors]);
             }
-            return $this->finalAction($order, $paymentMethod);
+            $this->finalAction($order);
+        }
+        $this->sendResponse(400, ['data' => 'Order not found']);
+    }
+
+    private function uniteOrders(array $orderIds): ?int
+    {
+        $transaction = \Yii::$app->db->beginTransaction();
+        try {
+            $orders = Order::find()->where(['id' => $orderIds])->all();
+            if (empty($orders)) {
+                throw new \Exception('No orders found.');
+            }
+
+            $orderSum = 0;
+            foreach ($orders as $order) {
+                $orderSum += $order->order_sum;
+            }
+
+            $newOrder = new Order;
+            $newOrder->order_sum = $orderSum;
+            $newOrder->table_id = $orders[0]->table_id;
+            $newOrder->basket_id = $orders[0]->basket_id;
+
+            if (!$newOrder->save()) {
+                throw new \Exception('Failed to save new order: ' . json_encode($newOrder->errors));
+            }
+
+           Order::deleteAll(['id' => $orderIds]);
+
+            $transaction->commit();
+            return $newOrder->id;
+        } catch (\Exception $e) {
+            $transaction->rollBack();
+            \Yii::error($e->getMessage(), __METHOD__);
+            return null;
         }
     }
 
-    /** @SWG\Get(path="/api/order/render-q-r",
-     *     tags={"Order"},
-     *     @SWG\Response(
-     *         response = 200,
-     *         description = "QR picture",
-     *         @SWG\Schema(ref = "#/definitions/Products")
-     *     ),
-     * )
-     */
-    public function actionRenderQR()
+    private function finalAction(Order $order)
     {
-        $data = Table::getTable()->id;
-        $writer = new SvgWriter();
-        // $writer = new PngWriter();
-
-        // Create QR code
-        $qrCode = QrCode::create($data)
-            ->setEncoding(new Encoding('UTF-8'))
-            ->setErrorCorrectionLevel(new ErrorCorrectionLevelLow())
-            ->setSize(300)
-            ->setMargin(10)
-            ->setRoundBlockSizeMode(new RoundBlockSizeModeMargin())
-            ->setForegroundColor(new Color(0, 0, 0))
-            ->setBackgroundColor(new Color(255, 255, 255));
-
-        $result = $writer->write($qrCode);
-
-        // Validate the result
-        // $writer->validateResult($result, $data);
-
-        header('Content-Type: ' . $result->getMimeType());
-
-        // Save it to a file
-        // $result->saveToFile('web/upload/QRs/qrcode.png');
-
-        // Generate a data URI to include image data inline (i.e. inside an <img> tag)
-        $dataUri = $result->getDataUri();
-        echo $result->getString();
-    }
-
-    private function finalAction($order, $paymentMethod)
-    {
-        $obSetting = Setting::find()->where(['name' => 'order_limit'])->one();
-
-        if ($obSetting && $order->order_sum > $obSetting->value) {
-            return $this->asJson(['success' => true, 'data' => 'You need to call the waiter for further processing']);
-        }
-
-        if ($paymentMethod === 'Cash') {
-            return $this->asJson(['success' => true, 'data' => 'You need to call the waiter for further processing']);
-        }
-
         $result = [
             'order_id' => $order->id
         ];
 
-        if ($paymentMethod !== 'Cash') {
-            list($status, $result['paymentUrl'], $result['bankUrl']) = Payment::createSberPaymentUrl($order->id, $order->order_sum);
+        if ($order->payment_method === 'Cash') {
+            return $this->asJson(['success' => true, 'data' => 'You need to call the waiter for paying cash']);
+        } else {
+            $result['qr'] = QRGen::renderQR($order->id); //TODO: implement sbp payment
+            // list($status, $result['paymentUrl'], $result['bankUrl']) = Payment::createSberPaymentUrl($order->id, $order->order_sum);
         }
 
         $this->sendResponse(200, $result);
     }
 
     /**
-     * @SWG\Post(path="/api/order/cancel",
-     *     tags={"Order"},
+     * @SWG\Get(path="/api/user_app/order/check-confirmed",
+     *     tags={"UserApp\Order"},
+     *     @SWG\Response(
+     *         response = 200,
+     *         description = "Подтверждение от официанта",
+     *         @SWG\Schema(ref = "#/definitions/Products")
+     *     ),
+     * )
+     */
+
+    public function actionCheckConfirmed()
+    {
+        sleep(3); //TODO: заменить на проверку статуса
+        $this->sendResponse(200, ['status' => 'success']);
+    }
+
+    /**
+     * @SWG\Get(path="/api/user_app/order/check-paid",
+     *     tags={"UserApp\Order"},
+     *     @SWG\Response(
+     *         response = 200,
+     *         description = "Подтверждение от СБП",
+     *         @SWG\Schema(ref = "#/definitions/Products")
+     *     ),
+     * )
+     */
+
+    public function actionCheckPaid()
+    {
+        sleep(3); //TODO: заменить на проверку статуса
+        $this->sendResponse(200, ['status' => 'success']);
+    }
+
+    /**
+     * @SWG\Post(path="/api/user_app/order/cancel",
+     *     tags={"UserApp\Order"},
      *      @SWG\Parameter(
      *      name="id",
      *      in="formData",
@@ -178,6 +208,7 @@ class OrderController extends OrderableController
      *     ),
      * )
      */
+
     public function actionCancel()
     {
         $request = \Yii::$app->request;
@@ -189,7 +220,7 @@ class OrderController extends OrderableController
         $order->updated_at = time();
         $order->save();
         if ($order->external_id) {
-            // $res = $client->cancelOrder($order);
+            //TODO: send requst to iiko 
         }
 
         return $this->asJson(['result' => true, 'errors' => $order->errors]);
@@ -198,8 +229,8 @@ class OrderController extends OrderableController
     /**
      * Retrieves a list of orders.
      *
-     * @SWG\Get(path="/api/order/list",
-     *     tags={"Order"},
+     * @SWG\Get(path="/api/user_app/order/list",
+     *     tags={"UserApp\Order"},
      *     @SWG\Response(
      *         response = 200,
      *         description = "Содержимое корзины",
@@ -207,6 +238,7 @@ class OrderController extends OrderableController
      *     ),
      * )
      */
+    
     public function actionList()
     {
         $obTable = Table::getTable();
@@ -269,14 +301,28 @@ class OrderController extends OrderableController
         // Add the computed totals to the output
         $output['totalSum'] = $totalSum;
         $output['totalPaid'] = $totalPaid;
+        $output['totalUnpaid'] = $totalSum - $totalPaid;
         $output['unpaidCount'] = $unpaidCount;
 
         // Output the result as JSON
         return $this->asJson($output);
     }
 
+    /**
+     * Call a waiter
+     *
+     * @SWG\Get(path="/api/user_app/order/waiter",
+     *     tags={"UserApp\Order"},
+     *     @SWG\Response(
+     *         response = 200,
+     *         description = "success",
+     *         @SWG\Schema(ref = "#/definitions/Products")
+     *     ),
+     * )
+     */
     public function actionWaiter()
     {
+        sleep(1);
         $this->sendResponse(200, 'success');
     }
 }

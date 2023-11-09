@@ -1,8 +1,8 @@
 <?php
 
-namespace app\controllers\api;
+namespace app\controllers\api\user_app;
 
-use app\controllers\api\OrderableController;
+use app\controllers\api\user_app\OrderableController;
 use app\models\tables\Products;
 use Yii;
 
@@ -14,7 +14,7 @@ class ProductController extends OrderableController
 
         // Restricting actions by verbs (HTTP methods)
         $behaviors['verbs'] = [
-            'class' => \yii\filters\VerbFilter::className(),
+            'class' => \yii\filters\VerbFilter::class,
             'actions' => [
                 'index'  => ['GET'],
                 // 'view'   => ['GET'],
@@ -28,8 +28,8 @@ class ProductController extends OrderableController
     }
 
     /**
-     * @SWG\Get(path="/api/products",
-     *     tags={"Products"},
+     * @SWG\Get(path="/api/user_app/products",
+     *     tags={"UserApp\Products"},
      *     @SWG\Parameter(
      *         name="productName",
      *         in="query",
@@ -52,6 +52,7 @@ class ProductController extends OrderableController
             ->joinWith('categories')
             ->joinWith('productSizePrices.price')
             ->joinWith('productSizePrices.size')
+            ->joinWith('tags')
             ->andFilterWhere(['like', 'products.name', $productNameFilter])  //when $productNameFilter is an empty string, the filter will be ignored, and the query will return all products
             ->asArray();
 
@@ -68,6 +69,8 @@ class ProductController extends OrderableController
                 'image' => $product['image'],
                 'productName' => $product['name'],
                 'description' => $product['description'],
+                'isActive' => rand(0, 1), //TODO: pull data from iiko
+                'tags' => [],
                 'sizePrices' => [],
             ];
 
@@ -79,6 +82,10 @@ class ProductController extends OrderableController
                 ];
             }
 
+            foreach ($product['tags'] as $tag) {
+                $productData['tags'][] = $tag['name'];
+            }
+            
             $result[] = $productData;
         }
 

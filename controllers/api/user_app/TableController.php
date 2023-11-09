@@ -1,11 +1,9 @@
 <?php
 
-namespace app\controllers\api;
+namespace app\controllers\api\user_app;
 
-use app\controllers\api\OrderableController;
+use app\controllers\api\user_app\OrderableController;
 use app\models\tables\Order;
-use app\models\tables\Products;
-use Yii;
 
 class TableController extends OrderableController
 {
@@ -15,7 +13,7 @@ class TableController extends OrderableController
 
         // Restricting actions by verbs (HTTP methods)
         $behaviors['verbs'] = [
-            'class' => \yii\filters\VerbFilter::className(),
+            'class' => \yii\filters\VerbFilter::class,
             'actions' => [
                 'index'  => ['GET'],
                 // 'view'   => ['GET'],
@@ -29,8 +27,8 @@ class TableController extends OrderableController
     }
 
     /**
-     * @SWG\Post(path="/api/table/close",
-     *     tags={"Table"},
+     * @SWG\Post(path="/api/user_app/table/close",
+     *     tags={"UserApp\Table"},
      *     @SWG\Response(
      *         response = 200,
      *         description = "Empty response",
