@@ -2,6 +2,8 @@
 
 $params = require __DIR__ . '/params.php';
 $db = require __DIR__ . '/db.php';
+$user_app = 'api/user_app';
+$waiter_app = 'api/waiter_app';
 
 $config = [
     'id' => 'basic',
@@ -19,6 +21,8 @@ $config = [
                 'application/json' => 'yii\web\JsonParser',
                 'multipart/form-data' => 'yii\web\MultipartFormDataParser'
             ],
+            // 'baseUrl' => 'https://kintsugi.dev.redramka.ru', // enforce https
+
         ],
         'cache' => [
             'class' => 'yii\caching\FileCache',
@@ -61,26 +65,23 @@ $config = [
                 ['class' => 'yii\rest\UrlRule', 'controller' => 'admin/product'],
                 ['class' => 'yii\rest\UrlRule', 'controller' => 'admin/table'],
                 ['class' => 'yii\rest\UrlRule', 'controller' => 'admin/orders'],
-
                 '/admin/settings' => 'admin/setting/index',
 
+//приложение для юзера
+                ["class" => 'yii\rest\UrlRule', "controller" => "$user_app/product"],
+                "GET /$user_app/basket" => "$user_app/basket/index",//написано таким образом для реализации RESTful апи
+                "POST /$user_app/basket" => "$user_app/basket/add",
+                "PUT /$user_app/basket" => "$user_app/basket/set",
+                "DELETE /$user_app/basket" => "$user_app/basket/delete",
+                ["class" => 'yii\rest\UrlRule', "controller" => "$user_app/order"],
+                "/$user_app/order" => "$user_app/order/index",
+                "/$user_app/order/waiter" => "$user_app/order/waiter",
+                ["class" => 'yii\rest\UrlRule', "controller" => "$user_app/catalog"],
+                ["class" => 'yii\rest\UrlRule', "controller" => "$user_app/iiko"],
 
-                ['class' => 'yii\rest\UrlRule', 'controller' => 'api/product'],
-                // ['class' => 'yii\rest\UrlRule', 'controller' => 'api/basket'],
-
-                'GET /api/basket' => 'api/basket/index',
-                'POST /api/basket' => 'api/basket/add',
-                'PUT /api/basket' => 'api/basket/set',
-                'DELETE /api/basket' => 'api/basket/delete',
-
-                ['class' => 'yii\rest\UrlRule', 'controller' => 'api/order'],
-                '/api/order' => 'api/order/index',
-                '/api/order/waiter' => 'api/order/waiter',
-
-
-                ['class' => 'yii\rest\UrlRule', 'controller' => 'api/catalog'],
-                ['class' => 'yii\rest\UrlRule', 'controller' => 'api/iiko'],
-
+//приложение для официанта
+                ["class" => 'yii\rest\UrlRule', "controller" => "$waiter_app/product"],
+                
             ],
         ],
 
