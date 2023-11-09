@@ -58,7 +58,7 @@ class Order extends Base
         $this->basket_id = (int) $orderVars['basket_id'];
 
         if (!$this->save()) {
-            return ['data' => ["message" => "Error occured while saving Order", 'errors' => $this->errors]];
+            throw new \Exception("Failed to save order: " . print_r($this->errors, true));
         }
 
         return true;
