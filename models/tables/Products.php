@@ -14,9 +14,9 @@ class Products extends Base
     public function rules()
     {
         return [
-            [['name', 'sort', ], 'required'],
+            [['name', 'sort',], 'required'],
             [['sort', 'is_deleted', 'category_id'], 'integer'],
-            [['is_deleted',  ], 'boolean'],
+            [['is_deleted',], 'boolean'],
             [['description', 'name', 'external_id'], 'string'],
             [['image'], 'string', 'skipOnEmpty' => true],
         ];
@@ -50,5 +50,11 @@ class Products extends Base
     public function getProductSizePrices()
     {
         return $this->hasMany(SizePrice::class, ['product_id' => 'id']);
+    }
+
+    public function getTags()
+    {
+        return $this->hasMany(Tag::class, ['id' => 'tag_id'])
+            ->viaTable('tag_product', ['product_id' => 'id']);
     }
 }
