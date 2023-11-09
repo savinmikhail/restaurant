@@ -75,11 +75,9 @@ class Basket extends Base
     {
         $obBasketItem = BasketItem::find()->where(['basket_id' => $this->id, 'product_id' => $productId])->one();
         if ($obBasketItem) {
-            $result = $obBasketItem->delete();//false or integer
-        }else{
-            $result = true;
+            return $obBasketItem->delete();//false or integer
         }
-        return $result;
+        throw new \Exception("Failed to find Basket Item with product id $productId, basket id $this->id");
     }
 
     public function updateItem(int $productId, int $quantity)
@@ -88,20 +86,14 @@ class Basket extends Base
         $obBasketItem = BasketItem::find()->where(['basket_id' => $this->id, 'product_id' => $productId])->one();
         if ($obBasketItem) {
 
-            if ($quantity == 0) {
-                $obBasketItem->delete();
-                return [0, ''];
-            }
             if ($obBasketItem->quantity !== $quantity) {
                 $obBasketItem->quantity = $quantity;
-                $obBasketItem->save();
-                return [$obBasketItem->id, ''];
+                if(!$obBasketItem->save()){
+                    throw new \Exception("Failed to save Basket Item: " . print_r($obBasketItem->errors, true));
+                }
             }
         }
-        $obBasketItem = new BasketItem();
-        $obBasketItem->load(['product_id' => $productId, 'quantity' => $quantity, 'basket_id' => $this->id], '');
-        $obBasketItem->save();
 
-        return [$obBasketItem->id, ''];
+        return $obBasketItem;
     }
 }
