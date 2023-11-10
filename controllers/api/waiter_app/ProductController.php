@@ -5,6 +5,7 @@ namespace app\controllers\api\waiter_app;
 use app\controllers\api\ApiController;
 use app\models\tables\Products;
 use Yii;
+use yii\data\Pagination;
 use yii\filters\VerbFilter;
 
 class ProductController extends ApiController
@@ -57,16 +58,31 @@ class ProductController extends ApiController
     public function actionIndex()
     {
         $productNameFilter = Yii::$app->request->get('productName', '');
+        $page = Yii::$app->request->get('page', 1);
+        $perPage = Yii::$app->request->get('perPage', 10);
 
-        $productsQuery = Products::find()
+        // Prepare the query
+        $query = Products::find()
             ->select(['id', 'name'])
-            ->andFilterWhere(['like', 'products.name', $productNameFilter])  //when $productNameFilter is an empty string, the filter will be ignored, and the query will return all products
-            ->asArray();
+            ->andFilterWhere(['like', 'products.name', $productNameFilter]);  //when $productNameFilter is an empty string, the filter will be ignored, and the query will return all products
 
-        $productsData = $productsQuery->all();
+        // Set up pagination
+        $countQuery = clone $query;
+        $pages = new Pagination(['totalCount' => $countQuery->count(), 'pageSize' => $perPage]);
+        $pages->setPage($page - 1); // Adjust page number (0 indexed)
+
+        $productsData = $query->offset($pages->offset)
+            ->limit($pages->limit)
+            ->asArray()
+            ->all();
 
         $this->sendResponse(200, [
             'data' => $productsData,
+            'pagination' => [
+                'totalCount' => $pages->totalCount,
+                'page' => $pages->page + 1, // Return 1 indexed page number
+                'perPage' => $pages->pageSize,
+            ],
         ]);
     }
 }
