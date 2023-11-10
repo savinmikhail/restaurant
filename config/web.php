@@ -91,16 +91,29 @@ $config = [
 
     ],
     'params' => $params,
-    
+
     //DI
-    // 'container' => [
-    //     'definitions' => [
-    //         'app\components\services\OrderService' => [
-    //             'class' => 'app\components\services\OrderService',
-    //             // Any additional configuration for OrderService
-    //         ],
-    //     ],
-    // ],
+    'container' => [
+        'definitions' => [
+
+            //user_app here
+            'app\Services\api\user_app\OrderService' => [
+                'class' => 'app\Services\api\user_app\OrderService',
+                // Any additional configuration for OrderService
+            ],
+            'app\Services\api\user_app\ProductService' => [
+                'class' => 'app\Services\api\user_app\ProductService',
+            ],
+
+            //waiter_app here
+            'app\Services\api\waiter_app\OrderService' => [
+                'class' => 'app\Services\api\waiter_app\OrderService',
+            ],
+            'app\Services\api\waiter_app\ProductService' => [
+                'class' => 'app\Services\api\waiter_app\ProductService',
+            ],
+        ],
+    ],
 
 ];
 

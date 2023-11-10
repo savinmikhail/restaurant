@@ -3,13 +3,20 @@
 namespace app\controllers\api\waiter_app;
 
 use app\controllers\api\ApiController;
-use app\models\tables\Products;
+use app\Services\api\waiter_app\ProductService;
 use Yii;
-use yii\data\Pagination;
 use yii\filters\VerbFilter;
 
 class ProductController extends ApiController
 {
+    private $productService;
+
+    public function __construct($id, $module, ProductService $productService, $config = [])
+    {
+        $this->productService = $productService;
+        parent::__construct($id, $module, $config);
+    }
+
     public function behaviors()
     {
         $behaviors = parent::behaviors();
@@ -61,33 +68,7 @@ class ProductController extends ApiController
         $page = Yii::$app->request->get('page', 1);
         $perPage = Yii::$app->request->get('perPage', 10);
 
-        // Prepare the query
-        $query = Products::find()
-            ->select(['products.id', 'products.name'])
-            ->joinWith([
-                'sizes' => function ($query) {
-                    $query->select(['sizes.id', 'sizes.name']); 
-                }
-            ])
-            ->andFilterWhere(['like', 'products.name', $productNameFilter]);  //when $productNameFilter is an empty string, the filter will be ignored, and the query will return all products
-
-        // Set up pagination
-        $countQuery = clone $query;
-        $pages = new Pagination(['totalCount' => $countQuery->count(), 'pageSize' => $perPage]);
-        $pages->setPage($page - 1); // Adjust page number (0 indexed)
-
-        $productsData = $query->offset($pages->offset)
-            ->limit($pages->limit)
-            ->asArray()
-            ->all();
-
-        $this->sendResponse(200, [
-            'data' => $productsData,
-            'pagination' => [
-                'totalCount' => $pages->totalCount,
-                'page' => $pages->page + 1, // Return 1 indexed page number
-                'perPage' => $pages->pageSize,
-            ],
-        ]);
+        list($code, $data) = $this->productService->getListData($page, $perPage, $productNameFilter);
+        $this->sendResponse($code, $data);
     }
 }

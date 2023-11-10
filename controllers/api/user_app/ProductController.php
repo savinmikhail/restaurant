@@ -3,11 +3,19 @@
 namespace app\controllers\api\user_app;
 
 use app\controllers\api\user_app\OrderableController;
-use app\models\tables\Products;
+use app\Services\api\user_app\ProductService;
 use Yii;
 
 class ProductController extends OrderableController
 {
+    private $productService;
+
+    public function __construct($id, $module, ProductService $productService, $config = [])
+    {
+        $this->orderService = $productService;
+        parent::__construct($id, $module, $config);
+    }
+
     public function behaviors()
     {
         $behaviors = parent::behaviors();
@@ -43,49 +51,8 @@ class ProductController extends OrderableController
     {
         $productNameFilter = Yii::$app->request->get('productName', '');
 
-        $productsQuery = Products::find()
-            ->joinWith('categories')
-            ->joinWith('productSizePrices.price')
-            ->joinWith('productSizePrices.size')
-            ->joinWith('tags')
-            ->andFilterWhere(['like', 'products.name', $productNameFilter])  //when $productNameFilter is an empty string, the filter will be ignored, and the query will return all products
-            ->asArray();
+       list($code, $data) = $this->productService->getListData($productNameFilter);
 
-        $productsData = $productsQuery->all();
-
-        $result = [];
-
-        foreach ($productsData as $product) {
-
-            $productData = [
-                'categoryId' =>  $product['category_id'],
-                'categoryName' => $product['categories']['name'],
-                'productId' => $product['id'],
-                'image' => $product['image'],
-                'productName' => $product['name'],
-                'description' => $product['description'],
-                'isActive' => rand(0, 1), //TODO: pull data from iiko
-                'tags' => [],
-                'sizePrices' => [],
-            ];
-
-            foreach ($product['productSizePrices'] as $sizePrice) {
-                $productData['sizePrices'][] = [
-                    'sizeName' => $sizePrice['size']['name'],
-                    'sizeId' => $sizePrice['size']['id'],
-                    'price' => $sizePrice['price']['current_price'],
-                ];
-            }
-
-            foreach ($product['tags'] as $tag) {
-                $productData['tags'][] = $tag['name'];
-            }
-            
-            $result[] = $productData;
-        }
-
-        return $this->asJson([
-            'data' => $result,
-        ]);
+        $this->sendResponse($code, $data);
     }
 }

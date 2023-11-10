@@ -2,15 +2,19 @@
 
 namespace app\controllers\api\waiter_app;
 
-use app\common\Util;
 use app\controllers\api\user_app\OrderableController;
-use app\models\tables\Basket;
-use app\models\tables\BasketItem;
-use app\models\tables\Order;
-use yii\data\Pagination;
+use app\Services\api\waiter_app\OrderService;
 
 class OrderController extends OrderableController
 {
+    private $orderService;
+
+    public function __construct($id, $module, OrderService $orderService, $config = [])
+    {
+        $this->orderService = $orderService;
+        parent::__construct($id, $module, $config);
+    }
+
     public function behaviors()
     {
         $behaviors = parent::behaviors();
@@ -61,34 +65,8 @@ class OrderController extends OrderableController
         $page = \Yii::$app->request->get('page', 1);
         $perPage = \Yii::$app->request->get('perPage', 10);
 
-        $query = Order::find()
-            ->joinWith('table')
-            ->select(['orders.id as order_id', 'tables.table_number'])
-            ->andWhere(['canceled' => 0])
-            ->addOrderBy(['orders.id' => SORT_DESC]);
-
-        // Set up pagination
-        $countQuery = clone $query;
-        $pages = new Pagination(['totalCount' => $countQuery->count(), 'pageSize' => $perPage]);
-        $pages->setPage($page - 1); // Adjust page number (0 indexed)
-
-        $productsData = $query->offset($pages->offset)
-            ->limit($pages->limit)
-            ->asArray()
-            ->all();
-
-        foreach ($productsData as $index => $order) { //без этого куска кода почему-то добавляется лишний ключ table=>null
-            unset($productsData[$index]['table']);
-        }
-
-        $this->sendResponse(200, [
-            'orders' => $productsData,
-            'pagination' => [
-                'totalCount' => $pages->totalCount,
-                'page' => $pages->page + 1,
-                'perPage' => $pages->pageSize,
-            ],
-        ]);
+        list($code, $output) = $this->orderService->getListData($page, $perPage);
+        $this->sendResponse($code, $output);
     }
 
     /**
@@ -112,38 +90,9 @@ class OrderController extends OrderableController
         $request = \Yii::$app->request;
         $orderId = $request->get('orderId');
 
-        if (!$orderId || !is_numeric($orderId)) {
-            $this->sendResponse(400, ['data' => 'Invalid or missing order ID']);
-            return;
-        }
+        list($code, $data) = $this->orderService->getIndexData($orderId);
 
-        $order = Order::find()
-            ->where(['orders.id' => $orderId])
-            ->joinWith('table')
-            ->joinWith('basket.items.product')
-            ->asArray()
-            ->one();
-
-        if (!$order) {
-            $this->sendResponse(404, ['data' => 'Order not found']);
-            return;
-        }
-
-        $filteredOrderDetails = [
-            'order_id' => $order['id'],
-            'order_sum' => $order['order_sum'],
-            'created_at' => $order['created_at'],
-            'table_number' => $order['table']['table_number'],
-            'items' => array_map(function ($item) {
-                return [
-                    'name' => $item['product']['name'],
-                    'quantity' => $item['quantity'],
-                    'id' => $item['id']
-                ];
-            }, $order['basket']['items'])
-        ];
-
-        $this->sendResponse(200, ['data' => $filteredOrderDetails]);
+        $this->sendResponse($code, $data);
     }
 
 
@@ -173,26 +122,8 @@ class OrderController extends OrderableController
         $itemId = $request->post('item_id');
         $quantity = $request->post('quantity');
 
-        if (!$itemId || !$quantity || $quantity < 1) {
-            $this->sendResponse(400, ['data' => 'Invalid input']);
-        }
-
-        try {
-            $itemExists = BasketItem::find()->where(['id' => $itemId])->exists();
-            if (!$itemExists) {
-                $this->sendResponse(404, ['data' => 'Item not found']);
-            }
-
-            $updatedCount = BasketItem::updateAll(['quantity' => $quantity], ['id' => $itemId]);
-            if ($updatedCount > 0) {
-                $this->sendResponse(200, ['data' => 'Item updated successfully']);
-            } else {
-                $this->sendResponse(404, ['data' => 'Item not found while updating quantity']);
-            }
-        } catch (\Exception $e) {
-            \Yii::error("Error updating basket item: " . $e->getMessage(), __METHOD__);
-            $this->sendResponse(500, ['data' => 'An error occurred']);
-        }
+        list($code, $data) = $this->orderService->updateQuantity($itemId, $quantity);
+        $this->sendResponse($code, $data);
     }
 
     /**
@@ -213,25 +144,9 @@ class OrderController extends OrderableController
     public function actionDelete()
     {
         $itemId = (int) \Yii::$app->request->get('item_id');
-        if (!$itemId || $itemId < 1) {
-            $this->sendResponse(400, ['data' => 'Invalid input']);
-        }
-        try {
-            $itemExists = BasketItem::find()->where(['id' => $itemId])->exists();
-            if (!$itemExists) {
-                $this->sendResponse(404, ['data' => 'Item not found']);
-            }
 
-            $deletedCount = BasketItem::deleteAll(['id' => $itemId]);
-            if ($deletedCount === 1) {
-                $this->sendResponse(200, ['data' => 'Item deleted successfully']);
-            } else {
-                $this->sendResponse(404, ['data' => 'Item not found while deleting']);
-            }
-        } catch (\Exception $e) {
-            \Yii::error("Error deleting basket item: " . $e->getMessage(), __METHOD__);
-            $this->sendResponse(500, ['data' => 'An error occurred']);
-        }
+        list($code, $data) = $this->orderService->deleteItem($itemId);
+        $this->sendResponse($code, $data);
     }
 
     /**
@@ -267,29 +182,7 @@ class OrderController extends OrderableController
         $orderId = $request['order_id'] ?? null;
         $quantity = 1; // default quantity is 1
 
-        if (!$productId || !$sizeId || !$orderId) {
-            $this->sendResponse(400, ['data' => 'Invalid input']);
-        }
-
-        $order = Order::find()->where(['id' => $orderId])->one();
-        if (!$order) {
-            $this->sendResponse(404, ['data' => 'Order not found']);
-        }
-        try {
-            $basket = Basket::findOne($order->basket_id);
-            if (!$basket) {
-                $this->sendResponse(404, ['data' => 'Basket not found']);
-            }
-
-            $basket->addItem($productId, $quantity, $sizeId);
-            $result = $basket->getBasketItems();
-            $total = Util::prepareItems($result['items']);
-
-            Order::updateAll(['order_sum' => $total], ['id' => $orderId]);
-            $this->sendResponse(200, $result);
-        } catch (\Exception $e) {
-            \Yii::error("Error adding item to basket: " . $e->getMessage(), __METHOD__);
-            $this->sendResponse(500, ['data' => 'An error occurred']);
-        }
+        list($code, $data) = $this->orderService->addNewItem($productId, $sizeId, $orderId, $quantity);
+        $this->sendResponse($code, $data);
     }
 }
