@@ -7,10 +7,8 @@ use yii\helpers\Url;
 use yii\filters\AccessControl;
 use yii\web\Controller;
 use yii\web\Response;
-use yii\web\JsonResponseFormatter;
 use yii\filters\VerbFilter;
-use app\models\LoginForm;
-use app\models\ContactForm;
+use app\models\forms\LoginForm;
 
 /**
  * @SWG\Swagger(
@@ -18,6 +16,11 @@ use app\models\ContactForm;
  *     produces={"application/json"},
  *     consumes={"application/x-www-form-urlencoded"},
  *     @SWG\Info(version="1.0", title="Simple API"),
+ *      @SWG\SecurityScheme(
+ *         securityDefinition="basicAuth",
+ *         type="basic"
+ *     ),
+ *      security={{"basicAuth":{}}}
  * )
  */
 
