@@ -16,8 +16,12 @@ class ApiController extends BaseController
     protected function checkApiAccess()
     {
         $headers = Yii::$app->request->headers;
+        $expectedAuthHeader = 'Basic ' . base64_encode("admin:" . $_ENV['API_PASSWORD']);
 
-        if (!$headers->has('Authorization') || $headers->get('Authorization') !== 'admin:demodemo') { //передаются в https протоколе, могу не шифровать
+        if (!$headers->has('Authorization') || $headers->get('Authorization') !== $expectedAuthHeader) {
+            // Log the unauthorized attempt
+            Yii::error("Unauthorized access attempt detected. Header: " . $headers->get('Authorization'), __METHOD__);
+            
             $this->sendResponse(403, 'Access denied');
         }
     }
