@@ -87,8 +87,8 @@ class OrderController extends OrderableController
     {
         $request = \Yii::$app->request;
         $paymentMethod = $request->post('paymentMethod');
-        $orderId = $request->post('orderId');
-        is_array($request->post('orderId')) ? $orderIds = $request->post('orderId') : $orderId = $request->post('orderId');
+        $orderIds = $request->post('orderId');
+        
         if ($orderIds) {
             $orderId = $this->uniteOrders($orderIds);
         }
@@ -102,9 +102,34 @@ class OrderController extends OrderableController
             if (!$order->save()) {
                 $this->sendResponse(400, ['data' => $order->errors]);
             }
-            $this->finalAction($order);
+            $result = $this->finalAction($order);
+            try {
+                $this->refreshBasket();
+            } catch (\Exception $e) {
+               $this->sendResponse(400, ['data' => $e->getMessage()]);
+            }
+            $this->sendResponse(200, $result);
         }
         $this->sendResponse(400, ['data' => 'Order not found']);
+    }
+
+    //заказ сформирован, отправлен на оплату, удаляю корзину для стола и создаю новую, чтобы очистить корзину от товаров, но оставить товары для заказа
+    private function refreshBasket()
+    {
+        $table = Table::getTable();
+        $basket = Basket::find()->where(['table_id' => $table->id])->one();
+        if (!$basket) {
+            throw new \Exception('Basket not found');
+        }
+        $basket->delete();
+
+        $basket = new Basket;
+        $basket->table_id = $table->id;
+        $basket->created_at = date('Y-m-d H:i:s');
+        $basket->updated_at = date('Y-m-d H:i:s');
+        if(!$basket->save()) {
+            throw new \Exception('Failed to save new basket: ' . json_encode($basket->errors));
+        }
     }
 
     private function uniteOrders(array $orderIds): ?int
@@ -130,7 +155,7 @@ class OrderController extends OrderableController
                 throw new \Exception('Failed to save new order: ' . json_encode($newOrder->errors));
             }
 
-           Order::deleteAll(['id' => $orderIds]);
+            Order::deleteAll(['id' => $orderIds]);
 
             $transaction->commit();
             return $newOrder->id;
@@ -141,20 +166,19 @@ class OrderController extends OrderableController
         }
     }
 
-    private function finalAction(Order $order)
+    private function finalAction(Order $order): array
     {
         $result = [
             'order_id' => $order->id
         ];
 
         if ($order->payment_method === 'Cash') {
-            return $this->asJson(['success' => true, 'data' => 'You need to call the waiter for paying cash']);
+            $result = ['data' => 'You need to call the waiter for paying cash'];
         } else {
             $result['qr'] = QRGen::renderQR($order->id); //TODO: implement sbp payment
             // list($status, $result['paymentUrl'], $result['bankUrl']) = Payment::createSberPaymentUrl($order->id, $order->order_sum);
         }
-
-        $this->sendResponse(200, $result);
+        return $result;
     }
 
     /**
@@ -238,7 +262,7 @@ class OrderController extends OrderableController
      *     ),
      * )
      */
-    
+
     public function actionList()
     {
         $obTable = Table::getTable();
