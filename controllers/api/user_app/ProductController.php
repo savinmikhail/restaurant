@@ -12,15 +12,10 @@ class ProductController extends OrderableController
     {
         $behaviors = parent::behaviors();
 
-        // Restricting actions by verbs (HTTP methods)
         $behaviors['verbs'] = [
             'class' => \yii\filters\VerbFilter::class,
             'actions' => [
                 'index'  => ['GET'],
-                // 'view'   => ['GET'],
-                // 'create' => ['POST'],
-                // 'update' => ['PUT', 'PATCH'],
-                // 'delete' => ['DELETE'],
             ],
         ];
 

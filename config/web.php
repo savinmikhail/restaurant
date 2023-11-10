@@ -67,9 +67,9 @@ $config = [
                 ['class' => 'yii\rest\UrlRule', 'controller' => 'admin/orders'],
                 '/admin/settings' => 'admin/setting/index',
 
-//приложение для юзера
+                //приложение для юзера
                 ["class" => 'yii\rest\UrlRule', "controller" => "$user_app/product"],
-                "GET /$user_app/basket" => "$user_app/basket/index",//написано таким образом для реализации RESTful апи
+                "GET /$user_app/basket" => "$user_app/basket/index", //написано таким образом для реализации RESTful апи
                 "POST /$user_app/basket" => "$user_app/basket/add",
                 "PUT /$user_app/basket" => "$user_app/basket/set",
                 "DELETE /$user_app/basket" => "$user_app/basket/delete",
@@ -79,9 +79,12 @@ $config = [
                 ["class" => 'yii\rest\UrlRule', "controller" => "$user_app/catalog"],
                 ["class" => 'yii\rest\UrlRule', "controller" => "$user_app/iiko"],
 
-//приложение для официанта
-                ["class" => 'yii\rest\UrlRule', "controller" => "$waiter_app/product"],
-                
+                //приложение для официанта
+                "GET /$waiter_app/products" => "$waiter_app/product/index",
+                "GET /$waiter_app/orders" => "$waiter_app/order/list",
+                ["class" => 'yii\rest\UrlRule', "controller" => "$waiter_app/order"],
+                ["class" => 'yii\rest\UrlRule', "controller" => "$waiter_app/user"],
+
             ],
         ],
 
@@ -91,19 +94,19 @@ $config = [
 
 if (YII_ENV_DEV) {
     // configuration adjustments for 'dev' environment
-    $config['bootstrap'][] = 'debug';
-    $config['modules']['debug'] = [
-        'class' => 'yii\debug\Module',
+    // $config['bootstrap'][] = 'debug';
+    // $config['modules']['debug'] = [
+        // 'class' => 'yii\debug\Module',
         // uncomment the following to add your IP if you are not connecting from localhost.
         //'allowedIPs' => ['127.0.0.1', '::1'],
-    ];
+    // ];
 
-    $config['bootstrap'][] = 'gii';
-    $config['modules']['gii'] = [
-        'class' => 'yii\gii\Module',
+    // $config['bootstrap'][] = 'gii';
+    // $config['modules']['gii'] = [
+    //     'class' => 'yii\gii\Module',
         // uncomment the following to add your IP if you are not connecting from localhost.
         //'allowedIPs' => ['127.0.0.1', '::1'],
-    ];
+    // ];
 }
 
 return $config;

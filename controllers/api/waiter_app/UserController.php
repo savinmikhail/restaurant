@@ -14,29 +14,48 @@ class UserController extends ApiController
 
     public function behaviors()
     {
-        return [
-            'access' => [
-                'class' => AccessControl::class,
-                // 'only' => ['index', 'finx'],
-                'rules' => [
-                    [
-                        'allow' => true,
-                        'actions' => ['index', 'check-auth', 'logout',],
-                        'roles' => ['@'],
-                    ],
-                    [
-                        'allow' => true,
-                        'actions' => ['login'],
-                        'roles' => ['?'],
-                    ],
+        $behaviors = parent::behaviors();
+
+        // Disable CSRF validation for API requests
+        $this->enableCsrfValidation = false;
+
+        // Setup AccessControl
+        $behaviors['access'] = [
+            'class' => AccessControl::class,
+            'rules' => [
+                [
+
+                    'allow' => true,
+                    'actions' => ['index', 'check-auth', 'logout'],
+                    'roles' => ['@'],
                 ],
-                'denyCallback' => function ($rule, $action) {
-                    if ($action->id !== 'login') {
-                        $this->sendResponse(401, ['data' => 'authorization required']);
-                    }
-                },
+                [
+
+                    'allow' => true,
+                    'actions' => ['login'],
+                    'roles' => ['?'],
+                ],
+            ],
+            'denyCallback' => function ($rule, $action) {
+
+                if (!Yii::$app->user->isGuest && $action->id !== 'login') {
+                    $this->sendResponse(403, ['data' => 'Access denied']);
+                } else {
+                    $this->sendResponse(401, ['data' => 'Authorization required']);
+                }
+            },
+        ];
+
+        $behaviors['verbs'] = [
+            'class' => \yii\filters\VerbFilter::class,
+            'actions' => [
+                'index'  => ['GET'],
+                'logout'  => ['GET'],
+                'check-auth' => ['GET'],
+                'login' => ['POST'],
             ],
         ];
+        return $behaviors;
     }
 
     /**
@@ -70,7 +89,7 @@ class UserController extends ApiController
     {
         Yii::$app->user->logout();
 
-        return $this->asJson(['result' => 1]);
+        $this->sendResponse(200, ['success' => true]);
     }
 
     /**
@@ -98,7 +117,7 @@ class UserController extends ApiController
         $username = Yii::$app->request->post('login');
         $password = Yii::$app->request->post('password');
 
-        if(!$username || !$password) {
+        if (!$username || !$password) {
             $this->sendResponse(401, ['data' => 'Получены невалидные данные']);
         }
         // Поиск пользователя по имени пользователя
@@ -111,7 +130,7 @@ class UserController extends ApiController
         // Аутентификация пользователя
         Yii::$app->user->login($user);
 
-        $this->sendResponse(200, ['data' => 'Аутентификация прошла успешно']);
+        $this->sendResponse(200, ['data' => 'Аутентификация прошла успешно', 'success' => true]);
     }
 
     /**
