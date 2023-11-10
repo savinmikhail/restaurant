@@ -68,6 +68,7 @@ $config = [
                 '/admin/settings' => 'admin/setting/index',
 
                 //приложение для юзера
+                "GET /$user_app/products" => "$user_app/product/index",
                 ["class" => 'yii\rest\UrlRule', "controller" => "$user_app/product"],
                 "GET /$user_app/basket" => "$user_app/basket/index", //написано таким образом для реализации RESTful апи
                 "POST /$user_app/basket" => "$user_app/basket/add",
@@ -90,22 +91,33 @@ $config = [
 
     ],
     'params' => $params,
+    
+    //DI
+    // 'container' => [
+    //     'definitions' => [
+    //         'app\components\services\OrderService' => [
+    //             'class' => 'app\components\services\OrderService',
+    //             // Any additional configuration for OrderService
+    //         ],
+    //     ],
+    // ],
+
 ];
 
 if (YII_ENV_DEV) {
     // configuration adjustments for 'dev' environment
     // $config['bootstrap'][] = 'debug';
     // $config['modules']['debug'] = [
-        // 'class' => 'yii\debug\Module',
-        // uncomment the following to add your IP if you are not connecting from localhost.
-        //'allowedIPs' => ['127.0.0.1', '::1'],
+    // 'class' => 'yii\debug\Module',
+    // uncomment the following to add your IP if you are not connecting from localhost.
+    //'allowedIPs' => ['127.0.0.1', '::1'],
     // ];
 
     // $config['bootstrap'][] = 'gii';
     // $config['modules']['gii'] = [
     //     'class' => 'yii\gii\Module',
-        // uncomment the following to add your IP if you are not connecting from localhost.
-        //'allowedIPs' => ['127.0.0.1', '::1'],
+    // uncomment the following to add your IP if you are not connecting from localhost.
+    //'allowedIPs' => ['127.0.0.1', '::1'],
     // ];
 }
 

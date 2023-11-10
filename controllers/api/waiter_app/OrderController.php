@@ -243,7 +243,7 @@ class OrderController extends OrderableController
      *          type="integer"
      *      ),
      *      @SWG\Parameter(
-     *          name="size_Id",
+     *          name="size_id",
      *          in="formData",
      *          type="integer"
      *      ),
@@ -263,7 +263,7 @@ class OrderController extends OrderableController
     {
         $request = \Yii::$app->request->post();
         $productId = $request['product_id'] ?? null;
-        $sizeId = $request['size_Id'] ?? null;
+        $sizeId = $request['size_id'] ?? null;
         $orderId = $request['order_id'] ?? null;
         $quantity = 1; // default quantity is 1
 
