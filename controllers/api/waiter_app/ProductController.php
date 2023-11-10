@@ -63,7 +63,12 @@ class ProductController extends ApiController
 
         // Prepare the query
         $query = Products::find()
-            ->select(['id', 'name'])
+            ->select(['products.id', 'products.name'])
+            ->joinWith([
+                'sizes' => function ($query) {
+                    $query->select(['sizes.id', 'sizes.name']); 
+                }
+            ])
             ->andFilterWhere(['like', 'products.name', $productNameFilter]);  //when $productNameFilter is an empty string, the filter will be ignored, and the query will return all products
 
         // Set up pagination

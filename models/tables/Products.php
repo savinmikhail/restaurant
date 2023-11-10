@@ -57,4 +57,10 @@ class Products extends Base
         return $this->hasMany(Tag::class, ['id' => 'tag_id'])
             ->viaTable('tag_product', ['product_id' => 'id']);
     }
+
+    public function getSizes()
+    {
+        return $this->hasMany(Size::class, ['id' => 'size_id'])
+            ->viaTable('size_prices', ['product_id' => 'id']);
+    }
 }
