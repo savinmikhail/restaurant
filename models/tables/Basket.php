@@ -49,11 +49,11 @@ class Basket extends Base
         BasketItem::deleteAll(['basket_id' => $this->id]);
     }
 
-    public function addItem(int $productId, int $quantity, int $sizeId)
+    public function addItem(int $productId, int $quantity, int $sizeId): BasketItem
     {
         $arProduct = Products::find()->where(['id' => $productId])->asArray()->one();
         if (!$arProduct['id']) {
-            return false;
+            throw new \Exception("Failed to find Product with id $productId");
         }
         $obBasketItem = BasketItem::find()->where(['basket_id' => $this->id, 'product_id' => $productId])->one();
         if ($obBasketItem) {
