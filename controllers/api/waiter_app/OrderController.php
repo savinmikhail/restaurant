@@ -7,8 +7,7 @@ use app\controllers\api\user_app\OrderableController;
 use app\models\tables\Basket;
 use app\models\tables\BasketItem;
 use app\models\tables\Order;
-use app\models\tables\Setting;
-use app\models\tables\Table;
+use yii\data\Pagination;
 
 class OrderController extends OrderableController
 {
@@ -19,11 +18,11 @@ class OrderController extends OrderableController
         $behaviors['verbs'] = [
             'class' => \yii\filters\VerbFilter::class,
             'actions' => [
-                'index'  => ['GET'],
-                'pay' => ['POST'],
-                'cancel' => ['POST'],
-                'list' => ['GET'],
-                'callWaiter' => ['GET'],
+                'list'  => ['GET'],
+                'index' => ['GET'],
+                'edit' => ['PUT'],
+                'delete-item' => ['DELETE'],
+                'add-item' => ['POST'],
             ],
         ];
 
@@ -33,11 +32,25 @@ class OrderController extends OrderableController
     /**
      * Retrieves a list of orders.
      *
-     * @SWG\Get(path="/api/waiter_app/order/list",
+     * @SWG\Get(path="/api/waiter_app/orders",
      *     tags={"WaiterApp\Order"},
+     *     @SWG\Parameter(
+     *         name="page",
+     *         in="query",
+     *         description="Page number",
+     *         required=false,
+     *         type="integer"
+     *     ),
+     *     @SWG\Parameter(
+     *         name="perPage",
+     *         in="query",
+     *         description="Number of records per page",
+     *         required=false,
+     *         type="integer"
+     *     ),
      *     @SWG\Response(
      *         response = 200,
-     *         description = "Содержимое корзины",
+     *         description = "Содержимое заказа",
      *         @SWG\Schema(ref = "#/definitions/Products")
      *     ),
      * )
@@ -45,19 +58,37 @@ class OrderController extends OrderableController
 
     public function actionList()
     {
+        $page = \Yii::$app->request->get('page', 1);
+        $perPage = \Yii::$app->request->get('perPage', 10);
+
         $query = Order::find()
             ->joinWith('table')
             ->select(['orders.id as order_id', 'tables.table_number'])
             ->andWhere(['canceled' => 0])
             ->addOrderBy(['orders.id' => SORT_DESC]);
 
-        $ordersList = $query->asArray()->all();
+        // Set up pagination
+        $countQuery = clone $query;
+        $pages = new Pagination(['totalCount' => $countQuery->count(), 'pageSize' => $perPage]);
+        $pages->setPage($page - 1); // Adjust page number (0 indexed)
 
-        foreach ($ordersList as $index => $order) { //без этого куска кода почему-то добавляется лишний ключ table=>null
-            unset($ordersList[$index]['table']);
+        $productsData = $query->offset($pages->offset)
+            ->limit($pages->limit)
+            ->asArray()
+            ->all();
+
+        foreach ($productsData as $index => $order) { //без этого куска кода почему-то добавляется лишний ключ table=>null
+            unset($productsData[$index]['table']);
         }
 
-        return $this->asJson(['orders' => $ordersList]);
+        $this->sendResponse(200, [
+            'orders' => $productsData,
+            'pagination' => [
+                'totalCount' => $pages->totalCount,
+                'page' => $pages->page + 1,
+                'perPage' => $pages->pageSize,
+            ],
+        ]);
     }
 
     /**
