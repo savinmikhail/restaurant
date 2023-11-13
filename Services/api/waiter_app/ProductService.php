@@ -11,7 +11,7 @@ use yii\data\Pagination;
 
 class ProductService
 {
-    public function getListData(int $page, int $perPage, string $productNameFilter): array
+    public function getListDataPaginated(int $page, int $perPage, string $productNameFilter): array
     {
         // Prepare the query
         $query = Products::find()
@@ -41,6 +41,26 @@ class ProductService
                 // Return 1 indexed page number
                 'perPage' => $pages->pageSize,
             ],
+        ];
+        return array(200, $output);
+    }
+
+    public function getListData(string $productNameFilter): array
+    {
+        // Prepare the query
+        $query = Products::find()
+            ->select(['products.id', 'products.name'])
+            ->joinWith([
+                'sizes' => function ($query) {
+                    $query->select(['sizes.id', 'sizes.name']);
+                }
+            ])
+            ->andFilterWhere(['like', 'products.name', $productNameFilter]);  //when $productNameFilter is an empty string, the filter will be ignored, and the query will return all products
+
+        $productsData = $query->asArray()->all();
+
+        $output = [
+            'data' => $productsData,
         ];
         return array(200, $output);
     }
