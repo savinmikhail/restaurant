@@ -64,8 +64,6 @@ class OrderService
         }
 
         $payment->sum = $orderSum;
-        $payment->created_at = date('Y-m-d H:i:s');
-        $payment->updated_at = date('Y-m-d H:i:s');
         $payment->order_ids = json_encode($orderIds);
         $payment->payment_method = $paymentMethod;
         if (!$payment->save()) {

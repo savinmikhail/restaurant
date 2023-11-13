@@ -3,6 +3,8 @@
 namespace app\models\tables;
 
 use app\models\Base;
+use yii\behaviors\TimestampBehavior;
+use yii\db\Expression;
 
 class Payment extends Base
 {
@@ -24,8 +26,22 @@ class Payment extends Base
     public function rules()
     {
         return [
-            [['order_ids',], 'required'],
-            [['order_ids'], 'string'],
+            [['order_ids', 'sum', 'created_at', 'updated_at', 'payment_method'], 'required'],
+            [['order_ids', 'payment_method'], 'string'],
+            [['sum'], 'number'],
         ];
     }
+    
+    public function behaviors()
+    {
+        return [
+            [
+                'class' => TimestampBehavior::class,
+                'createdAtAttribute' => 'created_at',
+                'updatedAtAttribute' => 'updated_at',
+                'value' => new Expression('NOW()'), // Or 'value' => time() for Unix timestamp
+            ],
+        ];
+    }
+  
 }
