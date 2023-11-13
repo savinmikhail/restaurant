@@ -53,7 +53,6 @@ $config = [
 
         'session' => [
             'class' => 'yii\web\Session',
-            // Other session configuration options here
         ],
 
         'urlManager' => [

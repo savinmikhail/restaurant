@@ -88,7 +88,7 @@ class IikoController extends ApiController
     {
         $token = Yii::$app->session->get('apiToken');
         if (!$token) {
-            $this->actionKey();
+            $this->actionKey();//TODO: переделать, так как если токен истек, он все еще есть, просто не валидный, поэтому самообновление не работает. мб поставить крон
             $token = Yii::$app->session->get('apiToken');
         }
         $url =  'organizations';
