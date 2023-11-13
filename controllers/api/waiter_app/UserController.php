@@ -145,7 +145,7 @@ class UserController extends ApiController
      */
     public function actionCheckAuth()
     {
-        $isUserAuthorized = Yii::$app->user->isGuest;
+        $isUserAuthorized = !Yii::$app->user->isGuest;
         $this->sendResponse(200, ['data' => $isUserAuthorized]);
     }
 }
