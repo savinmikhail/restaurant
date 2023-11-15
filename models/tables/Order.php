@@ -47,7 +47,12 @@ class Order extends Base
     {
         return $this->hasOne(\app\models\tables\PaymentType::class, ['payment_type_kind' => 'payment_method']);
     }
-    
+
+    public function getItems()
+    {
+        return $this->hasMany(\app\models\tables\BasketItem::class, ['order_id' => 'id']);
+    }
+
     // создание заказа
     public function make($orderVars)
     {
@@ -56,6 +61,7 @@ class Order extends Base
         $this->order_sum = $orderVars['basket_total'];
         $this->paid = 0;
         $this->basket_id = (int) $orderVars['basket_id'];
+        BasketItem::updateAll(['order_id' => $this->id], ['basket_id' => $orderVars['basket_id']]);
 
         if (!$this->save()) {
             throw new \Exception("Failed to save order: " . print_r($this->errors, true));
