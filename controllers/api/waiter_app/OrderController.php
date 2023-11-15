@@ -95,9 +95,8 @@ class OrderController extends OrderableController
         $this->sendResponse($code, $data);
     }
 
-
     /**
-     * @SWG\Put(path="/api/waiter_app/edit",
+     * @SWG\Put(path="/api/waiter_app/order/edit",
      *     tags={"WaiterApp\Order"},
      *      @SWG\Parameter(
      *          name="item_id",
@@ -116,7 +115,7 @@ class OrderController extends OrderableController
      *     ),
      * )
      */
-    public function actionSet()
+    public function actionEdit()
     {
         $request = \Yii::$app->request;
         $itemId = $request->post('item_id');
@@ -141,7 +140,7 @@ class OrderController extends OrderableController
      *     ),
      * )
      */
-    public function actionDelete()
+    public function actionDeleteItem()
     {
         $itemId = (int) \Yii::$app->request->get('item_id');
 
@@ -174,7 +173,7 @@ class OrderController extends OrderableController
      *     ),
      * )
      */
-    public function actionAdd()
+    public function actionAddItem()
     {
         $request = \Yii::$app->request->post();
         $productId = $request['product_id'] ?? null;
