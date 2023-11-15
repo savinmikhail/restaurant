@@ -40,8 +40,10 @@ class OrderableController extends ApiController
             ->joinWith('items.product.categories')
             ->joinWith('items.product.productSizePrices.price')
             ->joinWith('items.product.productSizePrices.size')
-
-            ->where($arFilter)->cache(false)->asArray()->one();
+            ->where($arFilter)
+            ->cache(false)
+            ->asArray()
+            ->one();
     }
 
     protected function getBasketItemsFromOrder($orderId)
