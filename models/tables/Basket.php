@@ -51,11 +51,17 @@ class Basket extends Base
 
     public function addItem(int $productId, int $quantity, int $sizeId): BasketItem
     {
-        $arProduct = Products::find()->where(['id' => $productId])->asArray()->one();
+        $arProduct = Products::find()
+            ->where(['id' => $productId])
+            ->asArray()
+            ->one();
         if (!$arProduct['id']) {
             throw new \Exception("Failed to find Product with id $productId");
         }
-        $obBasketItem = BasketItem::find()->where(['basket_id' => $this->id, 'product_id' => $productId])->one();
+        $obBasketItem = BasketItem::find()
+            ->where(['basket_id' => $this->id, 'product_id' => $productId])
+            ->one();
+            
         if ($obBasketItem) {
             $obBasketItem->quantity += $quantity;
         } else {
@@ -75,7 +81,7 @@ class Basket extends Base
     {
         $obBasketItem = BasketItem::find()->where(['basket_id' => $this->id, 'product_id' => $productId])->one();
         if ($obBasketItem) {
-            return $obBasketItem->delete();//false or integer
+            return $obBasketItem->delete(); //false or integer
         }
         throw new \Exception("Failed to find Basket Item with product id $productId, basket id $this->id");
     }
@@ -88,12 +94,25 @@ class Basket extends Base
 
             if ($obBasketItem->quantity !== $quantity) {
                 $obBasketItem->quantity = $quantity;
-                if(!$obBasketItem->save()){
+                if (!$obBasketItem->save()) {
                     throw new \Exception("Failed to save Basket Item: " . print_r($obBasketItem->errors, true));
                 }
             }
         }
 
         return $obBasketItem;
+    }
+
+    public function getBasketItems()
+    {
+        return $this->find()
+            ->joinWith('items')
+            ->joinWith('items.product')
+            ->joinWith('items.product.categories')
+            ->joinWith('items.product.productSizePrices.price')
+            ->joinWith('items.product.productSizePrices.size')
+            ->cache(false)
+            ->asArray()
+            ->one();
     }
 }
