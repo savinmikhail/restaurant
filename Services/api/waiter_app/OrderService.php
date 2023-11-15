@@ -52,7 +52,7 @@ class OrderService
         $order = Order::find()
             ->where(['orders.id' => $orderId])
             ->joinWith('table')
-            ->joinWith('basket.items.product')
+            ->joinWith('items.product')
             ->asArray()
             ->one();
 
@@ -68,10 +68,12 @@ class OrderService
             'items' => array_map(function ($item) {
                 return [
                     'name' => $item['product']['name'],
+                    'product_id' => $item['product']['id'],
+                    'size_id' => $item['size_id'],
                     'quantity' => $item['quantity'],
                     'id' => $item['id']
                 ];
-            }, $order['basket']['items'])
+            }, $order['items'])
         ];
         return [200, $filteredOrderDetails];
     }
@@ -87,16 +89,32 @@ class OrderService
             if (!$itemExists) {
                 return array(404, ['data' => 'Item not found']);
             }
+            $orderId = BasketItem::find()->where(['id' => $itemId])->select('order_id')->scalar();
 
             $updatedCount = BasketItem::updateAll(['quantity' => $quantity], ['id' => $itemId]);
+            $this->updateTotal($orderId);
             if ($updatedCount > 0) {
                 return array(200, ['data' => 'Item updated successfully']);
             } else {
-                return array(404, ['data' => 'Item not found while updating quantity']);
+                return array(400, ['data' => "Item quantity is already $quantity"]);
             }
         } catch (\Exception $e) {
-            \Yii::error("Error updating basket item: " . $e->getMessage(), __METHOD__);
-            return array(500, ['data' => 'An error occurred']);
+            // \Yii::error("Error updating basket item: " . $e->getMessage(), __METHOD__);
+            return array(500, ['data' => 'An error occurred', 'error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+        }
+    }
+
+    private function updateTotal(int $orderId)
+    {
+        $order = Order::findOne($orderId);
+
+        if (!$order) {
+            throw new \Exception('Order not found for ID: ' . $orderId);
+        }
+        $orderSum = BasketItem::find()->where(['order_id' => $orderId])->sum('quantity * price') ?? 0;
+        $order->order_sum = $orderSum;
+        if (!$order->save()) {
+            throw new \Exception("Failed to save Order: " . print_r($order->errors, true));
         }
     }
 
@@ -110,44 +128,80 @@ class OrderService
             if (!$itemExists) {
                 return array(404, ['data' => 'Item not found']);
             }
+            $orderId = BasketItem::find()->where(['id' => $itemId])->select('order_id')->scalar();
 
             $deletedCount = BasketItem::deleteAll(['id' => $itemId]);
+            $this->updateTotal($orderId);
+
             if ($deletedCount === 1) {
                 return array(200, ['data' => 'Item deleted successfully']);
             } else {
                 return array(404, ['data' => 'Item not found while deleting']);
             }
         } catch (\Exception $e) {
-            \Yii::error("Error deleting basket item: " . $e->getMessage(), __METHOD__);
-            return array(500, ['data' => 'An error occurred']);
+            // \Yii::error("Error deleting basket item: " . $e->getMessage(), __METHOD__);
+            return array(500, ['data' => 'An error occurred', 'error' => $e->getMessage()]);
         }
     }
 
+    /**
+     * Adds a new item to the basket.
+     *
+     * @param int $productId The ID of the product to be added.
+     * @param int $sizeId The ID of the size of the product.
+     * @param int $orderId The ID of the order to which the item will be added.
+     * @param int $quantity The quantity of the product to be added.
+     *
+     * @return array An array containing the status code and response data.
+     */
     public function addNewItem(int $productId, int $sizeId, int $orderId, int $quantity): array
     {
+        // Check for invalid input
         if (!$productId || !$sizeId || !$orderId) {
-            return array(400, ['data' => 'Invalid input']);
+            return [400, ['data' => 'Invalid input']];
         }
 
+        // Find the order
         $order = Order::find()->where(['id' => $orderId])->one();
         if (!$order) {
-            return array(404, ['data' => 'Order not found']);
+            return [404, ['data' => 'Order not found']];
         }
+
+        $transaction = \Yii::$app->db->beginTransaction();
+
         try {
+            // Find the basket
             $basket = Basket::findOne($order->basket_id);
             if (!$basket) {
-                return array(404, ['data' => 'Basket not found']);
+                return [404, ['data' => 'Basket not found']];
             }
 
-            $basket->addItem($productId, $quantity, $sizeId);
+            // Add the item to the basket
+            $obNewItem = $basket->addItem($productId, $quantity, $sizeId);
+            $obNewItem->order_id = $orderId;
+            if(!$obNewItem->save()){
+                throw new \Exception("Failed to save BasketItem: " . print_r($obNewItem->errors, true));
+            }
+            
+            // Get the updated basket items
             $result = $basket->getBasketItems();
+
+            // Prepare the items for display
             $total = Util::prepareItems($result['items']);
 
+            // Update the order sum
             Order::updateAll(['order_sum' => $total], ['id' => $orderId]);
-            return array(200, $result);
+            $transaction->commit();
+
+            return [200, $result];
         } catch (\Exception $e) {
-            \Yii::error("Error adding item to basket: " . $e->getMessage(), __METHOD__);
-            return array(500, ['data' => 'An error occurred']);
+            $transaction->rollBack();
+
+            // Log the error
+            // \Yii::error("Error adding item to basket: " . $e->getMessage(), __METHOD__);
+
+            // Return the error response
+            return [500, ['data' => 'An error occurred', 'error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]];
         }
     }
 }
