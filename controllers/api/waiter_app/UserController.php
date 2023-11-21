@@ -26,7 +26,7 @@ class UserController extends ApiController
                 [
 
                     'allow' => true,
-                    'actions' => ['index', 'check-auth', 'logout'],
+                    'actions' => ['index', 'check-auth', 'logout', 'confirm-order'],
                     'roles' => ['@'],
                 ],
                 [
@@ -147,5 +147,30 @@ class UserController extends ApiController
     {
         $isUserAuthorized = !Yii::$app->user->isGuest;
         $this->sendResponse(200, ['data' => $isUserAuthorized]);
+    }
+
+    /**
+     * @SWG\Post(path="/api/waiter_app/user/confirm-order",
+     *     tags={"WaiterApp\User"},
+     *      @SWG\Parameter(
+     *          name="order_id",
+     *          in="formData",
+     *          type="integer"
+     *      ),
+     *     @SWG\Response(
+     *         response = 200,
+     *         description = "confirm order",
+     *         @SWG\Schema(ref = "#/definitions/Products")
+     *     ),
+     * )
+     */
+    public function actionConfirmOrder()
+    {
+        $orderId = Yii::$app->request->post('order_id');
+        if(!$orderId) {
+            $this->sendResponse(401, ['data' => 'Получены невалидные данные']);
+        }
+        sleep(1);//TODO: implement logic
+        $this->sendResponse(200, ['data' => 'ok']);
     }
 }
