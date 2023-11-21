@@ -88,7 +88,7 @@ class IikoController extends ApiController
     {
         $token = Yii::$app->session->get('apiToken');
         if (!$token) {
-            $this->actionKey();//TODO: переделать, так как если токен истек, он все еще есть, просто не валидный, поэтому самообновление не работает. мб поставить крон
+            $this->actionKey(); //TODO: переделать, так как если токен истек, он все еще есть, просто не валидный, поэтому самообновление не работает. мб поставить крон
             $token = Yii::$app->session->get('apiToken');
         }
         $url =  'organizations';
@@ -141,7 +141,11 @@ class IikoController extends ApiController
     {
         $menuData = unserialize(file_get_contents('../runtime/logs/menu.txt'));
         $menuParser = new ImportHelper();
-        $menuParser->parse($menuData);
+        try {
+            $menuParser->parse($menuData);
+        } catch (Exception $e) {
+            $this->sendResponse(400, $e->getMessage());
+        }
         $this->sendResponse(200, 'DB was fullfilled');
     }
 

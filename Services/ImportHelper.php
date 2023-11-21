@@ -19,14 +19,22 @@ class ImportHelper
 {
     public function parse(array $data)
     {
-        Price::deleteAll();
-        SizePrice::deleteAll();
-        ProductsImages::deleteAll();
+        $transaction = \Yii::$app->db->beginTransaction();
+        try {
+            Price::deleteAll();
+            SizePrice::deleteAll();
+            ProductsImages::deleteAll();
 
-        $this->processGroups($data['groups']);
-        $this->processSizes($data['sizes']);
-        $this->processCategories($data['productCategories']);
-        $this->processProducts($data['products']);
+            $this->processGroups($data['groups']);
+            $this->processSizes($data['sizes']);
+            $this->processCategories($data['productCategories']);
+            $this->processProducts($data['products']);
+
+            $transaction->commit();
+        } catch (Exception $e) {
+            $transaction->rollBack();
+            throw $e;
+        }
     }
 
     private function processProducts(array $arProducts)
