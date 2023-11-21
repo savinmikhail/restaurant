@@ -59,7 +59,7 @@ class Basket extends Base
             throw new \Exception("Failed to find Product with id $productId");
         }
         $obBasketItem = BasketItem::find()
-            ->where(['basket_id' => $this->id, 'product_id' => $productId])
+            ->where(['basket_id' => $this->id, 'product_id' => $productId, 'size_id' => $sizeId])//если есть такой продукт такого же размера, то увеличим количество
             ->one();
             
         if ($obBasketItem) {
