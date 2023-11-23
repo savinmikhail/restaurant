@@ -15,7 +15,7 @@ class OrderController extends OrderableController
         $this->orderService = $orderService;
         parent::__construct($id, $module, $config);
     }
-    
+
     public function behaviors()
     {
         $behaviors = parent::behaviors();
@@ -75,9 +75,12 @@ class OrderController extends OrderableController
     public function actionPay()
     {
         $request = \Yii::$app->request;
-        $paymentMethod = $request->post('paymentMethod');
+        $paymentMethod = $request->post('paymentMethod', '');
         $orderIds = $request->post('orderId');
-      
+
+        if(!is_array($orderIds)) {
+            $orderIds = [$orderIds];
+        }
         list($code, $data) = $this->orderService->pay($orderIds, $paymentMethod);
         $this->sendResponse($code, $data);
     }
@@ -85,6 +88,12 @@ class OrderController extends OrderableController
     /**
      * @SWG\Get(path="/api/user_app/order/check-confirmed",
      *     tags={"UserApp\Order"},
+     *     @SWG\Parameter(
+     *          name="order_id",
+     *          in="formData",
+     *          type="integer",
+     *          description="order id"
+     *     ),
      *     @SWG\Response(
      *         response = 200,
      *         description = "Подтверждение от официанта",
@@ -95,8 +104,12 @@ class OrderController extends OrderableController
 
     public function actionCheckConfirmed()
     {
-        sleep(3); //TODO: заменить на проверку статуса
-        $this->sendResponse(200, ['status' => 'success']);
+        $orderId = \Yii::$app->request->get('order_id');
+        $order = Order::find()->where(['id' => $orderId])->asArray()->one();
+        if ((int)$order['confirmed'] === 1) {
+            $this->sendResponse(200, ['status' => 'confirmed']);
+        }
+        $this->sendResponse(200, ['status' => 'waiting']);
     }
 
     /**
@@ -141,7 +154,7 @@ class OrderController extends OrderableController
         $order = Order::find()->where(['id' => $orderId])->one();
         $order->canceled = 1;
         $order->updated_at = time();
-        if(!$order->save()){
+        if (!$order->save()) {
             $this->sendResponse(400, ['errors' => $order->errors]);
         }
         if ($order->external_id) {

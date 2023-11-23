@@ -3,6 +3,7 @@
 namespace app\controllers\api\waiter_app;
 
 use app\controllers\api\ApiController;
+use app\models\tables\Order;
 use app\models\User;
 use yii;
 use yii\filters\AccessControl;
@@ -166,11 +167,18 @@ class UserController extends ApiController
      */
     public function actionConfirmOrder()
     {
-        $orderId = Yii::$app->request->post('order_id');
+        $orderId = (int) Yii::$app->request->post('order_id');
         if(!$orderId) {
-            $this->sendResponse(401, ['data' => 'Получены невалидные данные']);
+            $this->sendResponse(400, ['data' => 'Получены невалидные данные']);
         }
-        sleep(1);//TODO: implement logic
-        $this->sendResponse(200, ['data' => 'ok']);
+        $order = Order::find()->where(['id' => $orderId])->one();
+        if(!$order) {
+            $this->sendResponse(400, ['data' => 'Заказ не найден']);
+        }
+        $order->confirmed = 1;
+        if(!$order->save()){
+            $this->sendResponse(400, ['data' => 'Не удалось изменить статус']);
+        }
+        $this->sendResponse(200, ['data' => 'Заказ подтвержден']);
     }
 }
