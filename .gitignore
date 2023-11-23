@@ -41,3 +41,6 @@ tests/_support/_generated
 /.docker
 
 .env
+
+#python virtual enviroment
+/env/
