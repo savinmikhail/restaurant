@@ -103,7 +103,13 @@ $config = [
             'app\Services\api\user_app\ProductService' => [
                 'class' => 'app\Services\api\user_app\ProductService',
             ],
-
+            'app\Services\api\user_app\IikoService' => [
+                'class' => 'app\Services\api\user_app\IikoService',
+            ],
+            'app\Services\api\user_app\Payment' => [
+                'class' => 'app\Services\api\user_app\Payment',
+            ],
+            
             //waiter_app here
             'app\Services\api\waiter_app\OrderService' => [
                 'class' => 'app\Services\api\waiter_app\OrderService',

@@ -8,24 +8,34 @@ use app\models\tables\Payment;
 use app\models\tables\Setting;
 use app\models\tables\Table;
 use app\Services\QRGen;
+use app\Services\api\user_app\Payment as User_appPayment;
 
 class OrderService
 {
+    private User_appPayment $paymentService;
+
+    public function __construct(User_appPayment $paymentService)
+    {
+        $this->paymentService = $paymentService;
+    }
 
     public function pay(array $orderIds, string $paymentMethod): array
     {
-        // фронт шлет несколько заказов на оплату, объединяю в один
-        $payment = $this->createPayment($orderIds, $paymentMethod);
-        //проверяю условия оплаты
-        $result = $this->processPaymentMethod($payment);
         try {
+            // фронт шлет несколько заказов на оплату, объединяю в один
+            $payment = $this->createPayment($orderIds, $paymentMethod);
+            //проверяю условия оплаты
+            $result = $this->processPaymentMethod($payment);
             //очищаю корзину
             $this->refreshBasket();
         } catch (\Exception $e) {
             return [400, ['data' => $e->getMessage()]];
         }
+
         return [200, $result];
     }
+
+
 
     //заказ сформирован, отправлен на оплату, удаляю корзину для стола и создаю новую, чтобы очистить корзину от товаров, но оставить товары для заказа
     private function refreshBasket()
@@ -39,8 +49,6 @@ class OrderService
 
         $basket = new Basket;
         $basket->table_id = $table->id;
-        $basket->created_at = date('Y-m-d H:i:s');
-        $basket->updated_at = date('Y-m-d H:i:s');
         if (!$basket->save()) {
             throw new \Exception('Failed to save new basket: ' . json_encode($basket->errors));
         }
@@ -81,8 +89,12 @@ class OrderService
         if ($payment->payment_method === 'Cash') {
             $result = ['data' => 'You need to call the waiter for paying cash'];
         } else {
-            $result['qr'] = QRGen::renderQR($payment->id); //TODO: implement sbp payment
-            // list($status, $result['paymentUrl'], $result['bankUrl']) = Payment::createSberPaymentUrl($order->id, $order->order_sum);
+            try {
+                $paymentLink = $this->paymentService->getTinkoffPaymentUrl($payment); //TODO: докрутить оплату
+            } catch (\Exception $e) {
+                throw new \Exception($e->getMessage());
+            }
+            $result['payment_link'] = $paymentLink;
         }
         return $result;
     }
@@ -166,6 +178,9 @@ class OrderService
         $basket = Basket::find()->where(['table_id' => $tableId])->one();
         $obSetting = Setting::find()->where(['name' => 'order_limit'])->one();
 
+        if (!$obSetting) {
+            return array(400, ['data' => 'Order limit not found']);
+        }
         $order = new Order();
         try {
             $result = $order->make(['basket_id' => $basket->id, 'table_id' => $tableId, 'basket_total' => $basket->basket_total]);
@@ -173,13 +188,19 @@ class OrderService
             return array(400, ['data' => $e->getMessage()]);
         }
 
-        if ($obSetting && $order->order_sum >= $obSetting->value) {
-            return array(200, ['data' => 'order limit is reached', 'qr' => QRGen::renderQR($tableId)]);
-        }
-
         if (!$result) {
             return array(400, ['data' => 'Failed to create order']);
         }
+
+        if ($order->order_sum >= $obSetting->value) {
+            $order->confirmed = 0;
+            if (!$order->save()) {
+                return array(400, ['data' => 'Failed to save order']);
+            }
+            return array(200, ['data' => 'order limit is reached', 'qr' => QRGen::renderQR($tableId)]);
+        }
+
+
 
         return array(201, ['data' => $order]);
     }

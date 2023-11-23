@@ -1,6 +1,8 @@
 <?php
 
-namespace app\Services;
+namespace app\Services\api\user_app;
+
+use yii\web\HttpException;
 
 class Tinkoff
 {

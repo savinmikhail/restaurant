@@ -26,9 +26,10 @@ class Payment extends Base
     public function rules()
     {
         return [
-            [['order_ids', 'sum', 'created_at', 'updated_at', 'payment_method'], 'required'],
+            [['order_ids', 'sum',], 'required'],
             [['order_ids', 'payment_method'], 'string'],
             [['sum'], 'number'],
+            [['created_at', 'updated_at'], 'safe'], // Add this line if you want to include them in rules
         ];
     }
     
@@ -39,7 +40,6 @@ class Payment extends Base
                 'class' => TimestampBehavior::class,
                 'createdAtAttribute' => 'created_at',
                 'updatedAtAttribute' => 'updated_at',
-                'value' => new Expression('NOW()'), // Or 'value' => time() for Unix timestamp
             ],
         ];
     }
