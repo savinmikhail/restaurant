@@ -12,7 +12,7 @@ class Order extends Base
         return [
             [['table_id', 'order_sum'], 'required'],
             [['external_id', 'status'], 'string'],
-            [['paid',], 'integer'],
+            [['paid', 'confirmed'], 'integer'],
             [['payment_method'], 'in', 'range' => ['Cash', 'IikoCard', 'Card', 'External']],
             [['created_at', 'updated_at'], 'datetime', 'format' => 'php:Y-m-d H:i:s'],
         ];
@@ -61,6 +61,7 @@ class Order extends Base
         $this->order_sum = $orderVars['basket_total'];
         $this->paid = 0;
         $this->basket_id = (int) $orderVars['basket_id'];
+        $this->confirmed = 1;
         BasketItem::updateAll(['order_id' => $this->id], ['basket_id' => $orderVars['basket_id']]);
 
         if (!$this->save()) {

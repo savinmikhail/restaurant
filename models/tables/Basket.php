@@ -3,9 +3,23 @@
 namespace app\models\tables;
 
 use app\models\Base;
+use yii\behaviors\TimestampBehavior;
+use yii\db\Expression;
 
 class Basket extends Base
 {
+    public function behaviors()
+    {
+        return [
+            [
+                'class' => TimestampBehavior::class,
+                'createdAtAttribute' => 'created_at',
+                'updatedAtAttribute' => 'updated_at',
+                'value' => new Expression('NOW()'), // Or 'value' => time() for Unix timestamp
+            ],
+        ];
+    }
+
     public function rules()
     {
         return [
@@ -51,17 +65,20 @@ class Basket extends Base
 
     public function addItem(int $productId, int $quantity, int $sizeId): BasketItem
     {
-        $arProduct = Products::find()
+        $Product = Products::find()
             ->where(['id' => $productId])
-            ->asArray()
             ->one();
-        if (!$arProduct['id']) {
+
+        if (!$Product) {
             throw new \Exception("Failed to find Product with id $productId");
         }
+        if ($quantity > (int)$Product->balance) {
+            throw new \Exception("Not enough products in stock, available only: " . $Product->balance); //TODO: имплементировать крон на постоянное обновление
+        }
         $obBasketItem = BasketItem::find()
-            ->where(['basket_id' => $this->id, 'product_id' => $productId, 'size_id' => $sizeId])//если есть такой продукт такого же размера, то увеличим количество
+            ->where(['basket_id' => $this->id, 'product_id' => $productId, 'size_id' => $sizeId]) //если есть такой продукт такого же размера, то увеличим количество
             ->one();
-            
+
         if ($obBasketItem) {
             $obBasketItem->quantity += $quantity;
         } else {
@@ -73,7 +90,10 @@ class Basket extends Base
         if (!$obBasketItem->save()) {
             throw new \Exception("Failed to save Basket Item: " . print_r($obBasketItem->errors, true));
         }
-
+        $Product->balance -= $quantity;
+        if (!$Product->save()) {
+            throw new \Exception("Failed to save Product: " . print_r($Product->errors, true)); //TODO: надо чтоб запрос кроном из айки не перезаписал это значение, пока не уйдет в заказ
+        }
         return $obBasketItem;
     }
 
@@ -86,20 +106,37 @@ class Basket extends Base
         throw new \Exception("Failed to find Basket Item with product id $productId, basket id $this->id");
     }
 
-    public function updateItem(int $productId, int $quantity)
+    public function updateItem(int $productId, int $quantity): BasketItem
     {
+        $Product = Products::find()
+            ->where(['id' => $productId])
+            ->one();
+
+        if (!$Product) {
+            throw new \Exception("Failed to find Product with id $productId");
+        }
+
+        if ($quantity > (int)$Product->balance) {
+            throw new \Exception("Not enough products in stock, available only: " . $Product->balance); //TODO: имплементировать крон на постоянное обновление
+        }
 
         $obBasketItem = BasketItem::find()->where(['basket_id' => $this->id, 'product_id' => $productId])->one();
-        if ($obBasketItem) {
+        if (!$obBasketItem) {
+            throw new \Exception("Failed to find Basket Item with product id $productId, basket id $this->id");
+        }
 
-            if ($obBasketItem->quantity !== $quantity) {
-                $obBasketItem->quantity = $quantity;
-                if (!$obBasketItem->save()) {
-                    throw new \Exception("Failed to save Basket Item: " . print_r($obBasketItem->errors, true));
-                }
+        if ($obBasketItem->quantity !== $quantity) {
+            $obBasketItem->quantity = $quantity;
+            if (!$obBasketItem->save()) {
+                throw new \Exception("Failed to save Basket Item: " . print_r($obBasketItem->errors, true));
             }
         }
 
+        $Product->balance -= $quantity;
+        if (!$Product->save()) {
+            throw new \Exception("Failed to save Product: " . print_r($Product->errors, true)); //TODO: надо чтоб запрос кроном из айки не перезаписал это значение, пока не уйдет в заказ
+        }
+        
         return $obBasketItem;
     }
 

@@ -15,7 +15,7 @@ class Products extends Base
     {
         return [
             [['name', 'sort',], 'required'],
-            [['sort', 'is_deleted', 'category_id'], 'integer'],
+            [['sort', 'is_deleted', 'category_id', 'balance'], 'integer'],
             [['is_deleted',], 'boolean'],
             [['description', 'name', 'external_id'], 'string'],
             [['image'], 'string', 'skipOnEmpty' => true],
