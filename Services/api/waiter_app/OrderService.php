@@ -139,7 +139,6 @@ class OrderService
                 return array(404, ['data' => 'Item not found while deleting']);
             }
         } catch (\Exception $e) {
-            // \Yii::error("Error deleting basket item: " . $e->getMessage(), __METHOD__);
             return array(500, ['data' => 'An error occurred', 'error' => $e->getMessage()]);
         }
     }
@@ -179,10 +178,10 @@ class OrderService
             // Add the item to the basket
             $obNewItem = $basket->addItem($productId, $quantity, $sizeId);
             $obNewItem->order_id = $orderId;
-            if(!$obNewItem->save()){
+            if (!$obNewItem->save()) {
                 throw new \Exception("Failed to save BasketItem: " . print_r($obNewItem->errors, true));
             }
-            
+
             // Get the updated basket items
             $result = $basket->getBasketItems();
 
@@ -194,14 +193,10 @@ class OrderService
             $transaction->commit();
 
             return [200, $result];
-        } catch (\Exception $e) {
+        } catch (\Exception $e) 
+        {
             $transaction->rollBack();
-
-            // Log the error
-            // \Yii::error("Error adding item to basket: " . $e->getMessage(), __METHOD__);
-
-            // Return the error response
-            return [500, ['data' => 'An error occurred', 'error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]];
+return [400, ['data' => 'An error occurred', 'error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]];
         }
     }
 }
