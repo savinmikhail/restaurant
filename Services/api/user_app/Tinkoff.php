@@ -61,6 +61,11 @@ class Tinkoff
         return $this->buildQuery('Init', $args);
     }
 
+    public function SbpPayTest($args)
+    {
+        return $this->buildQuery('SbpPayTest', $args);
+    }
+
     public function getQr($args)
     {
         return $this->buildQuery('GetQr', $args);

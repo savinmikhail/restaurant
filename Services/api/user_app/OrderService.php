@@ -35,7 +35,27 @@ class OrderService
         return [200, $result];
     }
 
+    public function getStatus(int $paymentId): array
+    {
+        $tinkoffResponse = $this->paymentService->getState($paymentId);
+        if ($tinkoffResponse['Success']) {
 
+            return [200, $tinkoffResponse['Status']];
+        } else {
+            return [400, $tinkoffResponse['Message']];
+        }
+    }
+
+    public function sbpPayTest(int $paymentId): array
+    {
+        $tinkoffResponse = $this->paymentService->sbpPayTest($paymentId);
+        if ($tinkoffResponse['Success']) {
+
+            return [200, ['Paid' => true]];
+        } else {
+            return [400, $tinkoffResponse['Message']];
+        }
+    }
 
     //заказ сформирован, отправлен на оплату, удаляю корзину для стола и создаю новую, чтобы очистить корзину от товаров, но оставить товары для заказа
     private function refreshBasket()
@@ -80,6 +100,13 @@ class OrderService
         return $payment;
     }
 
+    /**
+     * Process the payment method and return the result as an array.
+     *
+     * @param Payment $payment The payment object to process.
+     * @throws \Exception If an error occurs during processing.
+     * @return array The processed payment result.
+     */
     private function processPaymentMethod(Payment $payment): array
     {
         $result = [
@@ -90,11 +117,12 @@ class OrderService
             $result = ['data' => 'You need to call the waiter for paying cash'];
         } else {
             try {
-                $paymentLink = $this->paymentService->getTinkoffPaymentUrl($payment); //TODO: докрутить оплату
+                list($paymentLink, $paymentId) = $this->paymentService->getTinkoffPaymentUrl($payment);
             } catch (\Exception $e) {
                 throw new \Exception($e->getMessage());
             }
             $result['payment_link'] = $paymentLink;
+            $result['payment_id'] = $paymentId;
         }
         return $result;
     }

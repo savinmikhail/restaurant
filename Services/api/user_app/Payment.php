@@ -4,7 +4,7 @@ namespace app\Services\api\user_app;
 
 use app\models\tables\Payment as TablesPayment;
 
-class Payment 
+class Payment
 {
     private string $TINKOFF_TERMINAL_KEY;
     private string $TINKOFF_SECRET_KEY;
@@ -69,48 +69,88 @@ class Payment
      * @throws \Exception Error initializing payment or getting QR code.
      * @return string The URL for the payment QR code, if successfully obtained.
      */
-    public function getTinkoffPaymentUrl(TablesPayment $payment): string
+    public function getTinkoffPaymentUrl(TablesPayment $payment): array
+    {
+        try {
+            $tinkoff  = $this->initializePayment($payment);
+            $arrResponse = (array)json_decode(htmlspecialchars_decode($tinkoff->response));
+
+            // Check if the initialization was successful
+            if (!$arrResponse['Success']) {
+                throw new \Exception('Payment was not confirmed: ' . print_r($tinkoff->response, true));
+            }
+            return [$this->getPaymentUrl($tinkoff), $tinkoff->paymentId];
+        } catch (\Exception $e) {
+            throw new \Exception($e->getMessage());
+        }
+    }
+
+    private function initializePayment(TablesPayment $payment): Tinkoff
     {
         $tinkoff = new Tinkoff($this->TINKOFF_TERMINAL_KEY, $this->TINKOFF_SECRET_KEY);
 
-        // Step 1: Initialize the payment
+        //Initialize the payment
         $initArgs = [
-            'OrderId' => $payment->id, 
-            'Amount' => $payment->sum . '.00', 
-            'IP' => $_SERVER['REMOTE_ADDR'], 
-            // Add any other required parameters
+            'OrderId' => $payment->id,
+            'Amount' => $payment->sum . '.00',
+            'IP' => $_SERVER['REMOTE_ADDR'], //https://www.tinkoff.ru/kassa/dev/payments/#tag/Standartnyj-platyozh/paths/~1Init/post
         ];
-  
+
         try {
             $tinkoff->init($initArgs);
         } catch (\yii\web\HttpException $e) {
             throw new \Exception('Error initializing payment: ' . $e->getMessage());
         }
+        return $tinkoff;
+    }
 
-        // Check if the initialization was successful
-        if ($tinkoff->status === 'CONFIRMED') {
-            // Step 2: Get the QR code
-            $qrArgs = [
-                'PaymentID' => $tinkoff->paymentId,
-            ];
+    private function getPaymentUrl(Tinkoff $tinkoff): string
+    {
+        // Get the QR code
+        $qrArgs = [
+            'PaymentId' => $tinkoff->paymentId,
+        ];
 
-            try {
-                $tinkoff->getQr($qrArgs);
-            } catch (\yii\web\HttpException $e) {
-                throw new \Exception('Error getting QR code: ' . $e->getMessage());
-            }
-
-            // Check if the QR code was obtained successfully
-            if ($tinkoff->status === 'CONFIRMED') {
-                // $tinkoff->paymentUrl now contains the URL for the payment QR code
-                return $tinkoff->paymentUrl;
-            } else {
-                // Handle the case where getting the QR code was not successful
-                throw new \Exception('Error getting QR code: ' . $tinkoff->error);
-            }
-        } else {
-            // Handle the case where payment initialization was not successful
-            throw new \Exception('Error initializing payment: ' . $tinkoff->error);
+        try {
+            $tinkoff->getQr($qrArgs);
+        } catch (\yii\web\HttpException $e) {
+            throw new \Exception('Error getting QR code: ' . $e->getMessage());
         }
+        $arrResponse = (json_decode(htmlspecialchars_decode($tinkoff->response), true));
+
+        // Check if the QR code was obtained successfully
+        if ($arrResponse['Success']) {
+            // $tinkoff->paymentUrl now contains the URL for the payment QR code
+            return $arrResponse['Data'];
+        } else {
+            // Handle the case where getting the QR code was not successful
+            throw new \Exception('Error getting QR code: ' . $tinkoff->error);
+        }
+    }
+
+    public function getState(int $paymentId): array
+    {
+        $tinkoff = new Tinkoff($this->TINKOFF_TERMINAL_KEY, $this->TINKOFF_SECRET_KEY);
+        $stateArgs = [
+            'PaymentId' => $paymentId,
+        ];
+
+        $tinkoff->getState($stateArgs);
+        $arrResponse = json_decode(htmlspecialchars_decode($tinkoff->response), true);
+        return ($arrResponse); //CONFIRMED
+    }
+
+    public function sbpPayTest(int $paymentId): array
+    {
+
+        $tinkoff = new Tinkoff($this->TINKOFF_TERMINAL_KEY, $this->TINKOFF_SECRET_KEY);
+        $testArgs = [
+            'PaymentId' => $paymentId,
+            // 'IsDeadlineExpired' => true,
+            // 'IsRejected' => true
+        ];
+        $tinkoff->sbpPayTest($testArgs);
+        $arrResponse = json_decode(htmlspecialchars_decode($tinkoff->response), true);
+        return ($arrResponse);
     }
 }

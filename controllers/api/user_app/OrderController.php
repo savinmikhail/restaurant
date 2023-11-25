@@ -78,7 +78,7 @@ class OrderController extends OrderableController
         $paymentMethod = $request->post('paymentMethod', '');
         $orderIds = $request->post('orderId');
 
-        if(!is_array($orderIds)) {
+        if (!is_array($orderIds)) {
             $orderIds = [$orderIds];
         }
         list($code, $data) = $this->orderService->pay($orderIds, $paymentMethod);
@@ -115,6 +115,12 @@ class OrderController extends OrderableController
     /**
      * @SWG\Get(path="/api/user_app/order/check-paid",
      *     tags={"UserApp\Order"},
+     *     @SWG\Parameter(
+     *          name="payment_id",
+     *          in="query",
+     *          type="integer",
+     *          description="tinkoff payment id, example: 3554385638"
+     *     ),
      *     @SWG\Response(
      *         response = 200,
      *         description = "Подтверждение от СБП",
@@ -125,10 +131,33 @@ class OrderController extends OrderableController
 
     public function actionCheckPaid()
     {
-        sleep(3); //TODO: заменить на проверку статуса
-        $this->sendResponse(200, ['status' => 'success']);
+        $paymentId = \Yii::$app->request->get('payment_id');
+        list($code, $data) = $this->orderService->getStatus($paymentId);
+        $this->sendResponse($code, $data);
     }
 
+    /**
+     * @SWG\Post(path="/api/user_app/order/sbp-pay-test",
+     *     tags={"UserApp\Order"},
+     *     @SWG\Parameter(
+     *          name="payment_id",
+     *          in="formData",
+     *          type="integer",
+     *          description="tinkoff payment id"
+     *     ),
+     *     @SWG\Response(
+     *         response = 200,
+     *         description = "оплатить по СБП",
+     *         @SWG\Schema(ref = "#/definitions/Products")
+     *     ),
+     * )
+     */
+    public function actionSbpPayTest()
+    {
+        $paymentId = \Yii::$app->request->post('payment_id');
+        list($code, $data) =  $this->orderService->sbpPayTest($paymentId);
+        $this->sendResponse($code, $data);
+    }
     /**
      * @SWG\Post(path="/api/user_app/order/cancel",
      *     tags={"UserApp\Order"},
