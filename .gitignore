@@ -42,5 +42,9 @@ tests/_support/_generated
 
 .env
 
-#python virtual enviroment
-/env/
+#trash
+.Trash-1000
+
+.vscode
+
+
