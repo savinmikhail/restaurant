@@ -69,7 +69,7 @@ class ImportHelper
     {
         $obGroup = Group::find()->where(['external_id' => $arGroup['id']])->one();
         if (!$obGroup) {
-            $obGroup = new Group;
+            $obGroup = new Group();
         }
         $obGroupValues = [
             'external_id' => $arGroup['id'],
@@ -86,7 +86,7 @@ class ImportHelper
     {
         $obCategory = Categories::find()->where(['external_id' => $arCategory['id']])->one();
         if (!$obCategory) {
-            $obCategory = new Categories;
+            $obCategory = new Categories();
         }
         $obCategoryValues = [
             'external_id' => $arCategory['id'],
@@ -108,7 +108,7 @@ class ImportHelper
     {
         $obProduct = Products::find()->where(['external_id' => $arProduct['id']])->one();
         if (!$obProduct) {
-            $obProduct = new Products;
+            $obProduct = new Products();
         }
 
         $image = $this->processProductImages($arProduct, $obProduct->id);
@@ -138,19 +138,17 @@ class ImportHelper
             $imageLinks = $arProduct['imageLinks'];
             $imagesLocalPaths = [];
             foreach ($imageLinks as $link) {
-
                 $fileName = basename(parse_url($link, PHP_URL_PATH));
                 $imagesDir = 'web/upload/productImages/';
                 $storagePath = $imagesDir . $fileName;
 
-                $obProductImage = new ProductsImages;
+                $obProductImage = new ProductsImages();
                 $obProductImage->product_id = $productId;
                 if ($this->downloadImage($link, $storagePath)) {
                     $imagesLocalPaths[] = $storagePath;
 
                     $obProductImage->image = $storagePath;
                 } else {
-
                     $obProductImage->image = $link;
                 }
                 if (!$obProductImage->save()) {
@@ -163,7 +161,7 @@ class ImportHelper
     }
 
 
-    private function downloadImage($url, $storagePath)
+    private function downloadImage($url, $storagePath): bool
     {
         $ch = curl_init($url);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
@@ -172,11 +170,7 @@ class ImportHelper
         $data = curl_exec($ch);
         curl_close($ch);
 
-        if (file_put_contents($storagePath, $data)) {
-            return true;
-        } else {
-            return false;
-        }
+        return (bool) (file_put_contents($storagePath, $data));
     }
 
     private function processProductProps(array $arProduct, int $productId)
@@ -187,7 +181,7 @@ class ImportHelper
         foreach ($productProps as $productProp) {
             $obProductProps = ProductsProperties::find()->where(['code' => $productProp])->one();
             if (!$obProductProps) {
-                $obProductProps = new ProductsProperties;
+                $obProductProps = new ProductsProperties();
                 $obProductProps->code = $productProp;
                 if (!$obProductProps->save()) {
                     $this->handleError('ProductProps', $obProductProps);
@@ -207,7 +201,7 @@ class ImportHelper
             ->one();
 
         if (!$obProductPropsVals) {
-            $obProductPropsVals = new ProductsPropertiesValues;
+            $obProductPropsVals = new ProductsPropertiesValues();
             $obProductPropsVals->product_id = $productId;
             $obProductPropsVals->property_id = $obProductProps->id;
         }
@@ -220,7 +214,7 @@ class ImportHelper
     private function processSizePrices(array $arProduct, int $productId)
     {
         foreach ($arProduct['sizePrices'] as $arSizePrice) {
-            $obSizePrice = new SizePrice;
+            $obSizePrice = new SizePrice();
             $obSizePrice->size_id = null;
             $obSizePrice->product_id = $productId;
 
@@ -238,7 +232,7 @@ class ImportHelper
 
     private function processPrices(array $arPrice, int $sizePriceId)
     {
-        $obPrice = new Price;
+        $obPrice = new Price();
         $obPriceValues = [
             'size_price_id' => $sizePriceId,
             'current_price' => $arPrice['currentPrice'],
@@ -256,7 +250,7 @@ class ImportHelper
     {
         $obSize = Size::find()->where(['external_id' => $arSize['id']])->one();
         if (!$obSize) {
-            $obSize = new Size;
+            $obSize = new Size();
         }
         $obSizeValues = [
             'external_id' => $arSize['id'],
@@ -275,7 +269,7 @@ class ImportHelper
         foreach ($arTables as $table) {
             $obTable = Table::find()->where(['external_id' => $table['id']])->one();
             if (!$obTable) {
-                $obTable = new Table;
+                $obTable = new Table();
                 $obTable->external_id = $table['id'];
             }
             $arPropValues = [
@@ -297,7 +291,7 @@ class ImportHelper
         foreach ($arPaymentTypes as $paymentType) {
             $obPaymentType = PaymentType::find()->where(['external_id' => $paymentType['id']])->one();
             if (!$obPaymentType) {
-                $obPaymentType = new PaymentType;
+                $obPaymentType = new PaymentType();
                 $obPaymentType->external_id = $paymentType['id'];
             }
             $arPaymentTypeVals = [

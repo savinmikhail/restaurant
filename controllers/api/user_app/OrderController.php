@@ -23,7 +23,7 @@ class OrderController extends OrderableController
         $behaviors['verbs'] = [
             'class' => \yii\filters\VerbFilter::class,
             'actions' => [
-                'index'  => ['POST'],
+                'index' => ['POST'],
                 'pay' => ['POST'],
                 'cancel' => ['POST'],
                 'list' => ['GET'],
@@ -106,7 +106,7 @@ class OrderController extends OrderableController
     {
         $orderId = \Yii::$app->request->get('order_id');
         $order = Order::find()->where(['id' => $orderId])->asArray()->one();
-        if ((int)$order['confirmed'] === 1) {
+        if ((int) $order['confirmed'] === 1) {
             $this->sendResponse(200, ['status' => 'confirmed']);
         }
         $this->sendResponse(200, ['status' => 'waiting']);
@@ -155,7 +155,7 @@ class OrderController extends OrderableController
     public function actionSbpPayTest()
     {
         $paymentId = \Yii::$app->request->post('payment_id');
-        list($code, $data) =  $this->orderService->sbpPayTest($paymentId);
+        list($code, $data) = $this->orderService->sbpPayTest($paymentId);
         $this->sendResponse($code, $data);
     }
     /**
@@ -187,7 +187,7 @@ class OrderController extends OrderableController
             $this->sendResponse(400, ['errors' => $order->errors]);
         }
         if ($order->external_id) {
-            //TODO: send requst to iiko 
+            //TODO: send requst to iiko
         }
         $this->sendResponse(200, 'success');
     }

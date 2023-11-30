@@ -4,10 +4,6 @@ namespace app\common;
 
 use app\models\tables\Basket;
 use app\models\tables\BasketItem;
-use app\models\tables\Modifier;
-use app\models\tables\Price;
-use app\models\tables\Products;
-use app\models\tables\SizePrice;
 
 class Util
 {

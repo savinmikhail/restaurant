@@ -3,7 +3,6 @@
 namespace app\controllers\api\user_app;
 
 use app\controllers\api\ApiController;
-use app\models\tables\Products;
 use app\Services\api\user_app\IikoService;
 use app\Services\ImportHelper;
 use Exception;
@@ -11,15 +10,14 @@ use Yii;
 
 class IikoController extends ApiController
 {
-
     private IikoService $iikoService;
 
     private string $IIKO_ORG_ID;
-    private string  $IIKO_TERMINAL_GROUP_ID;
+    private string $IIKO_TERMINAL_GROUP_ID;
 
     public function __construct($id, $module, IikoService $iikoService, $config = [])
     {
-        parent::__construct($id, $module,  $config);
+        parent::__construct($id, $module, $config);
         $this->iikoService = $iikoService;
         $this->IIKO_ORG_ID = $_ENV['IIKO_ORG_ID'];
         $this->IIKO_TERMINAL_GROUP_ID = $_ENV['IIKO_TERMINAL_GROUP_ID'];
@@ -32,7 +30,7 @@ class IikoController extends ApiController
         $behaviors['verbs'] = [
             'class' => \yii\filters\VerbFilter::class,
             'actions' => [
-                'list'  => ['GET'],
+                'list' => ['GET'],
                 'index' => ['GET'],
                 'edit' => ['PUT'],
                 'delete-item' => ['DELETE'],
@@ -57,14 +55,14 @@ class IikoController extends ApiController
     {
         $token = $this->iikoService->getKey();
 
-        $url =  'organizations';
+        $url = 'organizations';
         $data = '{}';
         $outData = $this->iikoService->gateWay($url, $data, $token);
 
         if ($outData) {
             $this->sendResponse(200, $outData['organizations'][0]['id']);
         }
-        $this->sendResponse(400,  []);
+        $this->sendResponse(400, []);
     }
 
     /**
@@ -274,7 +272,7 @@ class IikoController extends ApiController
 
     public function actionCheckInStopList()
     {
-        $productId =  Yii::$app->request->post('productId');
+        $productId = Yii::$app->request->post('productId');
         $token = $this->iikoService->getKey();
 
         $url = 'stop_lists/check';

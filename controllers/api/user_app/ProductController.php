@@ -51,7 +51,7 @@ class ProductController extends OrderableController
     {
         $productNameFilter = Yii::$app->request->get('productName', '');
 
-       list($code, $data) = $this->productService->getListData($productNameFilter);
+        list($code, $data) = $this->productService->getListData($productNameFilter);
 
         $this->sendResponse($code, $data);
     }

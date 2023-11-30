@@ -15,19 +15,20 @@ class BaseController extends Controller
         parent::__construct($id, $module, $config);
     }
 
-    public function beforeAction($action) {
+    public function beforeAction($action)
+    {
         $user = ACLConst::getAuth();
 
         if ($user && !$user->remote_ip) {
             $user->remote_ip = $_SERVER['REMOTE_ADDR'];
-            
+
             if (isset($_SERVER['HTTP_X_FORWARDED_FOR'])) {
                 $user->remote_ip .= '_' . $_SERVER['HTTP_X_FORWARDED_FOR'];
             }
-            
+
             $user->save();
         }
-        
+
         $this->enableCsrfValidation = false;
         return parent::beforeAction($action);
     }
@@ -37,7 +38,8 @@ class BaseController extends Controller
         return \app\common\Request::getReqParam($name, $default);
     }
 
-    public function isAdmin($user = false) {
+    public function isAdmin($user = false)
+    {
         return ACLConst::isAdmin($user);
     }
 

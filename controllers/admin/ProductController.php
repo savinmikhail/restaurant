@@ -20,7 +20,7 @@ class ProductController extends AdminController
         $id = intval($this->getReqParam('id'));
         $model = Products::find()->where(['id' => $id])->one();
         if (!$model) {
-            $this->sendResponse(404,'The requested page does not exist.');
+            $this->sendResponse(404, 'The requested page does not exist.');
         }
         $model->delete();
 

@@ -99,7 +99,7 @@ class UsersController extends AdminController
      */
     public function actionCreate()
     {
-        $userForm = new CreateUserForm;
+        $userForm = new CreateUserForm();
         $obUser = new User();
         $obUser->load($userForm->getAttributes(), '');
         $obUser->role = 'WAITER';
@@ -111,5 +111,4 @@ class UsersController extends AdminController
 
         return $this->asJson($obUser);
     }
-
 }

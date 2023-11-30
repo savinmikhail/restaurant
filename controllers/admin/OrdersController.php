@@ -7,7 +7,7 @@ use app\models\forms\AdminOrderForm;
 use app\models\tables\Order;
 use Yii;
 use yii\data\Pagination;
-use \app\controllers\AdminController;
+use app\controllers\AdminController;
 use app\models\tables\Basket;
 use app\models\tables\BasketItem;
 use app\models\tables\Products;
@@ -168,7 +168,7 @@ class OrdersController extends AdminController
             if ($itemId === 0) {
                 //с реквеста летит строка. если строка пустая, то новый айтем не добавляем. если 0 - удаляем.
                 if ($quantity !== '' && $quantity !== '0') {
-                    $obItem = new BasketItem; //TODO: находить айтем с таким же продуктом и добавлять ему quantity
+                    $obItem = new BasketItem(); //TODO: находить айтем с таким же продуктом и добавлять ему quantity
                     $obItem->basket_id = $obOrder->basket_id;
                     $obItem->product_id = $form->product_id[0];
                     $obItem->quantity = $quantity;
@@ -253,7 +253,7 @@ class OrdersController extends AdminController
         foreach ($sizes as $size) {
             $arAllSizes[$size['id']] = $size['name'];
         }
-        //TODO: нужен джаваскрипт, чтоб для каждого продукта отображались только доступные ему размеры 
+        //TODO: нужен джаваскрипт, чтоб для каждого продукта отображались только доступные ему размеры
 
         // foreach ($products as $product) {
         //     foreach ($product['productSizePrices'] as $sizePrice) {

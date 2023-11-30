@@ -18,7 +18,7 @@ class OrderableController extends ApiController
 
     protected function getBasketItems()
     {
-        $obTable= Table::getTable();
+        $obTable = Table::getTable();
 
         $filter = [
             'table_id' => $obTable->id,
@@ -63,7 +63,7 @@ class OrderableController extends ApiController
     protected function getBasket(): Basket
     {
         $obTable = Table::getTable();
-        if(!$obTable){
+        if (!$obTable) {
             die(json_encode(['success' => false, 'data' => 'Unable to define table']));
         }
         if (!$this->basket) {
@@ -73,7 +73,7 @@ class OrderableController extends ApiController
                 $obBasket->table_id = $obTable->id;
                 $obBasket->created_at = date('Y-m-d H:i:s');
                 $obBasket->updated_at = date('Y-m-d H:i:s');
-                if(!$obBasket->save()){
+                if (!$obBasket->save()) {
                     throw new \Exception("Failed to save Basket: " . print_r($obBasket->errors, true));
                 }
             }

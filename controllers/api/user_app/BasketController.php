@@ -8,7 +8,6 @@ use app\controllers\api\user_app\OrderableController;
 
 class BasketController extends OrderableController
 {
-
     public function behaviors()
     {
         $behaviors = parent::behaviors();
@@ -43,10 +42,10 @@ class BasketController extends OrderableController
 
     private function reOrganizeResponseArray(array $result): array
     {
-        if(empty($result['items'])) {
+        if (empty($result['items'])) {
             return $result;
         }
-        
+        $output = [];
         foreach ($result['items'] as $item) {
             $sizeName = '';
 
@@ -54,7 +53,7 @@ class BasketController extends OrderableController
             foreach ($item['product']['productSizePrices'] as $sizePrice) {
                 if ($sizePrice['size_id'] === $item['size_id']) {
                     $sizeName = $sizePrice['size']['name'];
-                    break; 
+                    break;
                 }
             }
 
@@ -218,8 +217,8 @@ class BasketController extends OrderableController
         }
 
         list($result) = $this->getBasketItems();
-        
-        if(!empty($result['items'])) {
+
+        if (!empty($result['items'])) {
             Util::prepareItems($result['items']);
         }
 
@@ -242,5 +241,4 @@ class BasketController extends OrderableController
 
         $this->returnResponse();
     }
-
 }

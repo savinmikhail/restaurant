@@ -48,10 +48,8 @@ class CategoryController extends AdminController
         $categoryForm = new CategoryForm();
 
         if ($this->request->isPost) {
-
             $categoryForm->load($this->request->post(), 'CategoryForm');
             if ($categoryForm->validate()) {
-
                 $result = false;
                 if (isset($category['id'])) {
                     $model = Categories::find()->where(['id' => $category['id']])->one();
@@ -65,7 +63,6 @@ class CategoryController extends AdminController
                 $model->attributes = $formAttributes;
 
                 if ($result = $model->save()) {
-
                     $this->updateMainImage($model, $this->request->post());
 
                     if ($redirect) {

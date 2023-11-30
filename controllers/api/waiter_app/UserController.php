@@ -37,7 +37,7 @@ class UserController extends ApiController
                     'roles' => ['?'],
                 ],
             ],
-            'denyCallback' => function ($rule, $action) {
+            'denyCallback' => function ($action) {
 
                 if (!Yii::$app->user->isGuest && $action->id !== 'login') {
                     $this->sendResponse(403, ['data' => 'Access denied']);
@@ -168,15 +168,15 @@ class UserController extends ApiController
     public function actionConfirmOrder()
     {
         $orderId = (int) Yii::$app->request->post('order_id');
-        if(!$orderId) {
+        if (!$orderId) {
             $this->sendResponse(400, ['data' => 'Получены невалидные данные']);
         }
         $order = Order::find()->where(['id' => $orderId])->one();
-        if(!$order) {
+        if (!$order) {
             $this->sendResponse(400, ['data' => 'Заказ не найден']);
         }
         $order->confirmed = 1;
-        if(!$order->save()){
+        if (!$order->save()) {
             $this->sendResponse(400, ['data' => 'Не удалось изменить статус']);
         }
         $this->sendResponse(200, ['data' => 'Заказ подтвержден']);

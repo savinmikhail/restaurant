@@ -39,7 +39,6 @@ class OrderService
     {
         $tinkoffResponse = $this->paymentService->getState($paymentId);
         if ($tinkoffResponse['Success']) {
-
             return [200, $tinkoffResponse['Status']];
         } else {
             return [400, $tinkoffResponse['Message']];
@@ -50,7 +49,6 @@ class OrderService
     {
         $tinkoffResponse = $this->paymentService->sbpPayTest($paymentId);
         if ($tinkoffResponse['Success']) {
-
             return [200, ['Paid' => true]];
         } else {
             return [400, $tinkoffResponse['Message']];
@@ -67,7 +65,7 @@ class OrderService
         }
         $basket->delete();
 
-        $basket = new Basket;
+        $basket = new Basket();
         $basket->table_id = $table->id;
         if (!$basket->save()) {
             throw new \Exception('Failed to save new basket: ' . json_encode($basket->errors));
@@ -170,7 +168,6 @@ class OrderService
 
             // Iterate through the items in the order's basket
             foreach ($order['basket']['items'] as $item) {
-
                 $items[] = [
                     'productId' => $item['product_id'],
                     'image' => $item['product']['image'],

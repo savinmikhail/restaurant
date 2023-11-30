@@ -171,7 +171,9 @@ class Tinkoff
         $url = '';
         foreach ($args as $arg) {
             if (is_string($arg)) {
-                if ($arg[strlen($arg) - 1] !== '/') $arg .= '/';
+                if ($arg[strlen($arg) - 1] !== '/') {
+                    $arg .= '/';
+                }
                 $url .= $arg;
             } else {
                 continue;

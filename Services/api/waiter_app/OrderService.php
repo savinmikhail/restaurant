@@ -6,6 +6,7 @@ use app\common\Util;
 use app\models\tables\Basket;
 use app\models\tables\BasketItem;
 use app\models\tables\Order;
+use app\models\tables\Products;
 use yii\data\Pagination;
 
 class OrderService
@@ -28,7 +29,8 @@ class OrderService
             ->asArray()
             ->all();
 
-        foreach ($productsData as $index => $order) { //без этого куска кода почему-то добавляется лишний ключ table=>null
+        foreach ($productsData as $index => $order) {
+            //без этого куска кода почему-то добавляется лишний ключ table=>null
             unset($productsData[$index]['table']);
         }
 
@@ -69,6 +71,7 @@ class OrderService
                 return [
                     'name' => $item['product']['name'],
                     'product_id' => $item['product']['id'],
+                    'product_balance' => $item['product']['balance'],
                     'size_id' => $item['size_id'],
                     'quantity' => $item['quantity'],
                     'id' => $item['id']
@@ -83,24 +86,49 @@ class OrderService
         if (!$itemId || !$quantity || $quantity < 1) {
             return array(400, ['data' => 'Invalid input']);
         }
-
+        $transaction = \Yii::$app->db->beginTransaction();
         try {
-            $itemExists = BasketItem::find()->where(['id' => $itemId])->exists();
-            if (!$itemExists) {
+            $item = BasketItem::find()->where(['id' => $itemId])->one();
+            if (!$item) {
                 return array(404, ['data' => 'Item not found']);
             }
             $orderId = BasketItem::find()->where(['id' => $itemId])->select('order_id')->scalar();
 
+            //если с плюсом, то была добавлена новая единица, вычитаю из склада, иначе была удалена позиция, прибавляю на складе
+            $diff = $quantity - $item->quantity;
+            $this->updateProductBalance($item, $diff);
+
             $updatedCount = BasketItem::updateAll(['quantity' => $quantity], ['id' => $itemId]);
             $this->updateTotal($orderId);
+            $transaction->commit();
             if ($updatedCount > 0) {
                 return array(200, ['data' => 'Item updated successfully']);
             } else {
                 return array(400, ['data' => "Item quantity is already $quantity"]);
             }
         } catch (\Exception $e) {
-            // \Yii::error("Error updating basket item: " . $e->getMessage(), __METHOD__);
-            return array(500, ['data' => 'An error occurred', 'error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+            $transaction->rollBack();
+            return array(400, ['data' => 'An error occurred', 'error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+        }
+    }
+
+    private function updateProductBalance(BasketItem $item, int $diff)
+    {
+        $Product = Products::find()
+            ->where(['id' => $item->product_id])
+            ->one();
+
+        if (!$Product) {
+            throw new \Exception("Failed to find Product with id $item->product_id");
+        }
+        if ($diff > (int)$Product->balance) {//если было запрошено товаров больше, чем осталось на складе
+            //TODO: имплементировать крон на постоянное обновление
+            throw new \Exception("Not enough products in stock, available only: " . $Product->balance);
+        }
+        $Product->balance -= $diff;
+        if (!$Product->save()) {
+            //TODO: надо чтоб запрос кроном из айки не перезаписал это значение, пока не уйдет в заказ
+            throw new \Exception("Failed to save Product: " . print_r($Product->errors, true));
         }
     }
 
@@ -123,24 +151,34 @@ class OrderService
         if (!$itemId || $itemId < 1) {
             return array(400, ['data' => 'Invalid input']);
         }
+        $transaction = \Yii::$app->db->beginTransaction();
         try {
-            $itemExists = BasketItem::find()->where(['id' => $itemId])->exists();
-            if (!$itemExists) {
+            $item = BasketItem::find()->where(['id' => $itemId])->asArray()->one();
+            if (!$item) {
                 return array(404, ['data' => 'Item not found']);
             }
             $orderId = BasketItem::find()->where(['id' => $itemId])->select('order_id')->scalar();
 
             $deletedCount = BasketItem::deleteAll(['id' => $itemId]);
             $this->updateTotal($orderId);
-
+            $this->addProductBalance($item);
+            $transaction->commit();
             if ($deletedCount === 1) {
                 return array(200, ['data' => 'Item deleted successfully']);
             } else {
                 return array(404, ['data' => 'Item not found while deleting']);
             }
         } catch (\Exception $e) {
-            return array(500, ['data' => 'An error occurred', 'error' => $e->getMessage()]);
+            $transaction->rollBack();
+            return array(400, ['data' => 'An error occurred', 'error' => $e->getMessage()]);
         }
+    }
+
+    private function addProductBalance(array $item)
+    {
+        $productId = $item['product_id'];
+        $quantity = $item['quantity'];
+        Products::updateAllCounters(['balance' => +$quantity], ['id' => $productId]);
     }
 
     /**
@@ -193,10 +231,9 @@ class OrderService
             $transaction->commit();
 
             return [200, $result];
-        } catch (\Exception $e) 
-        {
+        } catch (\Exception $e) {
             $transaction->rollBack();
-return [400, ['data' => 'An error occurred', 'error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]];
+            return [400, ['data' => 'An error occurred', 'error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]];
         }
     }
 }

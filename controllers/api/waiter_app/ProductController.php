@@ -67,8 +67,8 @@ class ProductController extends ApiController
         $productNameFilter = Yii::$app->request->get('productName', '');
         $page = Yii::$app->request->get('page');
         $perPage = Yii::$app->request->get('perPage');
-        if (is_null($page) || is_null($perPage)) // If pagination params are not set
-        {
+        // If pagination params are not set
+        if (is_null($page) || is_null($perPage)) {
             list($code, $data) = $this->productService->getListData($productNameFilter);
         } else {
             list($code, $data) = $this->productService->getListDataPaginated($page, $perPage, $productNameFilter);

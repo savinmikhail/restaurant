@@ -12,7 +12,7 @@ class IikoService
 {
     private string $IIKO_API_KEY;
     private string $IIKO_ORG_ID;
-    private string  $IIKO_TERMINAL_GROUP_ID;
+    private string $IIKO_TERMINAL_GROUP_ID;
     private string $IIKO_BASE_URL;
 
     public function __construct()
@@ -165,7 +165,7 @@ class IikoService
             throw new Exception("JSON Decode Error: " . json_last_error_msg());
         }
 
-        if(!$decodedData) {
+        if (!$decodedData) {
             throw new Exception("Feailed to retrieve data from Iiko");
         }
 
@@ -212,7 +212,7 @@ class IikoService
         try {
             $outData = $this->gateWay($url, $data, $token);
         } catch (Exception $e) {
-           return array(400, $e->getMessage());
+            return array(400, $e->getMessage());
         }
 
         $items = $outData["terminalGroupStopLists"][0]["items"][0]["items"];
@@ -225,7 +225,7 @@ class IikoService
                 return array(400, 'Product not found');
             }
             $product->balance = intval(floor($item["balance"]));
-            if(!$product->save()){
+            if (!$product->save()) {
                 return array(400, $product->errors);
             }
         }

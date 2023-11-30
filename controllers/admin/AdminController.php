@@ -30,7 +30,7 @@ class AdminController extends BaseController
      *
      * @return string
      */
-    
+
     public function actionLogin()
     {
         $model = new LoginForm();

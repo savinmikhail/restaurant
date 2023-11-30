@@ -21,7 +21,8 @@ class ProductService
                     $query->select(['sizes.id', 'sizes.name']);
                 }
             ])
-            ->andFilterWhere(['like', 'products.name', $productNameFilter]);  //when $productNameFilter is an empty string, the filter will be ignored, and the query will return all products
+            //when $productNameFilter is an empty string, the filter will be ignored, and the query will return all products
+            ->andFilterWhere(['like', 'products.name', $productNameFilter]);
 
         // Set up pagination
         $countQuery = clone $query;
@@ -55,7 +56,8 @@ class ProductService
                     $query->select(['sizes.id', 'sizes.name']);
                 }
             ])
-            ->andFilterWhere(['like', 'products.name', $productNameFilter]);  //when $productNameFilter is an empty string, the filter will be ignored, and the query will return all products
+            //when $productNameFilter is an empty string, the filter will be ignored, and the query will return all products
+            ->andFilterWhere(['like', 'products.name', $productNameFilter]);
 
         $productsData = $query->asArray()->all();
 

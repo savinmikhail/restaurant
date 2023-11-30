@@ -21,13 +21,12 @@ class ProductService
         $result = $this->restructurizeProductsData($productsData);
         return [200, $result];
     }
-    
+
     private function restructurizeProductsData(array $productsData): array
     {
         $result = [];
 
         foreach ($productsData as $product) {
-
             $productData = [
                 'categoryId' =>  $product['category_id'],
                 'categoryName' => $product['categories']['name'],

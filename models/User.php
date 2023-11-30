@@ -4,6 +4,7 @@ namespace app\models;
 
 use app\models\Base;
 use yii\web\IdentityInterface;
+use yii\base\Security;
 
 class User extends Base implements IdentityInterface
 {
