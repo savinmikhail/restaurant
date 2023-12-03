@@ -1,0 +1,11 @@
+actor: ApiTester
+suite_namespace: \Api
+modules:
+    # enable helpers as array
+    enabled:
+        - REST:
+            url: /api/
+            depends: Yii2
+        # - \ApiBundle\Helper\Api
+    config:
+        - Yii2

@@ -1,6 +1,10 @@
 <?php
-$db = require __DIR__ . '/db.php';
-// test database! Important not to run tests on production or development databases
-$db['dsn'] = 'mysql:host=localhost;dbname=yii2basic_test';
-
-return $db;
+return [
+    'class' => 'yii\db\Connection',
+    'dsn' => 'mysql:host=192.168.0.37;dbname=kintsugi_test',
+    'username' => 'local',
+    'password' => 'local',
+    'charset' => 'utf8',
+    //    'enableSchemaCache' => ((int)self::env('enableSchemaCache', 0) ? false : true),
+    //    'schemaCacheDuration' => ((int)self::env('schemaCacheDuration', 3600)),
+];

@@ -1,46 +1,149 @@
 <?php
+
 $params = require __DIR__ . '/params.php';
 $db = require __DIR__ . '/test_db.php';
+$user_app = 'api/user_app';
+$waiter_app = 'api/waiter_app';
 
-/**
- * Application configuration shared by all test types
- */
-return [
-    'id' => 'basic-tests',
+$config = [
+    'id' => 'basic',
     'basePath' => dirname(__DIR__),
+    'bootstrap' => ['log'],
     'aliases' => [
         '@bower' => '@vendor/bower-asset',
         '@npm'   => '@vendor/npm-asset',
     ],
-    'language' => 'en-US',
     'components' => [
-        'db' => $db,
+        'request' => [
+            // !!! insert a secret key in the following (if it is empty) - this is required by cookie validation
+            'cookieValidationKey' => 'I-nhxZFlYofu09obq92_GxLG_BNzxZQC',
+            'parsers' => [
+                'application/json' => 'yii\web\JsonParser',
+                'multipart/form-data' => 'yii\web\MultipartFormDataParser'
+            ],
+            // 'baseUrl' => 'https://kintsugi.dev.redramka.ru', // enforce https
+
+        ],
+        'cache' => [
+            'class' => 'yii\caching\FileCache',
+        ],
+        'user' => [
+            'identityClass' => 'app\models\User',
+            'enableAutoLogin' => true,
+        ],
+        'errorHandler' => [
+            'errorAction' => 'site/error',
+        ],
         'mailer' => [
             'class' => \yii\symfonymailer\Mailer::class,
             'viewPath' => '@app/mail',
             // send all mails to a file by default.
             'useFileTransport' => true,
-            'messageClass' => 'yii\symfonymailer\Message'
         ],
-        'assetManager' => [
-            'basePath' => __DIR__ . '/../web/assets',
-        ],
-        'urlManager' => [
-            'showScriptName' => true,
-        ],
-        'user' => [
-            'identityClass' => 'app\models\User',
-        ],
-        'request' => [
-            'cookieValidationKey' => 'test',
-            'enableCsrfValidation' => false,
-            // but if you absolutely need it set cookie domain to localhost
-            /*
-            'csrfCookie' => [
-                'domain' => 'localhost',
+        'log' => [
+            'traceLevel' => YII_DEBUG ? 3 : 0,
+            'targets' => [
+                [
+                    'class' => 'yii\log\FileTarget',
+                    'levels' => ['error', 'warning'],
+                ],
             ],
-            */
         ],
+        'db' => $db,
+
+        'session' => [
+            'class' => 'yii\web\Session',
+        ],
+
+        'urlManager' => [
+            'enablePrettyUrl' => true,
+            'showScriptName' => false,
+            'rules' => [
+
+                ['class' => 'yii\rest\UrlRule', 'controller' => 'admin/category'],
+                ['class' => 'yii\rest\UrlRule', 'controller' => 'admin/product'],
+                ['class' => 'yii\rest\UrlRule', 'controller' => 'admin/table'],
+                ['class' => 'yii\rest\UrlRule', 'controller' => 'admin/orders'],
+                '/admin/settings' => 'admin/setting/index',
+
+                //приложение для юзера
+                "GET /$user_app/products" => "$user_app/product/index",
+                ["class" => 'yii\rest\UrlRule', "controller" => "$user_app/product"],
+                "GET /$user_app/basket" => "$user_app/basket/index", //написано таким образом для реализации RESTful апи
+                "POST /$user_app/basket" => "$user_app/basket/add",
+                "PUT /$user_app/basket" => "$user_app/basket/set",
+                "DELETE /$user_app/basket" => "$user_app/basket/delete",
+                ["class" => 'yii\rest\UrlRule', "controller" => "$user_app/order"],
+                "/$user_app/order" => "$user_app/order/index",
+                "/$user_app/order/waiter" => "$user_app/order/waiter",
+                ["class" => 'yii\rest\UrlRule', "controller" => "$user_app/catalog"],
+                ["class" => 'yii\rest\UrlRule', "controller" => "$user_app/iiko"],
+                ["class" => 'yii\rest\UrlRule', "controller" => "$user_app/iiko-transport"],
+
+
+                //приложение для официанта
+                "GET /$waiter_app/products" => "$waiter_app/product/index",
+                "GET /$waiter_app/orders" => "$waiter_app/order/list",
+                ["class" => 'yii\rest\UrlRule', "controller" => "$waiter_app/order"],
+                ["class" => 'yii\rest\UrlRule', "controller" => "$waiter_app/user"],
+
+            ],
+        ],
+
     ],
     'params' => $params,
+
+    //DI
+    'container' => [
+        'definitions' => [
+
+            //user_app here
+            'app\Services\api\user_app\OrderService' => [
+                'class' => 'app\Services\api\user_app\OrderService',
+                // Any additional configuration for OrderService
+            ],
+            'app\Services\api\user_app\ProductService' => [
+                'class' => 'app\Services\api\user_app\ProductService',
+            ],
+            'app\Services\api\user_app\IikoService' => [
+                'class' => 'app\Services\api\user_app\IikoService',
+            ],
+            'app\Services\api\user_app\Payment' => [
+                'class' => 'app\Services\api\user_app\Payment',
+            ],
+            
+            //waiter_app here
+            'app\Services\api\waiter_app\OrderService' => [
+                'class' => 'app\Services\api\waiter_app\OrderService',
+            ],
+            'app\Services\api\waiter_app\ProductService' => [
+                'class' => 'app\Services\api\waiter_app\ProductService',
+            ],
+        ],
+    ],
+    // 'modules' => [
+    //     'api' => [
+    //         'class' => 'app\modules\api\Module',
+    //     ],
+    // ],
+
 ];
+
+if (YII_ENV_DEV) {
+    // configuration adjustments for 'dev' environment
+    // $config['bootstrap'][] = 'debug';
+    // $config['modules']['debug'] = [
+    // 'class' => 'yii\debug\Module',
+    // uncomment the following to add your IP if you are not connecting from localhost.
+    //'allowedIPs' => ['127.0.0.1', '::1'],
+    // ];
+
+    // $config['bootstrap'][] = 'gii';
+    // $config['modules']['gii'] = [
+    //     'class' => 'yii\gii\Module',
+    // uncomment the following to add your IP if you are not connecting from localhost.
+    //'allowedIPs' => ['127.0.0.1', '::1'],
+    // ];
+}
+
+return $config;

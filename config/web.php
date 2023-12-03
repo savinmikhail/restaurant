@@ -78,6 +78,8 @@ $config = [
                 "/$user_app/order/waiter" => "$user_app/order/waiter",
                 ["class" => 'yii\rest\UrlRule', "controller" => "$user_app/catalog"],
                 ["class" => 'yii\rest\UrlRule', "controller" => "$user_app/iiko"],
+                ["class" => 'yii\rest\UrlRule', "controller" => "$user_app/iiko-transport"],
+
 
                 //приложение для официанта
                 "GET /$waiter_app/products" => "$waiter_app/product/index",
