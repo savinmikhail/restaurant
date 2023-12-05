@@ -29,7 +29,7 @@ class ProductService
         foreach ($productsData as $product) {
             $productData = [
                 'categoryId' =>  $product['category_id'],
-                'categoryName' => $product['categories']['name'],
+                'categoryName' => $product['categories'] ? $product['categories']['name'] : '',
                 'productId' => $product['id'],
                 'image' => $product['image'],
                 'productName' => $product['name'],
@@ -41,8 +41,8 @@ class ProductService
 
             foreach ($product['productSizePrices'] as $sizePrice) {
                 $productData['sizePrices'][] = [
-                    'sizeName' => $sizePrice['size']['name'],
-                    'sizeId' => $sizePrice['size']['id'],
+                    'sizeName' => $sizePrice['size'] ? $sizePrice['size']['name'] : '',
+                    'sizeId' => $sizePrice['size'] ? $sizePrice['size']['id'] : '',
                     'price' => $sizePrice['price']['current_price'],
                 ];
             }

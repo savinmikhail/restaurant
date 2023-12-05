@@ -43,7 +43,7 @@ class CategoryController extends AdminController
         return $this->editObject($category);
     }
 
-    public function editObject($category = [])
+    private function editObject($category = [])
     {
         $categoryForm = new CategoryForm();
 
@@ -81,7 +81,7 @@ class CategoryController extends AdminController
         ]);
     }
 
-    public function updateMainImage(Categories $category, $request)
+    private function updateMainImage(Categories $category, $request)
     {
         if (isset($request['CategoryForm']['removeImage']) && (int) $request['CategoryForm']['removeImage'] === 1) {
             // Удаляем картинку

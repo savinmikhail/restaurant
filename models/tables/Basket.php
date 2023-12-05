@@ -15,7 +15,9 @@ class Basket extends Base
                 'class' => TimestampBehavior::class,
                 'createdAtAttribute' => 'created_at',
                 'updatedAtAttribute' => 'updated_at',
-                'value' => new Expression('NOW()'), // Or 'value' => time() for Unix timestamp
+                'value' => function () {
+                    return date('Y-m-d H:i:s');
+                },
             ],
         ];
     }

@@ -12,7 +12,7 @@ class ProductController extends OrderableController
 
     public function __construct($id, $module, ProductService $productService, $config = [])
     {
-        $this->orderService = $productService;
+        $this->productService = $productService;
         parent::__construct($id, $module, $config);
     }
 

@@ -222,10 +222,8 @@ class OrderService
             if (!$order->save()) {
                 return array(400, ['data' => 'Failed to save order']);
             }
-            return array(200, ['data' => 'order limit is reached', 'qr' => QRGen::renderQR($tableId)]);
+            return array(200, ['data' => 'order limit is reached', 'qr' => QRGen::renderQR($order->id)]);
         }
-
-
 
         return array(201, ['data' => $order]);
     }

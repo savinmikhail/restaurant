@@ -62,11 +62,11 @@ class Order extends Base
         $this->paid = 0;
         $this->basket_id = (int) $orderVars['basket_id'];
         $this->confirmed = 1;
-        BasketItem::updateAll(['order_id' => $this->id], ['basket_id' => $orderVars['basket_id']]);
-
+        
         if (!$this->save()) {
             throw new \Exception("Failed to save order: " . print_r($this->errors, true));
         }
+        BasketItem::updateAll(['order_id' => $this->id], ['basket_id' => $orderVars['basket_id']]);
 
         return true;
     }

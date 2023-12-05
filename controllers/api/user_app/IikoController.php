@@ -237,7 +237,7 @@ class IikoController extends ApiController
     }
 
     /**
-     * @SWG\Get(path="/api/user_app/user_app/iiko/get-stop-list",
+     * @SWG\Get(path="/api/user_app/iiko/get-stop-list",
      *     tags={"UserApp\Iiko"},
      *     @SWG\Response(
      *         response = 200,
