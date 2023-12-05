@@ -11,3 +11,7 @@ bash:
 .PHONY: restart
 restart:
 	cd ./.docker/stage && sudo docker-compose down && sudo docker-compose build && sudo docker-compose up -d --remove-orphans
+
+.PHONY: test
+test:
+	./vendor/bin/codecept run Api
