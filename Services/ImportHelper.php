@@ -39,9 +39,12 @@ class ImportHelper
 
     private function processProducts(array $arProducts)
     {
+        //помечаю все продукты как удаленные, чтобы те, которые не пришли с айки, удалить
+        Products::updateAll(['is_deleted' => 1]);
         foreach ($arProducts as $arProduct) {
             $this->processProduct($arProduct);
         }
+        Products::deleteAll(['is_deleted' => 1]);
     }
 
     private function processCategories(array $arCategories)
@@ -91,7 +94,7 @@ class ImportHelper
         $obCategoryValues = [
             'external_id' => $arCategory['id'],
             'name' => $arCategory['name'],
-            'is_deleted' => $arCategory['isDeleted']
+            'is_deleted' => (int) $arCategory['isDeleted']
         ];
         $obCategory->load($obCategoryValues, '');
         if (!$obCategory->save()) {
@@ -106,28 +109,35 @@ class ImportHelper
 
     private function processProduct(array $arProduct)
     {
+        //модификаторы не сохраняем, не используем, в меню не показываем
+        if($arProduct['type'] === 'Modifier' || $arProduct['type'] === 'Service'){
+            return;
+        }
         $obProduct = Products::find()->where(['external_id' => $arProduct['id']])->one();
         if (!$obProduct) {
             $obProduct = new Products();
         }
 
-        $image = $this->processProductImages($arProduct, $obProduct->id);
-
         $category = Categories::find()->where(['external_id' => $arProduct['productCategoryId']])->one();
         $obProductValues = [
-            'image' => $image ?? '',
             'external_id' => $arProduct['id'],
             'name' => $arProduct['name'],
             'description' => $arProduct['description'] ?? '',
-            'is_deleted' => $arProduct['isDeleted'],
+            'is_deleted' => (int) $arProduct['isDeleted'],
             'sort' => $arProduct['order'],
+            'code' => $arProduct['code'],
+            //категории в айке не заполнены
             'category_id' => $category ? $category->id : null
         ];
+
         $obProduct->load($obProductValues, '');
         if (!$obProduct->save()) {
             $this->handleError('Product', $obProduct);
         }
-
+        $obProduct->image = $this->processProductImages($arProduct, $obProduct->id);
+        if (!$obProduct->save()) {
+            $this->handleError('Product', $obProduct);
+        }
         $this->processProductProps($arProduct, $obProduct->id);
         $this->processSizePrices($arProduct, $obProduct->id);
     }
