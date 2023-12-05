@@ -100,13 +100,16 @@ $config = [
             //user_app here
             'app\Services\api\user_app\OrderService' => [
                 'class' => 'app\Services\api\user_app\OrderService',
-                // Any additional configuration for OrderService
+                // Any additional configuration for the Service
             ],
             'app\Services\api\user_app\ProductService' => [
                 'class' => 'app\Services\api\user_app\ProductService',
             ],
             'app\Services\api\user_app\IikoService' => [
                 'class' => 'app\Services\api\user_app\IikoService',
+            ],
+            'app\Services\api\user_app\IikoTransportService' => [
+                'class' => 'app\Services\api\user_app\IikoTransportService',
             ],
             'app\Services\api\user_app\Payment' => [
                 'class' => 'app\Services\api\user_app\Payment',
