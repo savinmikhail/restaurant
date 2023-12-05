@@ -7,9 +7,24 @@ use app\models\tables\SizePrice;
 use app\models\tables\ProductsPropertiesValues;
 use app\models\tables\ProductsImages;
 use app\models\tables\Categories;
+use yii\behaviors\TimestampBehavior;
+use yii\db\Expression;
 
 class Products extends Base
 {
+    public function behaviors()
+    {
+        return [
+            [
+                'class' => TimestampBehavior::class,
+                'createdAtAttribute' => 'created_at',
+                'updatedAtAttribute' => 'updated_at',
+                'value' => function () {
+                    return date('Y-m-d H:i:s');
+                },
+            ],
+        ];
+    }
 
     public function rules()
     {
@@ -17,8 +32,9 @@ class Products extends Base
             [['name', 'sort',], 'required'],
             [['sort', 'is_deleted', 'category_id', 'balance'], 'integer'],
             [['is_deleted',], 'boolean'],
-            [['description', 'name', 'external_id'], 'string'],
+            [['description', 'name', 'external_id', 'code'], 'string'],
             [['image'], 'string', 'skipOnEmpty' => true],
+            [['created_at', 'updated_at'], 'datetime', 'format' => 'php:Y-m-d H:i:s'],
         ];
     }
 
