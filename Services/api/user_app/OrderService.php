@@ -3,8 +3,10 @@
 namespace app\Services\api\user_app;
 
 use app\models\tables\Basket;
+use app\models\tables\BasketItem;
 use app\models\tables\Order;
 use app\models\tables\Payment;
+use app\models\tables\Products;
 use app\models\tables\Setting;
 use app\models\tables\Table;
 use app\Services\QRGen;
@@ -22,13 +24,16 @@ class OrderService
     public function pay(array $orderIds, string $paymentMethod): array
     {
         try {
+            $transaction = \Yii::$app->db->beginTransaction();
             // фронт шлет несколько заказов на оплату, объединяю в один
             $payment = $this->createPayment($orderIds, $paymentMethod);
             //проверяю условия оплаты
             $result = $this->processPaymentMethod($payment);
             //очищаю корзину
             $this->refreshBasket();
+            $transaction->commit();
         } catch (\Exception $e) {
+            $transaction->rollBack();
             return [400, ['data' => $e->getMessage()]];
         }
 
@@ -112,19 +117,24 @@ class OrderService
         ];
 
         if ($payment->payment_method === 'Cash') {
-            $result = ['data' => 'You need to call the waiter for paying cash'];
-        } else {
-            try {
-                list($paymentLink, $paymentId) = $this->paymentService->getTinkoffPaymentUrl($payment);
-            } catch (\Exception $e) {
-                throw new \Exception($e->getMessage());
-            }
-            $result['payment_link'] = $paymentLink;
-            $result['payment_id'] = $paymentId;
+            $result['data'] = 'You need to call the waiter for paying cash';
+            return $result;
         }
+        try {
+            list($paymentLink, $paymentId) = $this->paymentService->getTinkoffPaymentUrl($payment);
+        } catch (\Exception $e) {
+            throw $e;
+        }
+        $result['payment_link'] = $paymentLink;
+        $result['payment_id'] = $paymentId;
         return $result;
     }
 
+    /**
+     * Retrieves the list of orders for the current table.
+     *
+     * @return array The list of orders.
+     */
     public function getOrderList(): array
     {
         $obTable = Table::getTable();
@@ -141,10 +151,16 @@ class OrderService
             ->addOrderBy(['orders.id' => SORT_DESC]);
 
         $ordersList = $query->asArray()->all();
-        $output  = $this->restructurizeOrders($ordersList);
+        $output = $this->restructurizeOrders($ordersList);
         return $output;
     }
 
+    /**
+     * Restructurizes an array of orders.
+     *
+     * @param array $orders The array of orders to be restructurized.
+     * @return array The restructurized array of orders.
+     */
     private function restructurizeOrders(array $orders): array
     {
         $output = [];
@@ -197,6 +213,16 @@ class OrderService
         return $output;
     }
 
+    /**
+     * Creates an order and returns the result as an array.
+     *
+     * @return array The result of creating the order. The array contains the HTTP status code and the data.
+     *               If the order limit is not found, returns an HTTP status code of 400 and the message 'Order limit not found'.
+     *               If an exception occurs while creating the order, returns an HTTP status code of 400 and the exception message.
+     *               If the order does not need to be confirmed, returns an HTTP status code of 201 and the order data.
+     *               If the order limit is reached, returns an HTTP status code of 200, the message 'order limit is reached',
+     *               and the QR code for the order.
+     */
     public function createOrder(): array
     {
         $tableId = Table::getTable()->id;
@@ -208,23 +234,99 @@ class OrderService
         }
         $order = new Order();
         try {
-            $result = $order->make(['basket_id' => $basket->id, 'table_id' => $tableId, 'basket_total' => $basket->basket_total]);
+            $order->make(['basket_id' => $basket->id, 'table_id' => $tableId, 'basket_total' => $basket->basket_total]);
         } catch (\Exception $e) {
             return array(400, ['data' => $e->getMessage()]);
         }
 
-        if (!$result) {
-            return array(400, ['data' => 'Failed to create order']);
+        $mustBeConfirmed = $order->order_sum >= $obSetting->value;
+        if (!$mustBeConfirmed) {
+            return array(201, ['data' => $order]);
         }
 
-        if ($order->order_sum >= $obSetting->value) {
-            $order->confirmed = 0;
-            if (!$order->save()) {
-                return array(400, ['data' => 'Failed to save order']);
+        $order->confirmed = 0;
+        if (!$order->save()) {
+            return array(400, ['data' => 'Failed to save order']);
+        }
+        return array(200, ['data' => 'order limit is reached', 'qr' => QRGen::renderQR($order->id)]);
+    }
+
+    /**
+     * Handles the changes to the iiko order.
+     *
+     * @param string $orderGuid The GUID of the order.
+     * @param array $items The array of items.
+     * @throws \Exception If there is an error saving the order.
+     * @return array The result of the function call.
+     */
+    public function handleIikoOrderChanges(string $orderGuid, array $items): array
+    {
+        $order = Order::find()
+            ->where(['external_id' => $orderGuid])
+            ->one();
+
+        BasketItem::updateAll(['is_deleted' => 1], ['order_id' => $order->id]);
+        try {
+            foreach ($items as $item) {
+                $this->updateItem($item, $order->id);
             }
-            return array(200, ['data' => 'order limit is reached', 'qr' => QRGen::renderQR($order->id)]);
+        } catch (\Exception $e) {
+            return array(400, $e->getMessage());
         }
+        BasketItem::deleteAll(['is_deleted' => 1, 'order_id' => $order->id]);
+        try {
+            $this->calcOrderSum($order);
+        } catch (\Exception $e) {
+            return array(400, $e->getMessage());
+        }
+        return array(200, 'OK');
+    }
 
-        return array(201, ['data' => $order]);
+    /**
+     * Updates an item in the shopping basket.
+     *
+     * @param array $item The item to be updated.
+     * @param int $orderId The ID of the order.
+     * @throws \Exception If there is an error saving the order item.
+     * @return void
+     */
+    private function updateItem(array $item, int $orderId)
+    {
+        $product = Products::find()
+            ->where(['code' => $item['code']])
+            ->asArray()
+            ->one();
+        $orderItem = BasketItem::find()
+            ->where(['order_id' => $orderId])
+            ->andWhere(['product_id' => $product['id']])
+            ->one();
+        if (!$orderItem) {
+            $orderItem = new BasketItem();
+            $orderItem->order_id = $orderId;
+            $orderItem->product_id = $product['id'];
+        }
+        $orderItem->quantity = $item['quantity'];
+        $orderItem->is_deleted = 0;
+        if ($item['sizeId']) {
+            $orderItem->size_id = $item['sizeId'];
+        }
+        if (!$orderItem->save()) {
+            throw new \Exception('Error saving order item');
+        }
+    }
+
+    /**
+     * Calculates the order sum for the given order.
+     *
+     * @param Order $order The order for which to calculate the sum.
+     * @throws \Exception If there is an error saving the order.
+     */
+    private function calcOrderSum(Order $order)
+    {
+        $orderSum = BasketItem::find()->where(['order_id' => $order->id])->sum('quantity * price') ?? 0;
+        $order->order_sum = $orderSum;
+        if (!$order->save()) {
+            throw new \Exception('Error saving order');
+        }
     }
 }

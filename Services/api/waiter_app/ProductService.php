@@ -11,6 +11,15 @@ use yii\data\Pagination;
 
 class ProductService
 {
+    /**
+     * Retrieves paginated list data based on the given page, number of items per page, and product name filter.
+     *
+     * @param int $page The page number to retrieve.
+     * @param int $perPage The number of items per page.
+     * @param string $productNameFilter The product name filter.
+     *        When an empty string is provided, the filter will be ignored and all products will be returned.
+     * @return array The paginated list data.
+     */
     public function getListDataPaginated(int $page, int $perPage, string $productNameFilter): array
     {
         // Prepare the query
@@ -46,6 +55,12 @@ class ProductService
         return array(200, $output);
     }
 
+    /**
+     * Retrieves a list of data based on a product name filter.
+     *
+     * @param string $productNameFilter The product name filter to apply.
+     * @return array The list of data matching the filter.
+     */
     public function getListData(string $productNameFilter): array
     {
         // Prepare the query

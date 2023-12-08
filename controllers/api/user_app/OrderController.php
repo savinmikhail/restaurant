@@ -10,6 +10,8 @@ use app\models\tables\Products;
 use app\Services\api\user_app\IikoTransportService;
 use app\Services\api\user_app\OrderService;
 
+use function PHPUnit\Framework\isInstanceOf;
+
 class OrderController extends OrderableController
 {
     private OrderService $orderService;
@@ -41,18 +43,40 @@ class OrderController extends OrderableController
     }
 
     /**
-     * @SWG\Post(path="/api/user_app/order",
+     * Create an order.
+     *
+     * @SWG\Post(
+     *     path="/api/user_app/order",
      *     tags={"UserApp\Order"},
      *     @SWG\Response(
-     *         response = 200,
-     *         description = "Результат добавления заказа",
-     *         @SWG\Schema(ref = "#/definitions/Products")
+     *         response=200,
+     *         description="Create an order",
+     *         @SWG\Schema(ref="#/definitions/Products")
      *     ),
      * )
      */
     public function actionIndex()
     {
+        // Create an order
         list($code, $data) = $this->orderService->createOrder();
+
+        // Check if order creation was successful
+        if (!($data['data'] instanceof Order)) {
+            $this->sendResponse($code, $data);
+        }
+
+        // Get the created order
+        $order = $data['data'];
+
+        // Send the order to iiko
+        list($code, $data) = $this->iikoTransportService->sendOrder($order->id);
+
+        // Check if order was sent successfully
+        if ($code === 200) {
+            $this->sendResponse(200, ['data' => $order, 'status' => 'sent to iiko']);
+        }
+
+        // Send the response
         $this->sendResponse($code, $data);
     }
 
@@ -143,6 +167,11 @@ class OrderController extends OrderableController
      * )
      */
 
+    /**
+     * Check if the payment has been made.
+     *
+     * @return void
+     */
     public function actionCheckPaid()
     {
         $tinkoffPaymentId = \Yii::$app->request->get('tinkoff_payment_id');
@@ -256,7 +285,9 @@ class OrderController extends OrderableController
     {
         $postData = \Yii::$app->request->post();
 
-        $order = Order::find()->where(['external_id' => $postData['orderId']])->one();
+        $order = Order::find()
+            ->where(['external_id' => $postData['orderId']])
+            ->one();
         $order->paid = (int) $postData['paid'];
         if (!$order->save()) {
             throw new \Exception('Error saving order');
@@ -265,36 +296,13 @@ class OrderController extends OrderableController
     }
 
     //если заказ был изменен через терминал айки, сюда прилетят изменения
-    //todo: сделать нормальную обработку удаления не прилетевших продуктов, пересчет стоимости заказа, размера
     public function actionChangeOrder()
     {
         $postData = \Yii::$app->request->post();
         $orderGuid = $postData['orderId'];
-        $order = Order::find()->where(['external_id' => $orderGuid])->one();
-
-        foreach ($postData['items'] as $item) {
-            $product = Products::find()->where(['code' => $item['code']])->one();
-            $orderItem = BasketItem::find()
-                ->where(['order_id' => $order->id])
-                ->andWhere(['product_id' => $product->id])
-                ->one();
-            if (!$orderItem) {
-                $orderItem = new BasketItem();
-                $orderItem->order_id = $order->id;
-                $orderItem->product_id = $product->id;
-            }
-            $orderItem->quantity = $item['quantity'];
-            if($item['sizeId']){
-                $orderItem->size_id = $item['sizeId'];
-            }
-            if (!$orderItem->save()) {
-                throw new \Exception('Error saving order');
-            }
-        }
-        if (!$order->save()) {
-            throw new \Exception('Error saving order');
-        }
-        $this->sendResponse(200, 'success');
+        $items = $postData['items'];
+        list($code, $data) = $this->orderService->handleIikoOrderChanges($orderGuid, $items);
+        $this->sendResponse($code, $data);
     }
 
     //сюда айко транспорт отправит гуид созданного заказа, сохраним его

@@ -242,7 +242,6 @@ class OrdersController extends AdminController
         ];
 
         $products = Products::find()
-            /*->where(['is_deleted' => 0])*/ //TODO раскоментить когда будет нормальное меню
             // ->joinWith('productSizePrices.price')
             // ->joinWith('productSizePrices.size')
             ->asArray()

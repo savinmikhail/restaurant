@@ -16,6 +16,13 @@ class IikoTransportService
         $this->IIKO_TRANSPORT_IP = $_ENV['IIKO_TRANSPORT_IP'];
     }
 
+    /**
+     * Marks an order as paid.
+     *
+     * @param int $orderId The ID of the order to mark as paid.
+     * @throws Exception If there is an error marking the order as paid.
+     * @return array An array with the HTTP status code and the response from the gateway.
+     */
     public function markOrderAsPaid(int $orderId): array
     {
         try {
@@ -27,6 +34,11 @@ class IikoTransportService
         return [200, $response];
     }
 
+    /**
+     * Call the waiter and return the response.
+     *
+     * @return array The response from calling the waiter.
+     */
     public function callWaiter(): array
     {
         try {
@@ -37,6 +49,13 @@ class IikoTransportService
         return [200, $response];
     }
 
+    /**
+     * Sends an order and returns the response.
+     *
+     * @param int $orderId The ID of the order to be sent.
+     * @throws Exception If there is an error while sending the order.
+     * @return array An array containing the status code and the response.
+     */
     public function sendOrder(int $orderId): array
     {
         $data = $this->getOrderData($orderId);
@@ -48,6 +67,12 @@ class IikoTransportService
         return array(200, $response);
     }
 
+    /**
+     * Process the stop list.
+     *
+     * @throws Exception if an error occurs while processing the stop list.
+     * @return array An array containing the HTTP status code and the response from the gateway.
+     */
     public function processStopList()
     {
         try {
@@ -64,6 +89,12 @@ class IikoTransportService
         return [200, $response];
     }
 
+    /**
+     * Retrieves the order data for a given order ID.
+     *
+     * @param int $orderId The ID of the order.
+     * @return array The order data.
+     */
     private function getOrderData(int $orderId): array
     {
         $order = Order::find()
@@ -88,6 +119,15 @@ class IikoTransportService
         return $data;
     }
 
+    /**
+     * Sends a request to the specified URL using cURL and returns the response data.
+     *
+     * @param string $url The URL to send the request to.
+     * @param array $data The data to send with the request.
+     * @param string $method The HTTP method to use for the request. Default is 'POST'.
+     * @throws Exception If there is a cURL error or an HTTP error response.
+     * @return mixed The decoded response data from the request.
+     */
     private function gateWay($url, $data, $method = 'POST')
     {
         $ch = curl_init();

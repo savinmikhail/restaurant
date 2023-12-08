@@ -15,53 +15,6 @@ class Payment
         $this->TINKOFF_SECRET_KEY = $_ENV['TINKOFF_SECRET_KEY'];
     }
 
-    public static function createSberPaymentUrl($last_order_id, $amount)
-    {
-        return [
-            1,
-            'https://smth.smth',
-            []
-        ];
-        /* $returnUrl = "https://mp.kv.tomsk.ru/api/payment/redirect?orderId={$last_order_id}&success=true";
-         $failUrl = "https://mp.kv.tomsk.ru/api/payment/redirect?orderId={$last_order_id}&success=false";
-         $host = 'https://mp.kv.tomsk.ru/api/payment/callback';
-         //$token = 'auaclh27bt0pejpl05pf138f0';
-         $token = 'l08ccs6936bvhai03i5p2fu8fr'; //prod
-         $amount = round($amount * 100, 0);
-         $arrContextOptions = [
-         'ssl' => [
-         'verify_peer' => false,
-         'verify_peer_name' => false,
-         ],
-         ];
-         //$url = 'https://3dsec.sberbank.ru/payment/rest/register.do'
-         $url = 'https://securepayments.sberbank.ru/payment/rest/register.do' //prod
-         . "?amount={$amount}&orderNumber=M{$last_order_id}"
-         . '&token=' . $token
-         // .'&dynamicCallbackUrl='.$host
-         . '&pageView=MOBILE'
-         . '&returnUrl=' . $returnUrl
-         . '&failUrl=' . $failUrl;
-         $response = json_decode(file_get_contents($url, false, stream_context_create($arrContextOptions)));
-
-         if (isset($response->formUrl)) {
-         return [
-         1,
-         $response->formUrl,
-         []
-         ];
-         } else {
-         return [
-         0,
-         [
-         'code' => $response->errorCode,
-         'message' => $response->errorMessage,
-         ],
-         ['url' => $url]
-         ];
-         }*/
-    }
-
     /**
      * Process the payment using Tinkoff API.
      *
@@ -85,6 +38,15 @@ class Payment
         }
     }
 
+    /**
+     * Initializes a payment using the Tinkoff payment gateway.
+     *
+     * documentation: https://www.tinkoff.ru/kassa/dev/payments/#tag/Standartnyj-platyozh/paths/~1Init/post
+     * 
+     * @param TablesPayment $payment The payment object containing the payment details.
+     * @throws \Exception If there is an error initializing the payment.
+     * @return Tinkoff The Tinkoff payment object.
+     */
     private function initializePayment(TablesPayment $payment): Tinkoff
     {
         $tinkoff = new Tinkoff($this->TINKOFF_TERMINAL_KEY, $this->TINKOFF_SECRET_KEY);
@@ -93,7 +55,7 @@ class Payment
         $initArgs = [
             'OrderId' => $payment->id,
             'Amount' => $payment->sum . '.00',
-            'IP' => $_SERVER['REMOTE_ADDR'], //https://www.tinkoff.ru/kassa/dev/payments/#tag/Standartnyj-platyozh/paths/~1Init/post
+            'IP' => $_SERVER['REMOTE_ADDR'], 
         ];
 
         try {
@@ -104,6 +66,13 @@ class Payment
         return $tinkoff;
     }
 
+    /**
+     * Retrieves the payment URL for the Tinkoff API.
+     *
+     * @param Tinkoff $tinkoff The Tinkoff object used to make the API call.
+     * @throws \Exception Error getting QR code: [exception message]
+     * @return string The URL for the payment QR code.
+     */
     private function getPaymentUrl(Tinkoff $tinkoff): string
     {
         // Get the QR code
@@ -128,6 +97,12 @@ class Payment
         }
     }
 
+    /**
+     * Retrieves the state of a Tinkoff payment.
+     *
+     * @param int $tinkoffPaymentId The ID of the Tinkoff payment.
+     * @return array The state of the Tinkoff payment.
+     */
     public function getState(int $tinkoffPaymentId): array
     {
         $tinkoff = new Tinkoff($this->TINKOFF_TERMINAL_KEY, $this->TINKOFF_SECRET_KEY);
@@ -140,6 +115,12 @@ class Payment
         return ($arrResponse); //CONFIRMED
     }
 
+    /**
+     * Generates a function comment for the given function body.
+     *
+     * @param int $tinkoffPaymentId The payment ID for the Tinkoff payment.
+     * @return array The response array from the Tinkoff API.
+     */
     public function sbpPayTest(int $tinkoffPaymentId): array
     {
 

@@ -67,7 +67,5 @@ class Order extends Base
             throw new \Exception("Failed to save order: " . print_r($this->errors, true));
         }
         BasketItem::updateAll(['order_id' => $this->id], ['basket_id' => $orderVars['basket_id']]);
-
-        return true;
     }
 }

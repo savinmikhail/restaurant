@@ -4,7 +4,6 @@ namespace app\models\tables;
 
 use app\models\Base;
 use yii\behaviors\TimestampBehavior;
-use yii\db\Expression;
 
 class Payment extends Base
 {

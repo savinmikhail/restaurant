@@ -11,6 +11,13 @@ use Endroid\QrCode\Writer\SvgWriter;
 
 class QRGen
 {
+    /**
+     * Renders a QR code based on the given data and returns it as an SVG string.
+     *
+     * @param string $data The data to encode in the QR code.
+     * @throws \Exception If there is an error creating the QR code.
+     * @return string The SVG representation of the QR code.
+     */
     public static function renderQR(string $data): string
     {
         $writer = new SvgWriter();

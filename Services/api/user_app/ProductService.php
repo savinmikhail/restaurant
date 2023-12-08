@@ -6,6 +6,12 @@ use app\models\tables\Products;
 
 class ProductService
 {
+    /**
+     * Retrieves a list of products based on a filter.
+     *
+     * @param string $productNameFilter The filter to apply to the product names.
+     * @return array The response containing the HTTP status code and the list of products.
+     */
     public function getListData(string $productNameFilter): array
     {
         $productsQuery = Products::find()
@@ -22,6 +28,12 @@ class ProductService
         return [200, $result];
     }
 
+    /**
+     * Restructurize the given products data into a new format.
+     *
+     * @param array $productsData The array of products data to be restructurized.
+     * @return array The restructurized products data in the new format.
+     */
     private function restructurizeProductsData(array $productsData): array
     {
         $result = [];
@@ -34,7 +46,7 @@ class ProductService
                 'image' => $product['image'],
                 'productName' => $product['name'],
                 'description' => $product['description'],
-                'isActive' => $product['balance'] > 0 ? 1 : 0, //TODO: возможно имеет смысл поставить дефолтное значение в бд на null
+                'isActive' => $product['balance'] > 0 ? 1 : 0, // возможно имеет смысл поставить дефолтное значение в бд на null
                 'tags' => [],
                 'sizePrices' => [],
             ];

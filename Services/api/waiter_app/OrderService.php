@@ -11,6 +11,13 @@ use yii\data\Pagination;
 
 class OrderService
 {
+    /**
+     * Retrieves a list of data with pagination.
+     *
+     * @param int $page The page number to retrieve.
+     * @param int $perPage The number of items per page.
+     * @return array An array containing the HTTP status code and the data.
+     */
     public function getListData(int $page, int $perPage): array
     {
         $query = Order::find()
@@ -46,6 +53,12 @@ class OrderService
         return [200, $output];
     }
 
+    /**
+     * Retrieves the index data for a given order ID.
+     *
+     * @param int $orderId The ID of the order.
+     * @return array The index data for the order.
+     */
     public function getIndexData(int $orderId): array
     {
         if (!$orderId || !is_numeric($orderId)) {
@@ -82,6 +95,14 @@ class OrderService
         return [200, $filteredOrderDetails];
     }
 
+    /**
+     * Updates the quantity of a basket item.
+     *
+     * @param int $itemId The ID of the item to update.
+     * @param int $quantity The new quantity value.
+     * @throws \Exception If an error occurs during the update process.
+     * @return array An array containing the HTTP status code and the response data.
+     */
     public function updateQuantity(int $itemId, int $quantity): array
     {
         if (!$itemId || !$quantity || $quantity < 1) {
@@ -95,9 +116,10 @@ class OrderService
             }
             $orderId = BasketItem::find()->where(['id' => $itemId])->select('order_id')->scalar();
 
+            //закоментировано, так как бизнес логика велит не следить за количеством в стоплисте
             //если с плюсом, то была добавлена новая единица, вычитаю из склада, иначе была удалена позиция, прибавляю на складе
-            $diff = $quantity - $item->quantity;
-            $this->updateProductBalance($item, $diff);
+            // $diff = $quantity - $item->quantity;
+            // $this->updateProductBalance($item, $diff);
 
             $updatedCount = BasketItem::updateAll(['quantity' => $quantity], ['id' => $itemId]);
             $this->updateTotal($orderId);
@@ -133,6 +155,13 @@ class OrderService
         }
     }
 
+    /**
+     * Updates the total order sum for a given order ID.
+     *
+     * @param int $orderId The ID of the order.
+     * @throws \Exception If the order is not found or fails to save.
+     * @return void
+     */
     private function updateTotal(int $orderId)
     {
         $order = Order::findOne($orderId);
@@ -147,6 +176,13 @@ class OrderService
         }
     }
 
+    /**
+     * Deletes an item from the basket.
+     *
+     * @param int $itemId The ID of the item to be deleted.
+     * @throws \Exception If an error occurs during the deletion process.
+     * @return array An array containing the HTTP status code and a message regarding the deletion status.
+     */
     public function deleteItem(int $itemId): array
     {
         if (!$itemId || $itemId < 1) {
@@ -162,7 +198,8 @@ class OrderService
 
             $deletedCount = BasketItem::deleteAll(['id' => $itemId]);
             $this->updateTotal($orderId);
-            $this->addProductBalance($item);
+            //бизнес логика велит не следить за  количеством в стоплисте
+            // $this->addProductBalance($item);
             $transaction->commit();
             if ($deletedCount === 1) {
                 return array(200, ['data' => 'Item deleted successfully']);
