@@ -17,6 +17,7 @@ class OrderService
             ->joinWith('table')
             ->select(['orders.id as order_id', 'tables.table_number'])
             ->andWhere(['canceled' => 0])
+            ->andWhere(['paid' => 0])//не показываем оплаченные заказы, чтоб официант не мог отредактировать оплаченный
             ->addOrderBy(['orders.id' => SORT_DESC]);
 
         // Set up pagination
