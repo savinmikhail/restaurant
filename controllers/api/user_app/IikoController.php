@@ -300,4 +300,101 @@ class IikoController extends ApiController
         }
         $this->sendResponse(200, $outData);
     }
+
+    /**
+     * @SWG\Get(path="/api/user_app/iiko/get-webhook",
+     *     tags={"UserApp\Iiko"},
+     *     @SWG\Response(
+     *         response = 200,
+     *         description = "get the webhook settings from the iiko",
+     *     ),
+     * )
+     */
+    public function actionGetWebhook()
+    {
+        $token = $this->iikoService->getKey();
+
+        $url = 'webhooks/settings';
+        $data = ['organizationId' => $this->IIKO_ORG_ID];
+
+        $outData = $this->iikoService->gateWay($url, $data, $token);
+
+        if (!$outData) {
+            $this->sendResponse(400, 'Token has been expired');
+        }
+        $this->sendResponse(200, $outData);
+    }
+
+    /**
+     * @SWG\Get(path="/api/user_app/iiko/set-webhook",
+     *     tags={"UserApp\Iiko"},
+     *     @SWG\Response(
+     *         response = 200,
+     *         description = "set the webhook settings for the iiko",
+     *     ),
+     * )
+     */
+    public function actionSetWebhook()
+    {
+        $token = $this->iikoService->getKey();
+        $url = 'webhooks/update_settings';
+        $data = [
+            'organizationId' => $this->IIKO_ORG_ID,
+            'webHooksUri' => 'http://' . $_SERVER['HTTP_HOST'] . '/api/user_app/iiko/webhook',
+            'authToken' => md5($_ENV['API_PASSWORD']),
+            'webHooksFilter' => [
+                'stopListUpdateFilter' => [
+                    'updates' => true
+                ]
+            ]
+        ];
+        $outData = $this->iikoService->gateWay($url, $data, $token);
+
+        if (!$outData) {
+            $this->sendResponse(400, 'Token has been expired');
+        }
+        $this->sendResponse(200, $outData);
+    }
+
+    /**
+     * @deprecated version 1.0.0
+     * получить инфу, полностью ли обновлен стоплист
+     */
+    public function actionWebhook()
+    {
+        // Get the raw POST data
+        $postData = file_get_contents('php://input');
+
+        if(empty($postData)) {
+            http_response_code(400);
+            return;
+        }
+        $postData = json_decode($postData, true);
+
+        foreach ($postData[0]['eventInfo']['terminalGroupsStopListsUpdates'] as $product) {
+            
+        }
+
+        //пример ответа
+        $jayParsedAry = [
+            [
+                "eventType" => "StopListUpdate",
+                "eventTime" => "2019-08-24 14:15:22.123",
+                "organizationId" => "7bc05553-4b68-44e8-b7bc-37be63c6d9e9",
+                "correlationId" => "48fb4cd3-2ef6-4479-bea1-7c92721b988c",
+                "eventInfo" => [
+                    "terminalGroupsStopListsUpdates" => [
+                        [
+                            "id" => "497f6eca-6276-4993-bfeb-53cbbbba6f08",
+                            "isFull" => true
+                        ]
+                    ]
+                ]
+            ]
+        ];
+
+
+        // Send a response
+        http_response_code(200);
+    }
 }
