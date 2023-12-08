@@ -35,9 +35,9 @@ class OrderService
         return [200, $result];
     }
 
-    public function getStatus(int $paymentId): array
+    public function getStatus(int $tinkoffPaymentId): array
     {
-        $tinkoffResponse = $this->paymentService->getState($paymentId);
+        $tinkoffResponse = $this->paymentService->getState($tinkoffPaymentId);
         if ($tinkoffResponse['Success']) {
             return [200, $tinkoffResponse['Status']];
         } else {
@@ -45,9 +45,9 @@ class OrderService
         }
     }
 
-    public function sbpPayTest(int $paymentId): array
+    public function sbpPayTest(int $tinkoffPaymentId): array
     {
-        $tinkoffResponse = $this->paymentService->sbpPayTest($paymentId);
+        $tinkoffResponse = $this->paymentService->sbpPayTest($tinkoffPaymentId);
         if ($tinkoffResponse['Success']) {
             return [200, ['Paid' => true]];
         } else {

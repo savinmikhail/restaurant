@@ -79,7 +79,7 @@ class Payment
             if (!$arrResponse['Success']) {
                 throw new \Exception('Payment was not confirmed: ' . print_r($tinkoff->response, true));
             }
-            return [$this->getPaymentUrl($tinkoff), $tinkoff->paymentId];
+            return ['paymentUrl' => $this->getPaymentUrl($tinkoff), 'paymentId' => $tinkoff->paymentId];
         } catch (\Exception $e) {
             throw new \Exception($e->getMessage());
         }
@@ -128,11 +128,11 @@ class Payment
         }
     }
 
-    public function getState(int $paymentId): array
+    public function getState(int $tinkoffPaymentId): array
     {
         $tinkoff = new Tinkoff($this->TINKOFF_TERMINAL_KEY, $this->TINKOFF_SECRET_KEY);
         $stateArgs = [
-            'PaymentId' => $paymentId,
+            'PaymentId' => $tinkoffPaymentId,
         ];
 
         $tinkoff->getState($stateArgs);
@@ -140,12 +140,12 @@ class Payment
         return ($arrResponse); //CONFIRMED
     }
 
-    public function sbpPayTest(int $paymentId): array
+    public function sbpPayTest(int $tinkoffPaymentId): array
     {
 
         $tinkoff = new Tinkoff($this->TINKOFF_TERMINAL_KEY, $this->TINKOFF_SECRET_KEY);
         $testArgs = [
-            'PaymentId' => $paymentId,
+            'PaymentId' => $tinkoffPaymentId,
             // 'IsDeadlineExpired' => true,
             // 'IsRejected' => true
         ];
