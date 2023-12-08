@@ -6,6 +6,7 @@ use app\models\tables\Basket;
 use Yii;
 use app\controllers\api\ApiController;
 use app\models\tables\Table;
+use Exception;
 
 class OrderableController extends ApiController
 {
@@ -16,7 +17,7 @@ class OrderableController extends ApiController
         return Yii::$app->user->identity;
     }
 
-    protected function getBasketItems()
+    protected function getBasketItems(): array
     {
         $obTable = Table::getTable();
 
@@ -32,7 +33,7 @@ class OrderableController extends ApiController
         return [$result, $total];
     }
 
-    private function getBasketItemsByFilter($arFilter)
+    private function getBasketItemsByFilter(array $arFilter): ?array
     {
         return Basket::find()
             ->joinWith('items')
@@ -46,7 +47,7 @@ class OrderableController extends ApiController
             ->one();
     }
 
-    protected function getBasketItemsFromOrder($orderId)
+    protected function getBasketItemsFromOrder(int $orderId): array
     {
         $result = $this->getBasketItemsByFilter(['order_id' => $orderId]);
         $total = 0;
@@ -64,17 +65,15 @@ class OrderableController extends ApiController
     {
         $obTable = Table::getTable();
         if (!$obTable) {
-            die(json_encode(['success' => false, 'data' => 'Unable to define table']));
+            throw new Exception('Unable to define table');
         }
         if (!$this->basket) {
             $obBasket = Basket::find()->where(['table_id' => $obTable->id])->one();
             if (!$obBasket) {
                 $obBasket = new Basket();
                 $obBasket->table_id = $obTable->id;
-                $obBasket->created_at = date('Y-m-d H:i:s');
-                $obBasket->updated_at = date('Y-m-d H:i:s');
                 if (!$obBasket->save()) {
-                    throw new \Exception("Failed to save Basket: " . print_r($obBasket->errors, true));
+                    throw new Exception("Failed to save Basket: " . print_r($obBasket->errors, true));
                 }
             }
             $this->basket = $obBasket;

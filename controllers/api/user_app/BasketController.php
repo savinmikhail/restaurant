@@ -33,6 +33,13 @@ class BasketController extends OrderableController
      *         description = "Содержимое корзины",
      *         @SWG\Schema(ref = "#/definitions/Products")
      *     ),
+     *     @SWG\Parameter(
+     *         name="table",
+     *         in="header",
+     *         type="integer",
+     *         description="Set the table number here",
+     *         required=true
+     *     ),
      * )
      */
     public function actionIndex()
@@ -86,7 +93,7 @@ class BasketController extends OrderableController
      */
     public function actionPaymentmethods()
     {
-        $paymentTypes = PaymentType::find()->asArray()->pluck('name')->all();
+        $paymentTypes = PaymentType::find()->select('name')->column();
 
         return $this->asJson(
             [
@@ -108,6 +115,13 @@ class BasketController extends OrderableController
      *      in="formData",
      *      type="integer"
      *      ),
+     *     @SWG\Parameter(
+     *         name="table",
+     *         in="header",
+     *         type="integer",
+     *         description="Set the table number here",
+     *         required=true
+     *     ),
      *     @SWG\Response(
      *         response = 200,
      *         description = "Добавить товар в корзину",
@@ -155,15 +169,22 @@ class BasketController extends OrderableController
      * @SWG\Put(path="/api/user_app/basket",
      *     tags={"UserApp\Basket"},
      *      @SWG\Parameter(
-     *      name="productId",
-     *      in="formData",
-     *      type="integer"
+     *          name="productId",
+     *          in="formData",
+     *          type="integer"
      *      ),
      *      @SWG\Parameter(
-     *      name="quantity",
-     *      in="formData",
-     *      type="integer"
+     *          name="quantity",
+     *          in="formData",
+     *          type="integer"
      *      ),
+     *     @SWG\Parameter(
+     *         name="table",
+     *         in="header",
+     *         type="integer",
+     *         description="Set the table number here",
+     *         required=true
+     *     ),
      *     @SWG\Response(
      *         response = 200,
      *         description = "Изменить количество товара в корзине",
@@ -173,18 +194,16 @@ class BasketController extends OrderableController
      */
     public function actionSet()
     {
-
-        $request = \Yii::$app->request;
-        $productId = $request->post('productId');
-        $quantity = $request->post('quantity');
+        $productId = \Yii::$app->request->post('productId');
+        $quantity = \Yii::$app->request->post('quantity');
 
         try {
             $this->getBasket()->updateItem($productId, $quantity);
+            list($result) = $this->getBasketItems();
+            Util::prepareItems($result['items']);
         } catch (\Exception $e) {
             $this->sendResponse(400, $e->getMessage());
         }
-        list($result) = $this->getBasketItems();
-        Util::prepareItems($result['items']);
 
         $this->returnResponse();
     }
@@ -197,6 +216,13 @@ class BasketController extends OrderableController
      *      in="formData",
      *      type="integer"
      *      ),
+     *     @SWG\Parameter(
+     *         name="table",
+     *         in="header",
+     *         type="integer",
+     *         description="Set the table number here",
+     *         required=true
+     *     ),
      *     @SWG\Response(
      *         response = 200,
      *         description = "Удалить товар из корзины",
@@ -206,10 +232,7 @@ class BasketController extends OrderableController
      */
     public function actionDelete()
     {
-        $productId = \Yii::$app->request;
-
-        $productId = (int) \Yii::$app->request->get('productId');//летит delete, но в query params
-
+        $productId = (int) \Yii::$app->request->get('productId');
         try {
             $this->getBasket()->deleteItem($productId);
         } catch (\Exception $e) {
@@ -228,6 +251,13 @@ class BasketController extends OrderableController
     /**
      * @SWG\Post(path="/api/user_app/basket/clear",
      *     tags={"UserApp\Basket"},
+     *     @SWG\Parameter(
+     *         name="table",
+     *         in="header",
+     *         type="integer",
+     *         description="Set the table number here",
+     *         required=true
+     *     ),
      *     @SWG\Response(
      *         response = 200,
      *         description = "Очистить корзину",
@@ -237,7 +267,11 @@ class BasketController extends OrderableController
      */
     public function actionClear()
     {
-        $this->getBasket()->clear();
+        try {
+            $this->getBasket()->clear();
+        } catch (\Exception $e) {
+            $this->sendResponse(400, $e->getMessage());
+        }
 
         $this->returnResponse();
     }

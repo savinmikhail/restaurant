@@ -21,12 +21,12 @@ class OrderService
         $this->paymentService = $paymentService;
     }
 
-    public function pay(array $orderIds, string $paymentMethod): array
+    public function pay(array $orderIds): array
     {
         try {
             $transaction = \Yii::$app->db->beginTransaction();
             // фронт шлет несколько заказов на оплату, объединяю в один
-            $payment = $this->createPayment($orderIds, $paymentMethod);
+            $payment = $this->createPayment($orderIds);
             //проверяю условия оплаты
             $result = $this->processPaymentMethod($payment);
             //очищаю корзину
@@ -34,7 +34,7 @@ class OrderService
             $transaction->commit();
         } catch (\Exception $e) {
             $transaction->rollBack();
-            return [400, ['data' => $e->getMessage()]];
+            return [400, ['data' => $e->getMessage(), 'file' => $e->getFile(), 'line' => $e->getLine()]];
         }
 
         return [200, $result];
@@ -64,7 +64,12 @@ class OrderService
     private function refreshBasket()
     {
         $table = Table::getTable();
-        $basket = Basket::find()->where(['table_id' => $table->id])->one();
+        if (!$table) {
+            throw new \Exception('Table not found');
+        }
+        $basket = Basket::find()
+            ->where(['table_id' => $table->id])
+            ->one();
         if (!$basket) {
             throw new \Exception('Basket not found');
         }
@@ -77,7 +82,7 @@ class OrderService
         }
     }
 
-    private function createPayment(array $orderIds, string $paymentMethod): Payment
+    private function createPayment(array $orderIds): Payment
     {
         $payment = new Payment();
 
@@ -95,8 +100,8 @@ class OrderService
         }
 
         $payment->sum = $orderSum;
-        $payment->order_ids = json_encode($orderIds);
-        $payment->payment_method = $paymentMethod;
+        $payment->order_ids = serialize($orderIds);
+        $payment->payment_method = 'sbp'; //так как пользователь тыкнул на оплатить куар кодом, пишем этот тип платежа
         if (!$payment->save()) {
             throw new \Exception('Failed to save payment: ' . json_encode($payment->errors));
         }
@@ -112,47 +117,48 @@ class OrderService
      */
     private function processPaymentMethod(Payment $payment): array
     {
-        $result = [
-            'payment_id' => $payment->id
-        ];
-
-        if ($payment->payment_method === 'Cash') {
-            $result['data'] = 'You need to call the waiter for paying cash';
-            return $result;
-        }
         try {
-            list($paymentLink, $paymentId) = $this->paymentService->getTinkoffPaymentUrl($payment);
+            list($paymentLink, $tinkoffPaymentId) = $this->paymentService->getTinkoffPaymentUrl($payment);
         } catch (\Exception $e) {
             throw $e;
         }
-        $result['payment_link'] = $paymentLink;
-        $result['payment_id'] = $paymentId;
+        $payment->external_id = $tinkoffPaymentId;
+        if (!$payment->save()) {
+            throw new \Exception('Failed to save payment: ' . json_encode($payment->errors));
+        }
+        $result = [
+            'payment_id' => $payment->id,
+            'payment_link' => $paymentLink,
+            'tinkoff_payment_id' => $tinkoffPaymentId
+        ];
         return $result;
     }
 
     /**
-     * Retrieves the list of orders for the current table.
+     * Retrieves the list of orders for a specific table.
      *
-     * @return array The list of orders.
+     * @return array The list of orders for the table.
      */
     public function getOrderList(): array
     {
         $obTable = Table::getTable();
+        if (!$obTable) {
+            return [400, 'Table not found'];
+        }
         $filter = ['orders.table_id' => $obTable->id];
 
         $query = Order::find()
             ->where($filter)
             ->joinWith('basket')
-            ->joinWith('basket.items')
-            ->joinWith('basket.items.product')
-            ->joinWith('basket.items.size')
+            ->joinWith('items.product')
+            ->joinWith('items.size')
             ->andWhere(['canceled' => 0])
             ->addGroupBy('orders.id')
             ->addOrderBy(['orders.id' => SORT_DESC]);
 
         $ordersList = $query->asArray()->all();
         $output = $this->restructurizeOrders($ordersList);
-        return $output;
+        return [200, $output];
     }
 
     /**
@@ -170,6 +176,9 @@ class OrderService
 
         foreach ($orders as $order) {
             $items = [];
+            if (is_null($order['basket'])) {
+                continue;
+            }
             $orderTotal = $order['basket']['basket_total'];
 
             // Increment the total sum
@@ -183,7 +192,7 @@ class OrderService
             }
 
             // Iterate through the items in the order's basket
-            foreach ($order['basket']['items'] as $item) {
+            foreach ($order['items'] as $item) {
                 $items[] = [
                     'productId' => $item['product_id'],
                     'image' => $item['product']['image'],
@@ -225,9 +234,17 @@ class OrderService
      */
     public function createOrder(): array
     {
-        $tableId = Table::getTable()->id;
-        $basket = Basket::find()->where(['table_id' => $tableId])->one();
-        $obSetting = Setting::find()->where(['name' => 'order_limit'])->one();
+        $table = Table::getTable();
+        if (!$table) {
+            return array(400, ['data' => 'Table not found']);
+        }
+        $tableId = $table->id;
+        $basket = Basket::find()
+            ->where(['table_id' => $tableId])
+            ->one();
+        $obSetting = Setting::find()
+            ->where(['name' => 'order_limit'])
+            ->one();
 
         if (!$obSetting) {
             return array(400, ['data' => 'Order limit not found']);
@@ -246,9 +263,15 @@ class OrderService
 
         $order->confirmed = 0;
         if (!$order->save()) {
-            return array(400, ['data' => 'Failed to save order']);
+            return array(400, ['data' => 'Failed to save order' . print_r($order->errors, true)]);
         }
-        return array(200, ['data' => 'order limit is reached', 'qr' => QRGen::renderQR($order->id)]);
+        return array(
+            200, [
+                'data' => 'order limit is reached',
+                'qr' => QRGen::renderQR($order->id),
+                'orderId' => $order->id
+            ]
+        );
     }
 
     /**

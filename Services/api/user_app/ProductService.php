@@ -46,7 +46,9 @@ class ProductService
                 'image' => $product['image'],
                 'productName' => $product['name'],
                 'description' => $product['description'],
-                'isActive' => $product['balance'] > 0 ? 1 : 0, // возможно имеет смысл поставить дефолтное значение в бд на null
+                // возможно имеет смысл поставить дефолтное значение в бд на null
+                // если значение отлично от нуля - прилетело из айки в стоплисте, не показываем на сайте
+                'isActive' => (int) $product['balance'] === 0 ? 1 : 0, 
                 'tags' => [],
                 'sizePrices' => [],
             ];

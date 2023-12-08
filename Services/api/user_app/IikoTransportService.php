@@ -42,7 +42,11 @@ class IikoTransportService
     public function callWaiter(): array
     {
         try {
-            $response =  $this->gateWay('callWaiter', ['tableNumber' => Table::getTable()->table_number], 'GET');
+            $table = Table::getTable();
+            if(!$table) {
+                throw new Exception('Table not found');
+            }
+            $response =  $this->gateWay('callWaiter', ['tableNumber' => $table->table_number], 'GET');
         } catch (Exception $e) {
             return [400, $e->getMessage()];
         }
@@ -125,51 +129,79 @@ class IikoTransportService
      * @param string $url The URL to send the request to.
      * @param array $data The data to send with the request.
      * @param string $method The HTTP method to use for the request. Default is 'POST'.
+     *
      * @throws Exception If there is a cURL error or an HTTP error response.
+     *
      * @return mixed The decoded response data from the request.
      */
     private function gateWay($url, $data, $method = 'POST')
     {
+        // Initialize cURL
         $ch = curl_init();
+
+        // Set the URL
         curl_setopt($ch, CURLOPT_URL, $this->IIKO_TRANSPORT_IP . $url);
+
+        // Return the response instead of outputting it
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+
+        // Exclude the header from the output
         curl_setopt($ch, CURLOPT_HEADER, false);
+
+        // Set timeout options
+        curl_setopt($ch, CURLOPT_TIMEOUT, 5); // Maximum time the request is allowed to take
+        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 5); // Maximum time to wait for connection
+
         if ($method === 'POST') {
+            // Send a POST request
             curl_setopt($ch, CURLOPT_POST, true);
             curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
         } elseif ($method === 'GET') {
+            // Send a GET request
             curl_setopt($ch, CURLOPT_HTTPGET, true);
-            if(!empty($data)){
+            if (!empty($data)) {
+                // Append query parameters to the URL
                 curl_setopt($ch, CURLOPT_URL, $this->IIKO_TRANSPORT_IP . $url . '?' . http_build_query($data));
             }
         }
 
+        // Set the Content-Type header
         $headers = ["Content-Type: application/json"];
         curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
 
+        // Execute the cURL request
         $outData = curl_exec($ch);
+
+        // Check for cURL errors
         if ($outData === false) {
             $error = curl_error($ch);
             curl_close($ch);
             throw new Exception("cURL Error: $error");
         }
 
+        // Get the HTTP status code
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
 
+        // Throw an exception if the HTTP status code is not in the 2xx range
         if ($httpCode < 200 || $httpCode >= 300) {
             throw new Exception("HTTP Error: Status code $httpCode \n" . print_r(json_decode($outData, true), true));
         }
 
+        // Decode the response data
         $decodedData = json_decode($outData, true);
+
+        // Throw an exception if the response data cannot be decoded
         if ($decodedData === null && json_last_error() != JSON_ERROR_NONE) {
             throw new Exception("JSON Decode Error: " . json_last_error_msg());
         }
 
+        // Throw an exception if the decoded data is empty
         if (!$decodedData) {
-            throw new Exception("Feailed to retrieve data from Iiko");
+            throw new Exception("Failed to retrieve data from Iiko");
         }
 
+        // Return the decoded response data
         return $decodedData;
     }
 }

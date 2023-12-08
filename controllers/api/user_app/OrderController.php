@@ -48,6 +48,13 @@ class OrderController extends OrderableController
      * @SWG\Post(
      *     path="/api/user_app/order",
      *     tags={"UserApp\Order"},
+     *     @SWG\Parameter(
+     *         name="table",
+     *         in="header",
+     *         type="integer",
+     *         description="Set the table number here",
+     *         required=true
+     *     ),
      *     @SWG\Response(
      *         response=200,
      *         description="Create an order",
@@ -57,19 +64,23 @@ class OrderController extends OrderableController
      */
     public function actionIndex()
     {
-        // Create an order
-        list($code, $data) = $this->orderService->createOrder();
+        try {
+            // Create an order
+            list($code, $data) = $this->orderService->createOrder();
 
-        // Check if order creation was successful
-        if (!($data['data'] instanceof Order)) {
-            $this->sendResponse($code, $data);
+            // Check if order creation was successful
+            if (!($data['data'] instanceof Order)) {
+                $this->sendResponse($code, $data);
+            }
+
+            // Get the created order
+            $order = $data['data'];
+
+            // Send the order to iiko
+            list($code, $data) = $this->iikoTransportService->sendOrder($order->id);
+        } catch (\Exception $e) {
+            $this->sendResponse(400, ['data' => $e->getMessage()]);
         }
-
-        // Get the created order
-        $order = $data['data'];
-
-        // Send the order to iiko
-        list($code, $data) = $this->iikoTransportService->sendOrder($order->id);
 
         // Check if order was sent successfully
         if ($code === 200) {
@@ -81,37 +92,45 @@ class OrderController extends OrderableController
     }
 
     /**
-     * @SWG\Post(path="/api/user_app/order/pay",
+     * @SWG\Post(
+     *     path="/api/user_app/order/pay",
      *     tags={"UserApp\Order"},
      *     @SWG\Parameter(
-     *          name="orderId",
-     *          in="formData",
-     *          type="integer",
-     *          description="order id"
+     *         name="orderId",
+     *         in="formData",
+     *         type="array",
+     *         items=@SWG\Items(
+     *             type="integer",
+     *             description="order id"
+     *         ),
      *     ),
      *     @SWG\Parameter(
-     *          name="paymentMethod",
-     *          in="formData",
-     *          type="string",
-     *          description="метод оплаты"
+     *         name="table",
+     *         in="header",
+     *         type="integer",
+     *         description="Set the table number here",
+     *         required=true
      *     ),
      *     @SWG\Response(
-     *         response = 200,
-     *         description = "Ссылка на оплату \ вызов официанта",
-     *         @SWG\Schema(ref = "#/definitions/Products")
-     *     ),
+     *         response=200,
+     *         description="Ссылка на оплату \ вызов официанта",
+     *         @SWG\Schema(ref="#/definitions/Products")
+     *     )
      * )
      */
     public function actionPay()
     {
-        $request = \Yii::$app->request;
-        $paymentMethod = $request->post('paymentMethod', '');
-        $orderIds = $request->post('orderId');
+        $orderIds = \Yii::$app->request->post('orderId');
 
-        if (!is_array($orderIds)) {
-            $orderIds = [$orderIds];
+        if (!$orderIds) {
+            $this->sendResponse(400, ['data' => "orderId parameter is missing in request"]);
         }
-        list($code, $data) = $this->orderService->pay($orderIds, $paymentMethod);
+        //сделано для сваггера
+        if (is_string($orderIds)) {
+            $orderIds = explode(',', $orderIds);
+        }
+
+        list($code, $data) = $this->orderService->pay($orderIds);
         $this->sendResponse($code, $data);
     }
 
@@ -119,8 +138,8 @@ class OrderController extends OrderableController
      * @SWG\Get(path="/api/user_app/order/check-confirmed",
      *     tags={"UserApp\Order"},
      *     @SWG\Parameter(
-     *          name="order_id",
-     *          in="formData",
+     *          name="id",
+     *          in="query",
      *          type="integer",
      *          description="order id"
      *     ),
@@ -134,18 +153,24 @@ class OrderController extends OrderableController
 
     public function actionCheckConfirmed()
     {
-        $orderId = \Yii::$app->request->get('order_id');
+        $orderId = \Yii::$app->request->get('id');
+        if (!$orderId) {
+            $this->sendResponse(400, ['data' => "id parameter is missing in request"]);
+        }
         $order = Order::find()
             ->where(['id' => $orderId])
             ->asArray()
             ->one();
-
+        if (!$order) {
+            $this->sendResponse(400, ['data' => "no such order finded with id $orderId"]);
+        }
         if ((int) $order['confirmed'] === 1) {
 
             list($code, $data) = $this->iikoTransportService->sendOrder($orderId);
             if ($code === 200) {
                 $this->sendResponse(200, ['status' => 'confirmed']);
             }
+            $this->sendResponse(400, ['status' => 'failed to send order to iiko', 'data' => $data]);
         }
         $this->sendResponse(200, ['status' => 'waiting']);
     }
@@ -175,14 +200,24 @@ class OrderController extends OrderableController
     public function actionCheckPaid()
     {
         $tinkoffPaymentId = \Yii::$app->request->get('tinkoff_payment_id');
-        list($code, $data) = $this->orderService->getStatus($tinkoffPaymentId);
-        if ($code === 200) {
-            $payment = Payment::find()->where(['external_id' => $tinkoffPaymentId])->one();
-            foreach ($payment->order_ids as $orderId) {
-                //помечаем заказ как оплаченный для айко
-                list($code, $data) = $this->iikoTransportService->markOrderAsPaid($orderId);
+        try {
+            list($code, $data) = $this->orderService->getStatus($tinkoffPaymentId);
+            if ($code === 200 && $data === 'CONFIRMED') {
+                $payment = Payment::find()
+                    ->where(['external_id' => $tinkoffPaymentId])
+                    ->one();
+                $orderIds = unserialize($payment->order_ids);
+                
+                Order::updateAll(['paid' => 1, 'payment_method' => $payment->payment_method], ['id' => $orderIds]);
+                foreach ($orderIds as $orderId) {
+                    //помечаем заказ как оплаченный для айко
+                    list($code, $data) = $this->iikoTransportService->markOrderAsPaid($orderId);
+                }
             }
+        } catch (\Exception $e) {
+            $this->sendResponse(400, ['data' => $e->getMessage()]);
         }
+
         $this->sendResponse($code, $data);
     }
 
@@ -213,10 +248,10 @@ class OrderController extends OrderableController
      * @SWG\Post(path="/api/user_app/order/cancel",
      *     tags={"UserApp\Order"},
      *      @SWG\Parameter(
-     *      name="id",
-     *      in="formData",
-     *      type="string",
-     *      description="Ид заказа"
+     *          name="id",
+     *          in="formData",
+     *          type="string",
+     *          description="Ид заказа"
      *      ),
      *     description="Отмена заказа",
      *     @SWG\Response(
@@ -229,8 +264,7 @@ class OrderController extends OrderableController
 
     public function actionCancel()
     {
-        $request = \Yii::$app->request;
-        $orderId = $request->post('id');
+        $orderId = \Yii::$app->request->post('id');
         $order = Order::find()->where(['id' => $orderId])->one();
         $order->canceled = 1;
         $order->updated_at = time();
@@ -248,6 +282,13 @@ class OrderController extends OrderableController
      *
      * @SWG\Get(path="/api/user_app/order/list",
      *     tags={"UserApp\Order"},
+     *     @SWG\Parameter(
+     *         name="table",
+     *         in="header",
+     *         type="integer",
+     *         description="Set the table number here",
+     *         required=true
+     *     ),
      *     @SWG\Response(
      *         response = 200,
      *         description = "Содержимое корзины",
@@ -258,8 +299,8 @@ class OrderController extends OrderableController
 
     public function actionList()
     {
-        $output = $this->orderService->getOrderList();
-        $this->sendResponse(200, $output);
+        list($code, $output) = $this->orderService->getOrderList();
+        $this->sendResponse($code, $output);
     }
 
     /**
@@ -267,6 +308,13 @@ class OrderController extends OrderableController
      *
      * @SWG\Get(path="/api/user_app/order/waiter",
      *     tags={"UserApp\Order"},
+     *     @SWG\Parameter(
+     *         name="table",
+     *         in="header",
+     *         type="integer",
+     *         description="Set the table number here",
+     *         required=true
+     *     ),
      *     @SWG\Response(
      *         response = 200,
      *         description = "success",

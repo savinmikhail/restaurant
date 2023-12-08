@@ -11,9 +11,8 @@ class Order extends Base
     {
         return [
             [['table_id', 'order_sum'], 'required'],
-            [['external_id', 'status'], 'string'],
+            [['external_id', 'status', 'payment_method'], 'string'],
             [['paid', 'confirmed'], 'integer'],
-            [['payment_method'], 'in', 'range' => ['Cash', 'IikoCard', 'Card', 'External']],
             [['created_at', 'updated_at'], 'datetime', 'format' => 'php:Y-m-d H:i:s'],
         ];
     }
@@ -53,12 +52,18 @@ class Order extends Base
         return $this->hasMany(\app\models\tables\BasketItem::class, ['order_id' => 'id']);
     }
 
-    // создание заказа
-    public function make($orderVars)
+   
+    /**
+     * Creates a new order with the given order variables.
+     *
+     * @param array $orderVars The array of order variables.
+     * @throws \Exception If failed to save the order.
+     */
+    public function make(array $orderVars)
     {
         $this->table_id = $orderVars['table_id'];
 
-        $this->order_sum = $orderVars['basket_total'];
+        $this->order_sum = $orderVars['basket_total'] ?? 0;
         $this->paid = 0;
         $this->basket_id = (int) $orderVars['basket_id'];
         $this->confirmed = 1;

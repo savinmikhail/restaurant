@@ -62,7 +62,8 @@ class Basket extends Base
 
     public function clear()
     {
-        BasketItem::deleteAll(['basket_id' => $this->id]);
+        //не удаляю товары, если они уже в составе заказа
+        BasketItem::deleteAll(['basket_id' => $this->id, 'order_id' => null]);
     }
 
     /**
@@ -77,11 +78,15 @@ class Basket extends Base
     public function addItem(int $productId, int $quantity, int $sizeId): BasketItem
     {
         $Product = Products::find()
-            ->where(['id' => $productId])
+            ->where(['products.id' => $productId])
+            ->joinWith('productSizePrices')
             ->one();
-
         if (!$Product) {
             throw new \Exception("Failed to find Product with id $productId");
+        }
+        $arSizeIds = SizePrice::find()->select('size_id')->where(['product_id' => $productId])->column();
+        if (!in_array($sizeId, $arSizeIds)) {
+            throw new \Exception("There's no such size for this product");
         }
         //логика изменилась - продукты в стоплисте просто не показываем покупателю
         // if ($quantity > (int)$Product->balance) {
@@ -92,12 +97,11 @@ class Basket extends Base
             ->one();
 
         if ($obBasketItem) {
-            $obBasketItem->quantity += $quantity;
-        } else {
-            $obBasketItem = new BasketItem();
-            $obBasketItem->load(['product_id' => $productId, 'quantity' => $quantity, 'basket_id' => $this->id,], '');
+            throw new \Exception("Such item already exists, please update the quantity");
         }
-        $obBasketItem->size_id = $sizeId;
+
+        $obBasketItem = new BasketItem();
+        $obBasketItem->load(['product_id' => $productId, 'quantity' => $quantity, 'basket_id' => $this->id, 'size_id' => $sizeId], '');
 
         if (!$obBasketItem->save()) {
             throw new \Exception("Failed to save Basket Item: " . print_r($obBasketItem->errors, true));
@@ -109,13 +113,13 @@ class Basket extends Base
         return $obBasketItem;
     }
 
-    public function deleteItem(int $productId)
+    public function deleteItem(int $productId): bool
     {
         $obBasketItem = BasketItem::find()->where(['basket_id' => $this->id, 'product_id' => $productId])->one();
-        if ($obBasketItem) {
-            return $obBasketItem->delete(); //false or integer
+        if (!$obBasketItem) {
+            throw new \Exception("Failed to find Basket Item with product id $productId, basket id $this->id");
         }
-        throw new \Exception("Failed to find Basket Item with product id $productId, basket id $this->id");
+        return (bool) $obBasketItem->delete(); //false or integer
     }
 
     /**
@@ -129,6 +133,10 @@ class Basket extends Base
      */
     public function updateItem(int $productId, int $quantity): BasketItem
     {
+        if($quantity < 0) {
+            throw new \Exception("Invalid quantity");
+        }
+
         $Product = Products::find()
             ->where(['id' => $productId])
             ->one();
@@ -158,7 +166,7 @@ class Basket extends Base
         // if (!$Product->save()) {
         //     throw new \Exception("Failed to save Product: " . print_r($Product->errors, true)); //TODO: надо чтоб запрос кроном из айки не перезаписал это значение, пока не уйдет в заказ
         // }
-        
+
         return $obBasketItem;
     }
 

@@ -32,9 +32,9 @@ class Payment
             if (!$arrResponse['Success']) {
                 throw new \Exception('Payment was not confirmed: ' . print_r($tinkoff->response, true));
             }
-            return ['paymentUrl' => $this->getPaymentUrl($tinkoff), 'paymentId' => $tinkoff->paymentId];
+            return [$this->getPaymentUrl($tinkoff), $tinkoff->paymentId];
         } catch (\Exception $e) {
-            throw new \Exception($e->getMessage());
+            throw $e;
         }
     }
 

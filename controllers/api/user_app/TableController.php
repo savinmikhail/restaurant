@@ -17,7 +17,6 @@ class TableController extends OrderableController
         $behaviors['verbs'] = [
             'class' => \yii\filters\VerbFilter::class,
             'actions' => [
-                'index'  => ['GET'],
                 'close'   => ['PUT'],
             ],
         ];
@@ -26,8 +25,16 @@ class TableController extends OrderableController
     }
 
     /**
+     * этот метод для айко транспорта для закрытия стола
+     * 
      * @SWG\Put(path="/api/user_app/table/close",
      *     tags={"UserApp\Table"},
+     *      @SWG\Parameter(
+     *          name="tableNumber",
+     *          in="formData",
+     *          type="integer",
+     *          description="номер стола"
+     *      ),
      *     @SWG\Response(
      *         response = 200,
      *         description = "Empty response",
