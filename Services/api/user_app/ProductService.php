@@ -34,7 +34,7 @@ class ProductService
                 'image' => $product['image'],
                 'productName' => $product['name'],
                 'description' => $product['description'],
-                'isActive' => rand(0, 1), //TODO: pull data from iiko
+                'isActive' => $product['balance'] > 0 ? 1 : 0, //TODO: возможно имеет смысл поставить дефолтное значение в бд на null
                 'tags' => [],
                 'sizePrices' => [],
             ];
