@@ -6,7 +6,6 @@ use app\models\tables\Order;
 use app\models\tables\Products;
 use app\models\tables\Table;
 use Exception;
-use Yii;
 
 class IikoTransportService
 {
@@ -15,6 +14,27 @@ class IikoTransportService
     public function __construct()
     {
         $this->IIKO_TRANSPORT_IP = $_ENV['IIKO_TRANSPORT_IP'];
+    }
+
+    public function markOrderAsPaid(int $orderId): array
+    {
+        try {
+            $orderGuid = Order::find()->where(['id' => $orderId])->one()->external_id;
+            $response =  $this->gateWay('markOrderAsPaid', ['orderId' => $orderGuid, 'paid' => true]);
+        } catch (Exception $e) {
+            return [400, $e->getMessage()];
+        }
+        return [200, $response];
+    }
+
+    public function callWaiter(): array
+    {
+        try {
+            $response =  $this->gateWay('callWaiter', ['tableNumber' => Table::getTable()->table_number], 'GET');
+        } catch (Exception $e) {
+            return [400, $e->getMessage()];
+        }
+        return [200, $response];
     }
 
     public function sendOrder(int $orderId): array
@@ -54,6 +74,7 @@ class IikoTransportService
             ->asArray()
             ->one();
         $data = [];
+        $data['OrderId'] = $order['id'];
         $data['Table'] = $order['table']['table_number'];
         $data['SummPayment'] = $order['order_sum'];
         foreach ($order['items'] as $item) {
@@ -78,6 +99,9 @@ class IikoTransportService
             curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
         } elseif ($method === 'GET') {
             curl_setopt($ch, CURLOPT_HTTPGET, true);
+            if(!empty($data)){
+                curl_setopt($ch, CURLOPT_URL, $this->IIKO_TRANSPORT_IP . $url . '?' . http_build_query($data));
+            }
         }
 
         $headers = ["Content-Type: application/json"];

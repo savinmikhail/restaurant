@@ -3,16 +3,22 @@
 namespace app\controllers\api\user_app;
 
 use app\controllers\api\user_app\OrderableController;
+use app\models\tables\BasketItem;
 use app\models\tables\Order;
+use app\models\tables\Payment;
+use app\models\tables\Products;
+use app\Services\api\user_app\IikoTransportService;
 use app\Services\api\user_app\OrderService;
 
 class OrderController extends OrderableController
 {
-    private $orderService;
+    private OrderService $orderService;
+    private IikoTransportService $iikoTransportService;
 
-    public function __construct($id, $module, OrderService $orderService, $config = [])
+    public function __construct($id, $module, OrderService $orderService, IikoTransportService $iikoTransportService, $config = [])
     {
         $this->orderService = $orderService;
+        $this->iikoTransportService = $iikoTransportService;
         parent::__construct($id, $module, $config);
     }
 
@@ -105,9 +111,17 @@ class OrderController extends OrderableController
     public function actionCheckConfirmed()
     {
         $orderId = \Yii::$app->request->get('order_id');
-        $order = Order::find()->where(['id' => $orderId])->asArray()->one();
+        $order = Order::find()
+            ->where(['id' => $orderId])
+            ->asArray()
+            ->one();
+
         if ((int) $order['confirmed'] === 1) {
-            $this->sendResponse(200, ['status' => 'confirmed']);
+
+            list($code, $data) = $this->iikoTransportService->sendOrder($orderId);
+            if ($code === 200) {
+                $this->sendResponse(200, ['status' => 'confirmed']);
+            }
         }
         $this->sendResponse(200, ['status' => 'waiting']);
     }
@@ -116,7 +130,7 @@ class OrderController extends OrderableController
      * @SWG\Get(path="/api/user_app/order/check-paid",
      *     tags={"UserApp\Order"},
      *     @SWG\Parameter(
-     *          name="payment_id",
+     *          name="tinkoff_payment_id",
      *          in="query",
      *          type="integer",
      *          description="tinkoff payment id, example: 3554385638"
@@ -131,8 +145,15 @@ class OrderController extends OrderableController
 
     public function actionCheckPaid()
     {
-        $paymentId = \Yii::$app->request->get('payment_id');
-        list($code, $data) = $this->orderService->getStatus($paymentId);
+        $tinkoffPaymentId = \Yii::$app->request->get('tinkoff_payment_id');
+        list($code, $data) = $this->orderService->getStatus($tinkoffPaymentId);
+        if ($code === 200) {
+            $payment = Payment::find()->where(['external_id' => $tinkoffPaymentId])->one();
+            foreach ($payment->order_ids as $orderId) {
+                //помечаем заказ как оплаченный для айко
+                list($code, $data) = $this->iikoTransportService->markOrderAsPaid($orderId);
+            }
+        }
         $this->sendResponse($code, $data);
     }
 
@@ -158,6 +179,7 @@ class OrderController extends OrderableController
         list($code, $data) = $this->orderService->sbpPayTest($paymentId);
         $this->sendResponse($code, $data);
     }
+
     /**
      * @SWG\Post(path="/api/user_app/order/cancel",
      *     tags={"UserApp\Order"},
@@ -211,7 +233,6 @@ class OrderController extends OrderableController
         $this->sendResponse(200, $output);
     }
 
-
     /**
      * Call a waiter
      *
@@ -226,7 +247,65 @@ class OrderController extends OrderableController
      */
     public function actionWaiter()
     {
-        sleep(1);
+        list($code, $data) = $this->iikoTransportService->callWaiter();
+        $this->sendResponse($code, $data);
+    }
+
+    //сюда айко пошлет уведомление об изменении статуса заказа
+    public function actionMarkOrderAsPaid()
+    {
+        $postData = \Yii::$app->request->post();
+
+        $order = Order::find()->where(['external_id' => $postData['orderId']])->one();
+        $order->paid = (int) $postData['paid'];
+        if (!$order->save()) {
+            throw new \Exception('Error saving order');
+        }
+        $this->sendResponse(200, 'success');
+    }
+
+    //если заказ был изменен через терминал айки, сюда прилетят изменения
+    //todo: сделать нормальную обработку удаления не прилетевших продуктов, пересчет стоимости заказа, размера
+    public function actionChangeOrder()
+    {
+        $postData = \Yii::$app->request->post();
+        $orderGuid = $postData['orderId'];
+        $order = Order::find()->where(['external_id' => $orderGuid])->one();
+
+        foreach ($postData['items'] as $item) {
+            $product = Products::find()->where(['code' => $item['code']])->one();
+            $orderItem = BasketItem::find()
+                ->where(['order_id' => $order->id])
+                ->andWhere(['product_id' => $product->id])
+                ->one();
+            if (!$orderItem) {
+                $orderItem = new BasketItem();
+                $orderItem->order_id = $order->id;
+                $orderItem->product_id = $product->id;
+            }
+            $orderItem->quantity = $item['quantity'];
+            if($item['sizeId']){
+                $orderItem->size_id = $item['sizeId'];
+            }
+            if (!$orderItem->save()) {
+                throw new \Exception('Error saving order');
+            }
+        }
+        if (!$order->save()) {
+            throw new \Exception('Error saving order');
+        }
+        $this->sendResponse(200, 'success');
+    }
+
+    //сюда айко транспорт отправит гуид созданного заказа, сохраним его
+    public function actionsSetOrderGuid()
+    {
+        $postData = \Yii::$app->request->post();
+        $order = Order::find()->where(['id' => $postData['orderId']])->one();
+        $order->external_id = $postData['orderGuid'];
+        if (!$order->save()) {
+            throw new \Exception('Error saving order');
+        }
         $this->sendResponse(200, 'success');
     }
 }
