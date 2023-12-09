@@ -158,7 +158,7 @@ class IikoTransportService extends BaseService
         // Initialize cURL
         $curl = curl_init();
 
-        if($curl === false) {
+        if ($curl === false) {
             throw new Exception('cURL initialization failed');
         }
 

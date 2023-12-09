@@ -4,23 +4,20 @@ namespace app\controllers\api\user_app;
 
 use app\controllers\api\ApiController;
 use app\Services\api\user_app\IikoService;
-use app\Services\api\user_app\ImportHelper;
+use app\Services\api\user_app\MenuParser;
+use app\Services\api\user_app\PaymentTypeHelper;
+use app\Services\api\user_app\TableHelper;
 use Exception;
 use Yii;
 
 class IikoController extends ApiController
 {
-    private IikoService $iikoService;
-    private ImportHelper $importHelper;
-
     private string $IIKO_ORG_ID;
     private string $IIKO_TERMINAL_GROUP_ID;
 
-    public function __construct($id, $module, IikoService $iikoService, ImportHelper $importHelper, $config = [])
+    public function __construct($id, $module, private IikoService $iikoService, private MenuParser $menuParser, $config = [])
     {
         parent::__construct($id, $module, $config);
-        $this->iikoService = $iikoService;
-        $this->importHelper = $importHelper;
         $this->IIKO_ORG_ID = $_ENV['IIKO_ORG_ID'];
         $this->IIKO_TERMINAL_GROUP_ID = $_ENV['IIKO_TERMINAL_GROUP_ID'];
     }
@@ -113,7 +110,7 @@ class IikoController extends ApiController
         }
 
         try {
-            $this->importHelper->parse($menuData);
+            $this->menuParser->parse($menuData);
         } catch (Exception $e) {
             $this->sendResponse(400, $e->getMessage());
         }
@@ -140,8 +137,8 @@ class IikoController extends ApiController
         if (!$outData) {
             $this->sendResponse(400, 'Token has been expired');
         }
-
-        ImportHelper::processPaymentTypes($outData['paymentTypes']);
+        $paymentTypeHelper = new PaymentTypeHelper;
+        $paymentTypeHelper->process($outData);
         $this->sendResponse(200, $outData);
     }
 
@@ -166,8 +163,8 @@ class IikoController extends ApiController
         if (!$outData) {
             $this->sendResponse(400, 'Token has been expired');
         }
-
-        ImportHelper::processTables($outData['restaurantSections'][0]['tables']);
+        $tableHelper = new TableHelper;
+        $tableHelper->process($outData['restaurantSections'][0]);
 
         $this->sendResponse(200, $outData);
     }

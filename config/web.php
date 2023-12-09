@@ -117,8 +117,23 @@ $config = [
             'app\Services\api\user_app\Payment' => [
                 'class' => 'app\Services\api\user_app\Payment',
             ],
+            'app\Services\api\user_app\PaymentService' => [
+                'class' => 'app\Services\api\user_app\PaymentService',
+            ],
             'app\Services\api\user_app\BasketService' => [
                 'class' => 'app\Services\api\user_app\BasketService',
+            ],
+            'app\Services\api\user_app\import_helpers\GroupHelper' => [
+                'class' => 'app\Services\api\user_app\import_helpers\GroupHelper',
+            ],
+            'app\Services\api\user_app\import_helpers\SizeHelper' => [
+                'class' => 'app\Services\api\user_app\import_helpers\SizeHelper',
+            ],
+            'app\Services\api\user_app\import_helpers\CategoryHelper' => [
+                'class' => 'app\Services\api\user_app\import_helpers\CategoryHelper',
+            ],
+            'app\Services\api\user_app\import_helpers\ProductHelper' => [
+                'class' => 'app\Services\api\user_app\import_helpers\ProductHelper',
             ],
             
             //waiter_app here

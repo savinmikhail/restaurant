@@ -365,5 +365,4 @@ class OrderService extends BaseService
         return array(self::HTTP_OK, ['data' => 'OK']);
         //TODO: send requst to iiko
     }
-
 }
