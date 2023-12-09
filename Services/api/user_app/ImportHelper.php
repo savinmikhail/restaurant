@@ -1,6 +1,6 @@
 <?php
 
-namespace app\Services;
+namespace app\Services\api\user_app;
 
 use app\models\tables\Categories;
 use app\models\tables\Group;

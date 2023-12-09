@@ -45,10 +45,12 @@ $config = [
             'targets' => [
                 [
                     'class' => 'yii\log\FileTarget',
-                    'levels' => ['error', 'warning'],
+                    'levels' => ['error', 'warning', 'info'],
+                    'exportInterval' => 1,
                 ],
             ],
         ],
+
         'db' => $db,
 
         'session' => [
@@ -113,6 +115,9 @@ $config = [
             ],
             'app\Services\api\user_app\Payment' => [
                 'class' => 'app\Services\api\user_app\Payment',
+            ],
+            'app\Services\api\user_app\BasketService' => [
+                'class' => 'app\Services\api\user_app\BasketService',
             ],
             
             //waiter_app here

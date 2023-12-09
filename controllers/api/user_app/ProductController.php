@@ -2,11 +2,11 @@
 
 namespace app\controllers\api\user_app;
 
-use app\controllers\api\user_app\OrderableController;
+use app\controllers\api\ApiController;
 use app\Services\api\user_app\ProductService;
 use Yii;
 
-class ProductController extends OrderableController
+class ProductController extends ApiController
 {
     private $productService;
 

@@ -10,15 +10,10 @@ use yii\filters\AccessControl;
 
 class UserController extends ApiController
 {
-    // Отключение CSRF валидации для API запросов
-    public $enableCsrfValidation = false;
 
     public function behaviors()
     {
         $behaviors = parent::behaviors();
-
-        // Disable CSRF validation for API requests
-        $this->enableCsrfValidation = false;
 
         // Setup AccessControl
         $behaviors['access'] = [

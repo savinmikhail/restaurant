@@ -2,14 +2,15 @@
 
 namespace app\Services\api\waiter_app;
 
-use app\common\Util;
 use app\models\tables\Basket;
 use app\models\tables\BasketItem;
 use app\models\tables\Order;
 use app\models\tables\Products;
 use yii\data\Pagination;
+use app\Services\api\BaseService;
+use app\Services\BasketItemsHelper;
 
-class OrderService
+class OrderService extends BaseService
 {
     /**
      * Retrieves a list of data with pagination.
@@ -24,7 +25,7 @@ class OrderService
             ->joinWith('table')
             ->select(['orders.id as order_id', 'tables.table_number'])
             ->andWhere(['canceled' => 0])
-            ->andWhere(['paid' => 0])//не показываем оплаченные заказы, чтоб официант не мог отредактировать оплаченный
+            ->andWhere(['paid' => 0]) //не показываем оплаченные заказы, чтоб официант не мог отредактировать оплаченный
             ->addOrderBy(['orders.id' => SORT_DESC]);
 
         // Set up pagination
@@ -50,7 +51,7 @@ class OrderService
                 'perPage' => $pages->pageSize,
             ],
         ];
-        return [200, $output];
+        return [self::HTTP_OK, $output];
     }
 
     /**
@@ -62,7 +63,7 @@ class OrderService
     public function getIndexData(int $orderId): array
     {
         if (!$orderId || !is_numeric($orderId)) {
-            return array(400, ['data' => 'Invalid or missing order ID']);
+            return array(self::HTTP_BAD_REQUEST, ['data' => 'Invalid or missing order ID']);
         }
 
         $order = Order::find()
@@ -92,7 +93,7 @@ class OrderService
                 ];
             }, $order['items'])
         ];
-        return [200, $filteredOrderDetails];
+        return [self::HTTP_OK, $filteredOrderDetails];
     }
 
     /**
@@ -106,7 +107,7 @@ class OrderService
     public function updateQuantity(int $itemId, int $quantity): array
     {
         if (!$itemId || !$quantity || $quantity < 1) {
-            return array(400, ['data' => 'Invalid input']);
+            return array(self::HTTP_BAD_REQUEST, ['data' => 'Invalid input']);
         }
         $transaction = \Yii::$app->db->beginTransaction();
         try {
@@ -125,13 +126,13 @@ class OrderService
             $this->updateTotal($orderId);
             $transaction->commit();
             if ($updatedCount > 0) {
-                return array(200, ['data' => 'Item updated successfully']);
+                return array(self::HTTP_OK, ['data' => 'Item updated successfully']);
             } else {
-                return array(400, ['data' => "Item quantity is already $quantity"]);
+                return array(self::HTTP_BAD_REQUEST, ['data' => "Item quantity is already $quantity"]);
             }
         } catch (\Exception $e) {
             $transaction->rollBack();
-            return array(400, ['data' => 'An error occurred', 'error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+            return array(self::HTTP_BAD_REQUEST, ['data' => 'An error occurred', 'error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
         }
     }
 
@@ -144,7 +145,7 @@ class OrderService
         if (!$Product) {
             throw new \Exception("Failed to find Product with id $item->product_id");
         }
-        if ($diff > (int)$Product->balance) {//если было запрошено товаров больше, чем осталось на складе
+        if ($diff > (int)$Product->balance) { //если было запрошено товаров больше, чем осталось на складе
             //TODO: имплементировать крон на постоянное обновление
             throw new \Exception("Not enough products in stock, available only: " . $Product->balance);
         }
@@ -186,7 +187,7 @@ class OrderService
     public function deleteItem(int $itemId): array
     {
         if (!$itemId || $itemId < 1) {
-            return array(400, ['data' => 'Invalid input']);
+            return array(self::HTTP_BAD_REQUEST, ['data' => 'Invalid input']);
         }
         $transaction = \Yii::$app->db->beginTransaction();
         try {
@@ -202,13 +203,13 @@ class OrderService
             // $this->addProductBalance($item);
             $transaction->commit();
             if ($deletedCount === 1) {
-                return array(200, ['data' => 'Item deleted successfully']);
+                return array(self::HTTP_OK, ['data' => 'Item deleted successfully']);
             } else {
                 return array(404, ['data' => 'Item not found while deleting']);
             }
         } catch (\Exception $e) {
             $transaction->rollBack();
-            return array(400, ['data' => 'An error occurred', 'error' => $e->getMessage()]);
+            return array(self::HTTP_BAD_REQUEST, ['data' => 'An error occurred', 'error' => $e->getMessage()]);
         }
     }
 
@@ -233,7 +234,7 @@ class OrderService
     {
         // Check for invalid input
         if (!$productId || !$sizeId || !$orderId) {
-            return [400, ['data' => 'Invalid input']];
+            return [self::HTTP_BAD_REQUEST, ['data' => 'Invalid input']];
         }
 
         // Find the order
@@ -262,16 +263,16 @@ class OrderService
             $result = $basket->getBasketItems();
 
             // Prepare the items for display
-            $total = Util::prepareItems($result['items']);
+            $total = BasketItemsHelper::prepareItems($result['items']);
 
             // Update the order sum
             Order::updateAll(['order_sum' => $total], ['id' => $orderId]);
             $transaction->commit();
 
-            return [200, $result];
+            return [self::HTTP_OK, $result];
         } catch (\Exception $e) {
             $transaction->rollBack();
-            return [400, ['data' => 'An error occurred', 'error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]];
+            return [self::HTTP_BAD_REQUEST, ['data' => 'An error occurred', 'error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]];
         }
     }
 }

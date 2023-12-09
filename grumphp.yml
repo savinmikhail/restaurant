@@ -1,23 +1,35 @@
 grumphp:
+    stop_on_failure: false
+    ignore_unstaged_changes: false
     tasks:
-        # phpcs:
-        #     standard: [PSR12]
-        #     severity: ~
-        #     error_severity: ~
-        #     warning_severity: ~
-        #     tab_width: ~
-        #     report: full
-        #     report_width: ~
-        #     whitelist_patterns:
-        #         # - /^controllers\/api\/user_app\/OrderController\.php$/
-        #         # - /^controllers\/(.*)/
-        #         - /^Services\/(.*)/
-        #     encoding: ~
-        #     ignore_patterns: []
-        #     sniffs: []
-        #     triggered_by: [php]
-        #     exclude: []
-        #     show_sniffs_error_path: true
+        phpcs:
+            standard: [PSR12]
+            severity: ~
+            error_severity: ~
+            warning_severity: ~
+            tab_width: ~
+            report: full
+            report_width: ~
+            whitelist_patterns:
+                # - /^controllers\/api\/user_app\/OrderController\.php$/
+                - /^controllers\/(.*)/
+                - /^Services\/(?!ImportHelper\.php)/
+            encoding: ~
+            ignore_patterns: []
+            sniffs: []
+            triggered_by: [php]
+            exclude: []
+            show_sniffs_error_path: true
+
+        phpmd:
+            whitelist_patterns:
+                - /^controllers\/(.*)/
+                - /^Services\/(?!ImportHelper\.php)/
+            exclude:
+                - /^vendor\/
+            report_format: text
+            ruleset: ["cleancode", "codesize", "naming", "unusedcode"]
+            triggered_by: ["php"]
 
         # phan:
         #     config_file: .phan/config.php
@@ -31,14 +43,4 @@ grumphp:
         #     jobs: ~
         #     short_open_tag: true
         #     ignore_patterns: []
-        #     triggered_by: ['php']
-
-        # phpmd:
-        #     whitelist_patterns:
-        #         - /^controllers\/(.*)/
-        #         - /^Services\/(.*)/
-        #     exclude:
-        #         - /^vendor\/
-        #     report_format: text
-        #     ruleset: ['cleancode', 'codesize', 'naming', 'unusedcode']
         #     triggered_by: ['php']

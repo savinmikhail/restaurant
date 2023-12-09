@@ -2,12 +2,12 @@
 
 namespace app\controllers\api\user_app;
 
-use app\controllers\api\user_app\OrderableController;
+use app\controllers\api\ApiController;
 use app\models\tables\Basket;
 use app\models\tables\Order;
 use app\models\tables\Table;
 
-class TableController extends OrderableController
+class TableController extends ApiController
 {
     public function behaviors()
     {

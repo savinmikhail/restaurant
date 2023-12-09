@@ -13,6 +13,6 @@ class ProductControllerCest
         $expectedAuthHeader = 'Basic ' . base64_encode("admin:" . $_ENV['API_PASSWORD']);
         $I->haveHttpHeader('Authorization', $expectedAuthHeader);
         $I->sendGET('waiter_app/products', ['productName' => 'yourProductNameFilter']);
-        $I->seeResponseCodeIs(200);
+        $I->seeResponseCodeIs(self::HTTP_OK);
     }
 }

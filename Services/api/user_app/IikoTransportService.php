@@ -6,8 +6,10 @@ use app\models\tables\Order;
 use app\models\tables\Products;
 use app\models\tables\Table;
 use Exception;
+use app\Services\api\BaseService;
 
-class IikoTransportService
+
+class IikoTransportService extends BaseService
 {
     private string $IIKO_TRANSPORT_IP;
 
@@ -26,12 +28,16 @@ class IikoTransportService
     public function markOrderAsPaid(int $orderId): array
     {
         try {
-            $orderGuid = Order::find()->where(['id' => $orderId])->one()->external_id;
+            $order = Order::find()->where(['id' => $orderId])->one();
+            if (!$order) {
+                throw new Exception('Order not found');
+            }
+            $orderGuid = $order->external_id;
             $response =  $this->gateWay('markOrderAsPaid', ['orderId' => $orderGuid, 'paid' => true]);
         } catch (Exception $e) {
-            return [400, $e->getMessage()];
+            return [self::HTTP_BAD_REQUEST, $e->getMessage()];
         }
-        return [200, $response];
+        return [self::HTTP_OK, $response];
     }
 
     /**
@@ -43,14 +49,14 @@ class IikoTransportService
     {
         try {
             $table = Table::getTable();
-            if(!$table) {
+            if (!$table) {
                 throw new Exception('Table not found');
             }
             $response =  $this->gateWay('callWaiter', ['tableNumber' => $table->table_number], 'GET');
         } catch (Exception $e) {
-            return [400, $e->getMessage()];
+            return [self::HTTP_BAD_REQUEST, $e->getMessage()];
         }
-        return [200, $response];
+        return [self::HTTP_OK, $response];
     }
 
     /**
@@ -66,9 +72,9 @@ class IikoTransportService
         try {
             $response =  $this->gateWay('SendOrder', $data);
         } catch (Exception $e) {
-            return array(400, $e->getMessage());
+            return array(self::HTTP_BAD_REQUEST, $e->getMessage());
         }
-        return array(200, $response);
+        return array(self::HTTP_OK, $response);
     }
 
     /**
@@ -82,7 +88,7 @@ class IikoTransportService
         try {
             $response =  $this->gateWay('Stop', [], 'GET');
         } catch (Exception $e) {
-            return [400, $e->getMessage()];
+            return [self::HTTP_BAD_REQUEST, $e->getMessage()];
         }
 
         $keys = array_column($response[0], 'Key');
@@ -90,7 +96,7 @@ class IikoTransportService
 
         Products::updateAll(['balance' => $values], ['code' => $keys]);
 
-        return [200, $response];
+        return [self::HTTP_OK, $response];
     }
 
     /**
@@ -184,7 +190,7 @@ class IikoTransportService
         curl_close($ch);
 
         // Throw an exception if the HTTP status code is not in the 2xx range
-        if ($httpCode < 200 || $httpCode >= 300) {
+        if ($httpCode < self::HTTP_OK || $httpCode >= 300) {
             throw new Exception("HTTP Error: Status code $httpCode \n" . print_r(json_decode($outData, true), true));
         }
 

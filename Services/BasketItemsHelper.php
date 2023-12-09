@@ -1,12 +1,19 @@
 <?php
 
-namespace app\common;
+namespace app\Services;
 
 use app\models\tables\Basket;
 use app\models\tables\BasketItem;
 
-class Util
+class BasketItemsHelper
 {
+    /**
+     * Prepares the items in the given array.
+     *
+     * @param array &$items The array of items to be prepared.
+     * @throws \Exception If the basket is empty.
+     * @return float The total calculated after preparing the items.
+     */
     public static function prepareItems(array &$items)
     {
         if (!$items) {
@@ -29,6 +36,12 @@ class Util
         return $total;
     }
 
+    /**
+     * Calculates the main price for an item.
+     *
+     * @param array &$item The item to calculate the main price for.
+     * @return void
+     */
     private static function calcMainPrice(array &$item)
     {
         //calculate the main price
@@ -58,8 +71,14 @@ class Util
             }
         }
     }
-    
-    public static function calcTotal($items)
+
+    /**
+     * Calculates the total value of items in an array.
+     *
+     * @param array $items An array of items with 'price' and 'quantity' keys.
+     * @return int The calculated total value.
+     */
+    private static function calcTotal($items)
     {
         $total = 0;
         foreach ($items as $item) {

@@ -15,3 +15,7 @@ restart:
 .PHONY: test
 test:
 	./vendor/bin/codecept run Api
+
+.PHONY: validate
+validate:
+	php ./vendor/bin/grumphp run

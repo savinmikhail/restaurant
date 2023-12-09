@@ -27,11 +27,11 @@ class Payment extends Base
         return [
             [['order_ids', 'sum',], 'required'],
             [['order_ids', 'payment_method'], 'string'],
-            [['sum'], 'number'],
-            [['created_at', 'updated_at'], 'safe'], // Add this line if you want to include them in rules
+            [['sum', 'paid'], 'number'],
+            [['created_at', 'updated_at'], 'datetime', 'format' => 'php:Y-m-d H:i:s'],
         ];
     }
-    
+
     public function behaviors()
     {
         return [
@@ -39,8 +39,10 @@ class Payment extends Base
                 'class' => TimestampBehavior::class,
                 'createdAtAttribute' => 'created_at',
                 'updatedAtAttribute' => 'updated_at',
+                'value' => function () {
+                    return date('Y-m-d H:i:s');
+                },
             ],
         ];
     }
-  
 }

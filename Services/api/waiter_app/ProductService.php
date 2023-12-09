@@ -2,14 +2,11 @@
 
 namespace app\Services\api\waiter_app;
 
-use app\common\Util;
-use app\models\tables\Basket;
-use app\models\tables\BasketItem;
-use app\models\tables\Order;
 use app\models\tables\Products;
 use yii\data\Pagination;
+use app\Services\api\BaseService;
 
-class ProductService
+class ProductService extends BaseService
 {
     /**
      * Retrieves paginated list data based on the given page, number of items per page, and product name filter.
@@ -52,7 +49,7 @@ class ProductService
                 'perPage' => $pages->pageSize,
             ],
         ];
-        return array(200, $output);
+        return array(self::HTTP_OK, $output);
     }
 
     /**
@@ -79,6 +76,6 @@ class ProductService
         $output = [
             'data' => $productsData,
         ];
-        return array(200, $output);
+        return array(self::HTTP_OK, $output);
     }
 }

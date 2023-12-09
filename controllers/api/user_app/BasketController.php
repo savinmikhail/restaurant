@@ -2,12 +2,19 @@
 
 namespace app\controllers\api\user_app;
 
-use app\common\Util;
-use app\models\tables\PaymentType;
-use app\controllers\api\user_app\OrderableController;
+use app\controllers\api\ApiController;
+use app\Services\api\user_app\BasketService;
 
-class BasketController extends OrderableController
+class BasketController extends ApiController
 {
+    private BasketService $basketService;
+
+    public function __construct($id, $module, BasketService $basketService, $config = [])
+    {
+        parent::__construct($id, $module, $config);
+        $this->basketService = $basketService;
+    }
+
     public function behaviors()
     {
         $behaviors = parent::behaviors();
@@ -44,44 +51,12 @@ class BasketController extends OrderableController
      */
     public function actionIndex()
     {
-        $this->returnResponse();
-    }
-
-    private function reOrganizeResponseArray(array $result): array
-    {
-        if (empty($result['items'])) {
-            return $result;
-        }
-        $output = [];
-        foreach ($result['items'] as $item) {
-            $sizeName = '';
-
-            // Find the matching size name
-            foreach ($item['product']['productSizePrices'] as $sizePrice) {
-                if ($sizePrice['size_id'] === $item['size_id']) {
-                    $sizeName = $sizePrice['size']['name'];
-                    break;
-                }
-            }
-
-            $restructuredItem = [
-                'productId' => $item['product_id'],
-                'image'     => $item['product']['image'],
-                'name'      => $item['product']['name'],
-                'quantity'  => $item['quantity'],
-                'price'     => $item['price'],
-                'size'      => $sizeName,
-                'sizeId'    => $item['size_id']
-            ];
-
-            $output[] = $restructuredItem;
-        }
-
-        return $output;
+        list($code, $data) = $this->basketService->getDataForResponse();
+        $this->sendResponse($code, $data);
     }
 
     /**
-     * @SWG\Get(path="/api/user_app/basket/paymentmethods",
+     * @SWG\Get(path="/api/user_app/basket/get-payment-methods",
      *     tags={"UserApp\Basket"},
      *     description="Справочник способов оплаты",
      *     @SWG\Response(
@@ -91,15 +66,10 @@ class BasketController extends OrderableController
      *     ),
      * )
      */
-    public function actionPaymentmethods()
+    public function actionGetPaymentMethods()
     {
-        $paymentTypes = PaymentType::find()->select('name')->column();
-
-        return $this->asJson(
-            [
-                'list' => $paymentTypes
-            ]
-        );
+        list($code, $data) = $this->basketService->getPaymentMethods();
+        $this->sendResponse($code, $data);
     }
 
     /**
@@ -131,38 +101,12 @@ class BasketController extends OrderableController
      */
     public function actionAdd()
     {
-        $request = \Yii::$app->request->post();
-        list($productId, $quantity,  $sizeId) = [
-            $request['productId'],
-            1,
-            $request['sizeId']
-        ];
+        $productId = \Yii::$app->request->post('productId');
+        $sizeId = \Yii::$app->request->post('sizeId');
+        $quantity = 1;
 
-        try {
-            $this->getBasket()->addItem($productId, $quantity, $sizeId);
-        } catch (\Exception $e) {
-            $this->sendResponse(400, $e->getMessage());
-        }
-
-        list($result) = $this->getBasketItems();
-        Util::prepareItems($result['items']);
-
-        $this->returnResponse();
-    }
-
-    private function returnResponse()
-    {
-        list($result, $total) = $this->getBasketItems();
-
-        $output = $this->reOrganizeResponseArray($result);
-
-        $data = [
-            'data' => [
-                'list' => $output,
-                'total' => $total,
-            ]
-        ];
-        $this->sendResponse(200, $data);
+        list($code, $data) = $this->basketService->addItem($productId, $sizeId, $quantity);
+        $this->sendResponse($code, $data);
     }
 
     /**
@@ -197,15 +141,8 @@ class BasketController extends OrderableController
         $productId = \Yii::$app->request->post('productId');
         $quantity = \Yii::$app->request->post('quantity');
 
-        try {
-            $this->getBasket()->updateItem($productId, $quantity);
-            list($result) = $this->getBasketItems();
-            Util::prepareItems($result['items']);
-        } catch (\Exception $e) {
-            $this->sendResponse(400, $e->getMessage());
-        }
-
-        $this->returnResponse();
+        list($code, $data) = $this->basketService->setQuantity($productId, $quantity);
+        $this->sendResponse($code, $data);
     }
 
     /**
@@ -233,19 +170,8 @@ class BasketController extends OrderableController
     public function actionDelete()
     {
         $productId = (int) \Yii::$app->request->get('productId');
-        try {
-            $this->getBasket()->deleteItem($productId);
-        } catch (\Exception $e) {
-            $this->sendResponse(400, $e->getMessage());
-        }
-
-        list($result) = $this->getBasketItems();
-
-        if (!empty($result['items'])) {
-            Util::prepareItems($result['items']);
-        }
-
-        $this->returnResponse();
+        list($code, $data) = $this->basketService->deleteItem($productId);
+        $this->sendResponse($code, $data);
     }
 
     /**
@@ -267,12 +193,7 @@ class BasketController extends OrderableController
      */
     public function actionClear()
     {
-        try {
-            $this->getBasket()->clear();
-        } catch (\Exception $e) {
-            $this->sendResponse(400, $e->getMessage());
-        }
-
-        $this->returnResponse();
+        list($code, $data) = $this->basketService->clearBasket();
+        $this->sendResponse($code, $data);
     }
 }

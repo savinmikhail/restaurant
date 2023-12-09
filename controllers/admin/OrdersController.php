@@ -2,7 +2,6 @@
 
 namespace app\controllers\admin;
 
-use app\common\Util;
 use app\models\forms\AdminOrderForm;
 use app\models\tables\Order;
 use Yii;
@@ -12,7 +11,7 @@ use app\models\tables\Basket;
 use app\models\tables\BasketItem;
 use app\models\tables\Products;
 use app\models\tables\Size;
-use yii\web\NotFoundHttpException;
+use app\Services\BasketItemsHelper;
 
 class OrdersController extends AdminController
 {
@@ -153,7 +152,7 @@ class OrdersController extends AdminController
             ->asArray()
             ->one();
 
-        $total = Util::prepareItems($result['items']);
+        $total = BasketItemsHelper::prepareItems($result['items']);
 
         $obOrder->order_sum = $total;
         if (!$obOrder->save()) {

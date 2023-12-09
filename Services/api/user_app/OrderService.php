@@ -9,18 +9,29 @@ use app\models\tables\Payment;
 use app\models\tables\Products;
 use app\models\tables\Setting;
 use app\models\tables\Table;
-use app\Services\QRGen;
+use app\Services\api\user_app\QRGen;
 use app\Services\api\user_app\Payment as User_appPayment;
+use Exception;
+use app\Services\api\BaseService;
 
-class OrderService
+class OrderService extends BaseService
 {
     private User_appPayment $paymentService;
+    private IikoTransportService $iikoTransportService;
 
-    public function __construct(User_appPayment $paymentService)
+    public function __construct(User_appPayment $paymentService, IikoTransportService $iikoTransportService)
     {
         $this->paymentService = $paymentService;
+        $this->iikoTransportService = $iikoTransportService;
     }
 
+    /**
+     * Executes a payment for the given order IDs.
+     *
+     * @param array $orderIds The array of order IDs to be paid.
+     * @throws Exception If an error occurs during the payment process.
+     * @return array The response array with the status code and the payment result.
+     */
     public function pay(array $orderIds): array
     {
         try {
@@ -32,66 +43,195 @@ class OrderService
             //очищаю корзину
             $this->refreshBasket();
             $transaction->commit();
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             $transaction->rollBack();
-            return [400, ['data' => $e->getMessage(), 'file' => $e->getFile(), 'line' => $e->getLine()]];
+            return [self::HTTP_BAD_REQUEST, ['data' => $e->getMessage(), 'file' => $e->getFile(), 'line' => $e->getLine()]];
         }
 
-        return [200, $result];
+        return [self::HTTP_OK, $result];
     }
 
-    public function getStatus(int $tinkoffPaymentId): array
+
+    /**
+     * Retrieves the status of a Tinkoff payment.
+     *
+     * @param int $tinkoffPaymentId The ID of the Tinkoff payment.
+     * @throws Exception If there is an error retrieving the payment status.
+     * @return string The status of the Tinkoff payment.
+     */
+    private function getStatus(int $tinkoffPaymentId): string
     {
-        $tinkoffResponse = $this->paymentService->getState($tinkoffPaymentId);
-        if ($tinkoffResponse['Success']) {
-            return [200, $tinkoffResponse['Status']];
-        } else {
-            return [400, $tinkoffResponse['Message']];
+        try {
+            $tinkoffResponse = $this->paymentService->getState($tinkoffPaymentId);
+        } catch (Exception $e) {
+            throw $e;
+        }
+        if (!$tinkoffResponse['Success']) {
+            throw new Exception($tinkoffResponse['Message']);
+        }
+        return $tinkoffResponse['Status'];
+    }
+
+    /**
+     * Checks if an order is confirmed by waiter.
+     *
+     * @param int $orderId The ID of the order to be checked.
+     * @return array Returns an array with the HTTP status code and data.
+     */
+    public function checkConfirmed(int $orderId): array
+    {
+        if (!$orderId) {
+            return array(self::HTTP_BAD_REQUEST, ["data" => "id parameter is missing in request"]);
+        }
+        $order = Order::find()
+            ->where(['id' => $orderId])
+            ->asArray()
+            ->one();
+        if (!$order) {
+            return array(self::HTTP_BAD_REQUEST, ["data" => "no such order finded with id $orderId"]);
+        }
+        if ((int) $order['confirmed'] !== 1) {
+            return array(self::HTTP_OK, ['status' => 'waiting']);
+        }
+
+        list($code, $data) = $this->iikoTransportService->sendOrder($orderId);
+        if ($code !== self::HTTP_OK) {
+            return array(self::HTTP_BAD_REQUEST, ['status' => 'failed to send order to iiko', 'data' => $data]);
+        }
+        return array(self::HTTP_OK, ['status' => 'confirmed']);
+    }
+
+    /**
+     * Checks if a Tinkoff payment is paid.
+     *
+     * @param int $tinkoffPaymentId The ID of the Tinkoff payment.
+     * @throws Exception If an error occurs while checking the payment status.
+     * @return array An array with the HTTP code and the payment status data.
+     */
+    public function checkPaid(int $tinkoffPaymentId): array
+    {
+        try {
+            $status = $this->getStatus($tinkoffPaymentId);
+
+            if ($status !== 'CONFIRMED') {
+                return array(self::HTTP_OK, ['data' => $status]);
+            }
+            $payment = $this->markPaymentAsPaid($tinkoffPaymentId);
+            $this->markOrdersAsPaid($payment);
+        } catch (Exception $e) {
+            return array(self::HTTP_BAD_REQUEST, ['data' => $e->getMessage()]);
+        }
+        return array(self::HTTP_OK, ['data' => 'OK']);
+    }
+
+    /**
+     * Marks a payment as paid.
+     *
+     * @param int $tinkoffPaymentId The Tinkoff payment ID.
+     * @throws Exception If the payment is not found or fails to save.
+     * @return Payment The updated payment object.
+     */
+    private function markPaymentAsPaid(int $tinkoffPaymentId): Payment
+    {
+        $payment = Payment::find()
+            ->where(['external_id' => $tinkoffPaymentId])
+            ->one();
+        if (!$payment) {
+            throw new Exception('Payment not found');
+        }
+        $payment->paid = 1;
+        if (!$payment->save()) {
+            throw new Exception('Failed to save payment: ' . json_encode($payment->errors));
+        }
+        return $payment;
+    }
+
+    /**
+     * Marks the orders as paid for a given payment.
+     *
+     * @param Payment $payment The payment object.
+     * @throws Exception If there is an error in unserializing the order IDs or marking the order as paid in the iiko transport service.
+     * @return void
+     */
+    private function markOrdersAsPaid(Payment $payment): void
+    {
+
+        $orderIds = unserialize($payment->order_ids);
+        if ($orderIds === false) {
+            throw new Exception('Failed to unserialize order IDs');
+        }
+
+        Order::updateAll(['paid' => 1, 'payment_method' => $payment->payment_method], ['id' => $orderIds]);
+        foreach ($orderIds as $orderId) {
+            //помечаем заказ как оплаченный для айко
+            list($code, $data) = $this->iikoTransportService->markOrderAsPaid($orderId);
+            if ($code !== self::HTTP_OK) {
+                throw new Exception($data);
+            }
         }
     }
 
+    /**
+     * Executes a test payment using the Tinkoff payment service.
+     *
+     * @param int $tinkoffPaymentId The ID of the Tinkoff payment.
+     * @return array Returns an array with the HTTP status code and the payment status.
+     */
     public function sbpPayTest(int $tinkoffPaymentId): array
     {
         $tinkoffResponse = $this->paymentService->sbpPayTest($tinkoffPaymentId);
         if ($tinkoffResponse['Success']) {
-            return [200, ['Paid' => true]];
+            return [self::HTTP_OK, ['Paid' => true]];
         } else {
-            return [400, $tinkoffResponse['Message']];
+            return [self::HTTP_BAD_REQUEST, $tinkoffResponse['Message']];
         }
     }
 
-    //заказ сформирован, отправлен на оплату, удаляю корзину для стола и создаю новую, чтобы очистить корзину от товаров, но оставить товары для заказа
+    /**
+     * Refreshes the basket for the current table.
+     *
+     * @throws Exception if the table is not found or the basket is not found
+     * @return void
+     */
     private function refreshBasket()
     {
+        //заказ сформирован, отправлен на оплату, удаляю корзину для стола и создаю новую, чтобы очистить корзину от товаров, но оставить товары для заказа
         $table = Table::getTable();
         if (!$table) {
-            throw new \Exception('Table not found');
+            throw new Exception('Table not found');
         }
         $basket = Basket::find()
             ->where(['table_id' => $table->id])
             ->one();
         if (!$basket) {
-            throw new \Exception('Basket not found');
+            throw new Exception('Basket not found');
         }
         $basket->delete();
 
         $basket = new Basket();
         $basket->table_id = $table->id;
         if (!$basket->save()) {
-            throw new \Exception('Failed to save new basket: ' . json_encode($basket->errors));
+            throw new Exception('Failed to save new basket: ' . json_encode($basket->errors));
         }
     }
 
+    /**
+     * Creates a payment using the provided order IDs.
+     *
+     * @param array $orderIds An array of order IDs.
+     * @throws Exception If no order IDs are provided or if no orders are found.
+     * @return Payment The created payment object.
+     */
     private function createPayment(array $orderIds): Payment
     {
         $payment = new Payment();
 
         if (empty($orderIds)) {
-            throw new \Exception('No order IDs provided');
+            throw new Exception('No order IDs provided');
         }
         $orders = Order::find()->where(['id' => $orderIds])->all();
         if (empty($orders)) {
-            throw new \Exception('No orders found');
+            throw new Exception('No orders found');
         }
 
         $orderSum = 0;
@@ -103,7 +243,7 @@ class OrderService
         $payment->order_ids = serialize($orderIds);
         $payment->payment_method = 'sbp'; //так как пользователь тыкнул на оплатить куар кодом, пишем этот тип платежа
         if (!$payment->save()) {
-            throw new \Exception('Failed to save payment: ' . json_encode($payment->errors));
+            throw new Exception('Failed to save payment: ' . json_encode($payment->errors));
         }
         return $payment;
     }
@@ -112,24 +252,24 @@ class OrderService
      * Process the payment method and return the result as an array.
      *
      * @param Payment $payment The payment object to process.
-     * @throws \Exception If an error occurs during processing.
+     * @throws Exception If an error occurs during processing.
      * @return array The processed payment result.
      */
     private function processPaymentMethod(Payment $payment): array
     {
         try {
-            list($paymentLink, $tinkoffPaymentId) = $this->paymentService->getTinkoffPaymentUrl($payment);
-        } catch (\Exception $e) {
+            list($paymentQr, $tinkoffPaymentId) = $this->paymentService->getTinkoffPaymentQr($payment);
+        } catch (Exception $e) {
             throw $e;
         }
         $payment->external_id = $tinkoffPaymentId;
         if (!$payment->save()) {
-            throw new \Exception('Failed to save payment: ' . json_encode($payment->errors));
+            throw new Exception('Failed to save payment: ' . json_encode($payment->errors));
         }
         $result = [
             'payment_id' => $payment->id,
-            'payment_link' => $paymentLink,
-            'tinkoff_payment_id' => $tinkoffPaymentId
+            'tinkoff_payment_id' => $tinkoffPaymentId,
+            'qr' => $paymentQr,
         ];
         return $result;
     }
@@ -143,7 +283,7 @@ class OrderService
     {
         $obTable = Table::getTable();
         if (!$obTable) {
-            return [400, 'Table not found'];
+            return [self::HTTP_BAD_REQUEST, 'Table not found'];
         }
         $filter = ['orders.table_id' => $obTable->id];
 
@@ -158,7 +298,7 @@ class OrderService
 
         $ordersList = $query->asArray()->all();
         $output = $this->restructurizeOrders($ordersList);
-        return [200, $output];
+        return [self::HTTP_OK, $output];
     }
 
     /**
@@ -223,55 +363,94 @@ class OrderService
     }
 
     /**
-     * Creates an order and returns the result as an array.
+     * Handles the creation of an order.
      *
-     * @return array The result of creating the order. The array contains the HTTP status code and the data.
-     *               If the order limit is not found, returns an HTTP status code of 400 and the message 'Order limit not found'.
-     *               If an exception occurs while creating the order, returns an HTTP status code of 400 and the exception message.
-     *               If the order does not need to be confirmed, returns an HTTP status code of 201 and the order data.
-     *               If the order limit is reached, returns an HTTP status code of 200, the message 'order limit is reached',
-     *               and the QR code for the order.
+     * The function creates an order by calling the `createOrder` method. If the `qr` parameter is present in the response data,
+     * it returns an array with the HTTP status code self::HTTP_OK and the data. Otherwise, it retrieves the `orderId` from the response
+     * data and sends the order to iiko using the `sendOrder` method of the `iikoTransportService`. If an exception is thrown
+     * during the process, it returns an array with the HTTP status code self::HTTP_BAD_REQUEST and the error message. Finally, it checks if the
+     * order was sent successfully and returns an array with the HTTP status code self::HTTP_OK, the `orderId`, and the status as
+     * "sent to iiko".
+     *
+     * @return array An array with the HTTP status code and the response data.
+     * @throws Exception If an error occurs during the process.
      */
-    public function createOrder(): array
+    public function handleOrderCreation()
+    {
+        try {
+            // Create an order
+            $data = $this->createOrder();
+
+            // если куар не пришел, то ждем подтверждения официанта, прежде чем отправлять заказ в айку
+            if (isset($data['qr'])) {
+                return array(self::HTTP_OK, $data);
+            }
+
+            // Get the created order
+            $orderId = $data['orderId'];
+
+            // Send the order to iiko
+            list($code, $data) = $this->iikoTransportService->sendOrder($orderId);
+        } catch (Exception $e) {
+            return array(self::HTTP_BAD_REQUEST, ['data' => $e->getMessage()]);
+        }
+
+        // Check if order was sent successfully
+        if ($code !== self::HTTP_OK) {
+            return array($code, ['data' => $data]);
+        }
+        return array(self::HTTP_OK, ['orderId' => $orderId, 'status' => 'sent to iiko']);
+    }
+
+
+    /**
+     * Creates an order.
+     *
+     * @throws Exception if the table is not found, the basket is not found, or the order limit is not found
+     * @throws Exception if there is an error while saving the order
+     * @return array an array containing the order ID and additional data
+     */
+    private function createOrder(): array
     {
         $table = Table::getTable();
         if (!$table) {
-            return array(400, ['data' => 'Table not found']);
+            throw new Exception('Table not found');
         }
         $tableId = $table->id;
         $basket = Basket::find()
             ->where(['table_id' => $tableId])
             ->one();
+        if (!$basket) {
+            throw new Exception('Basket not found');
+        }
         $obSetting = Setting::find()
             ->where(['name' => 'order_limit'])
             ->one();
 
         if (!$obSetting) {
-            return array(400, ['data' => 'Order limit not found']);
+            throw new Exception('Order limit not found');
         }
         $order = new Order();
         try {
             $order->make(['basket_id' => $basket->id, 'table_id' => $tableId, 'basket_total' => $basket->basket_total]);
-        } catch (\Exception $e) {
-            return array(400, ['data' => $e->getMessage()]);
+        } catch (Exception $e) {
+            throw $e;
         }
 
         $mustBeConfirmed = $order->order_sum >= $obSetting->value;
         if (!$mustBeConfirmed) {
-            return array(201, ['data' => $order]);
+            return ['orderId' => $order->id];
         }
 
         $order->confirmed = 0;
         if (!$order->save()) {
-            return array(400, ['data' => 'Failed to save order' . print_r($order->errors, true)]);
+            throw new Exception('Failed to save order' . print_r($order->errors, true));
         }
-        return array(
-            200, [
-                'data' => 'order limit is reached',
-                'qr' => QRGen::renderQR($order->id),
-                'orderId' => $order->id
-            ]
-        );
+        return [
+            'data' => 'order limit is reached',
+            'qr' => QRGen::renderQR($order->id),
+            'orderId' => $order->id
+        ];
     }
 
     /**
@@ -279,7 +458,7 @@ class OrderService
      *
      * @param string $orderGuid The GUID of the order.
      * @param array $items The array of items.
-     * @throws \Exception If there is an error saving the order.
+     * @throws Exception If there is an error saving the order.
      * @return array The result of the function call.
      */
     public function handleIikoOrderChanges(string $orderGuid, array $items): array
@@ -293,16 +472,16 @@ class OrderService
             foreach ($items as $item) {
                 $this->updateItem($item, $order->id);
             }
-        } catch (\Exception $e) {
-            return array(400, $e->getMessage());
+        } catch (Exception $e) {
+            return array(self::HTTP_BAD_REQUEST, $e->getMessage());
         }
         BasketItem::deleteAll(['is_deleted' => 1, 'order_id' => $order->id]);
         try {
             $this->calcOrderSum($order);
-        } catch (\Exception $e) {
-            return array(400, $e->getMessage());
+        } catch (Exception $e) {
+            return array(self::HTTP_BAD_REQUEST, $e->getMessage());
         }
-        return array(200, 'OK');
+        return array(self::HTTP_OK, 'OK');
     }
 
     /**
@@ -310,7 +489,7 @@ class OrderService
      *
      * @param array $item The item to be updated.
      * @param int $orderId The ID of the order.
-     * @throws \Exception If there is an error saving the order item.
+     * @throws Exception If there is an error saving the order item.
      * @return void
      */
     private function updateItem(array $item, int $orderId)
@@ -334,7 +513,7 @@ class OrderService
             $orderItem->size_id = $item['sizeId'];
         }
         if (!$orderItem->save()) {
-            throw new \Exception('Error saving order item');
+            throw new Exception('Error saving order item');
         }
     }
 
@@ -342,14 +521,61 @@ class OrderService
      * Calculates the order sum for the given order.
      *
      * @param Order $order The order for which to calculate the sum.
-     * @throws \Exception If there is an error saving the order.
+     * @throws Exception If there is an error saving the order.
      */
     private function calcOrderSum(Order $order)
     {
         $orderSum = BasketItem::find()->where(['order_id' => $order->id])->sum('quantity * price') ?? 0;
         $order->order_sum = $orderSum;
         if (!$order->save()) {
-            throw new \Exception('Error saving order');
+            throw new Exception('Error saving order');
         }
+    }
+
+    public function setOrderGuid(int $orderId, string $orderGUID): array
+    {
+        $order = Order::find()->where(['id' => $orderId])->one();
+        $order->external_id = $orderGUID;
+        if (!$order->save()) {
+            return array(self::HTTP_BAD_REQUEST, 'Error saving order');
+        }
+        return array(self::HTTP_OK, 'OK');
+    }
+
+    public function markOrderAsPaid(string $orderGUID, int $isPaid): array
+    {
+        $order = Order::find()
+            ->where(['external_id' => $orderGUID])
+            ->one();
+
+        if (!$order) {
+            return array(self::HTTP_BAD_REQUEST, 'Order not found');
+        }
+        $order->paid = $isPaid;
+        if (!$order->save()) {
+            return array(self::HTTP_BAD_REQUEST, 'Error saving order');
+        }
+        return array(self::HTTP_OK, 'OK');
+    }
+
+    public function cancelOrder(int $orderId): array
+    {
+        $order = Order::find()->where(['id' => $orderId])->one();
+        $order->canceled = 1;
+        $order->updated_at = time();
+        if (!$order->save()) {
+            return array(self::HTTP_BAD_REQUEST, ['data' => "Failed to save order: " . print_r($order->errors, true)]);
+        }
+        if (!$order->external_id) {
+            return array(self::HTTP_BAD_REQUEST, ['data' => 'Order does not exists in iiko ']);
+        }
+        return array(self::HTTP_OK, ['data' => 'OK']);
+        //TODO: send requst to iiko
+    }
+
+    public function callWaiter(): array
+    {
+        list($code, $data) = $this->iikoTransportService->callWaiter();
+        return array($code, $data);
     }
 }

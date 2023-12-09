@@ -2,10 +2,10 @@
 
 namespace app\controllers\api\waiter_app;
 
-use app\controllers\api\user_app\OrderableController;
+use app\controllers\api\ApiController;
 use app\Services\api\waiter_app\OrderService;
 
-class OrderController extends OrderableController
+class OrderController extends ApiController
 {
     private $orderService;
 

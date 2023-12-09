@@ -3,9 +3,23 @@
 namespace app\models\tables;
 
 use app\models\Base;
+use yii\behaviors\TimestampBehavior;
 
 class Order extends Base
 {
+    public function behaviors()
+    {
+        return [
+            [
+                'class' => TimestampBehavior::class,
+                'createdAtAttribute' => 'created_at',
+                'updatedAtAttribute' => 'updated_at',
+                'value' => function () {
+                    return date('Y-m-d H:i:s');
+                },
+            ],
+        ];
+    }
 
     public function rules()
     {

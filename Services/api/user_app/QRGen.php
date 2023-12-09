@@ -1,6 +1,6 @@
 <?php
 
-namespace app\Services;
+namespace app\Services\api\user_app;
 
 use Endroid\QrCode\Color\Color;
 use Endroid\QrCode\Encoding\Encoding;

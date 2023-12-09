@@ -22,7 +22,7 @@ class Payment
      * @throws \Exception Error initializing payment or getting QR code.
      * @return string The URL for the payment QR code, if successfully obtained.
      */
-    public function getTinkoffPaymentUrl(TablesPayment $payment): array
+    public function getTinkoffPaymentQr(TablesPayment $payment): array
     {
         try {
             $tinkoff  = $this->initializePayment($payment);
@@ -32,7 +32,7 @@ class Payment
             if (!$arrResponse['Success']) {
                 throw new \Exception('Payment was not confirmed: ' . print_r($tinkoff->response, true));
             }
-            return [$this->getPaymentUrl($tinkoff), $tinkoff->paymentId];
+            return [$this->getPaymentQr($tinkoff), $tinkoff->paymentId];
         } catch (\Exception $e) {
             throw $e;
         }
@@ -69,15 +69,17 @@ class Payment
     /**
      * Retrieves the payment URL for the Tinkoff API.
      *
+     * documentation: https://www.tinkoff.ru/kassa/dev/payments/#tag/Oplata-cherez-SBP/paths/~1GetQr/post
      * @param Tinkoff $tinkoff The Tinkoff object used to make the API call.
      * @throws \Exception Error getting QR code: [exception message]
      * @return string The URL for the payment QR code.
      */
-    private function getPaymentUrl(Tinkoff $tinkoff): string
+    private function getPaymentQr(Tinkoff $tinkoff): string
     {
         // Get the QR code
         $qrArgs = [
             'PaymentId' => $tinkoff->paymentId,
+            'DataType' => 'IMAGE',
         ];
 
         try {
@@ -110,7 +112,11 @@ class Payment
             'PaymentId' => $tinkoffPaymentId,
         ];
 
-        $tinkoff->getState($stateArgs);
+        try {
+            $tinkoff->getState($stateArgs);
+        } catch (\Exception $e) {
+            throw $e;
+        }
         $arrResponse = json_decode(htmlspecialchars_decode($tinkoff->response), true);
         return ($arrResponse); //CONFIRMED
     }

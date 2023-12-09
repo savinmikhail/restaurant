@@ -7,8 +7,9 @@ use app\models\tables\Products;
 use app\models\tables\Table;
 use Exception;
 use Yii;
+use app\Services\api\BaseService;
 
-class IikoService
+class IikoService extends BaseService
 {
     private string $IIKO_API_KEY;
     private string $IIKO_ORG_ID;
@@ -180,7 +181,7 @@ class IikoService
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
 
-        if ($httpCode < 200 || $httpCode >= 300) {
+        if ($httpCode < self::HTTP_OK || $httpCode >= 300) {
             throw new Exception("HTTP Error: Status code $httpCode \n" . print_r(json_decode($outData, true), true));
         }
 
@@ -242,7 +243,7 @@ class IikoService
         try {
             $outData = $this->getStopList();
         } catch (Exception $e) {
-            return array(400, $e->getMessage());
+            return array(self::HTTP_BAD_REQUEST, $e->getMessage());
         }
 
         $items = $outData["terminalGroupStopLists"][0]["items"][0]["items"];
@@ -254,18 +255,18 @@ class IikoService
                 ->where(['external_id' => $item["productId"]])
                 ->one();
             if (!$product) {
-                return array(400, 'Product not found');
+                return array(self::HTTP_BAD_REQUEST, 'Product not found');
             }
             $product->balance = intval(floor($item["balance"]));
             if (!$product->save()) {
-                return array(400, $product->errors);
+                return array(self::HTTP_BAD_REQUEST, $product->errors);
             }
         }
 
         // Products::updateAll(['balance' => $productBalances], ['external_id' => $productIds]);
         //TODO: updateAll почему то инсертит 1 вместо прилетевшего числа. Нужно разобраться
 
-        return array(200, $items);
+        return array(self::HTTP_OK, $items);
     }
 
     /**

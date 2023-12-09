@@ -3,8 +3,10 @@
 namespace app\Services\api\user_app;
 
 use app\models\tables\Products;
+use app\Services\api\BaseService;
 
-class ProductService
+
+class ProductService extends BaseService
 {
     /**
      * Retrieves a list of products based on a filter.
@@ -25,7 +27,7 @@ class ProductService
         $productsData = $productsQuery->all();
 
         $result = $this->restructurizeProductsData($productsData);
-        return [200, $result];
+        return [self::HTTP_OK, $result];
     }
 
     /**
@@ -48,7 +50,7 @@ class ProductService
                 'description' => $product['description'],
                 // возможно имеет смысл поставить дефолтное значение в бд на null
                 // если значение отлично от нуля - прилетело из айки в стоплисте, не показываем на сайте
-                'isActive' => (int) $product['balance'] === 0 ? 1 : 0, 
+                'isActive' => (int) $product['balance'] === 0 ? 1 : 0,
                 'tags' => [],
                 'sizePrices' => [],
             ];

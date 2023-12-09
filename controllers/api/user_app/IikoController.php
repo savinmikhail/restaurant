@@ -4,21 +4,23 @@ namespace app\controllers\api\user_app;
 
 use app\controllers\api\ApiController;
 use app\Services\api\user_app\IikoService;
-use app\Services\ImportHelper;
+use app\Services\api\user_app\ImportHelper;
 use Exception;
 use Yii;
 
 class IikoController extends ApiController
 {
     private IikoService $iikoService;
+    private ImportHelper $importHelper;
 
     private string $IIKO_ORG_ID;
     private string $IIKO_TERMINAL_GROUP_ID;
 
-    public function __construct($id, $module, IikoService $iikoService, $config = [])
+    public function __construct($id, $module, IikoService $iikoService, ImportHelper $importHelper, $config = [])
     {
         parent::__construct($id, $module, $config);
         $this->iikoService = $iikoService;
+        $this->importHelper = $importHelper;
         $this->IIKO_ORG_ID = $_ENV['IIKO_ORG_ID'];
         $this->IIKO_TERMINAL_GROUP_ID = $_ENV['IIKO_TERMINAL_GROUP_ID'];
     }
@@ -109,9 +111,9 @@ class IikoController extends ApiController
         if (!is_array($menuData)) {
             $this->sendResponse(400, 'Contained menu file is empty, please, rerun the Menu Action');
         }
-        $menuParser = new ImportHelper();
+       
         try {
-            $menuParser->parse($menuData);
+            $this->importHelper->parse($menuData);
         } catch (Exception $e) {
             $this->sendResponse(400, $e->getMessage());
         }
