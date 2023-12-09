@@ -5,7 +5,6 @@ namespace app\Services\api\user_app;
 use app\models\tables\Products;
 use app\Services\api\BaseService;
 
-
 class ProductService extends BaseService
 {
     /**

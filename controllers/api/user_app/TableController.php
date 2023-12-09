@@ -18,6 +18,7 @@ class TableController extends ApiController
             'class' => \yii\filters\VerbFilter::class,
             'actions' => [
                 'close'   => ['PUT'],
+                'waiter' => ['GET'],
             ],
         ];
 
@@ -26,7 +27,7 @@ class TableController extends ApiController
 
     /**
      * этот метод для айко транспорта для закрытия стола
-     * 
+     *
      * @SWG\Put(path="/api/user_app/table/close",
      *     tags={"UserApp\Table"},
      *      @SWG\Parameter(
@@ -44,11 +45,33 @@ class TableController extends ApiController
      */
     public function actionClose()
     {
-        $tableNumber = \Yii::$app->request->post('tableNumber');
-        $table = Table::find()->where(['table_number' => $tableNumber])->one();
-        $basket = Basket::find()->where(['table_id' => $table->id])->one();
-        $basket->clear();
-        Order::deleteAll(['basket_id' => $basket->id]);
-        return $this->sendResponse(200, 'Table was closed');
+
+        list($code, $data) = $this->tableService->closeTable();
+        return $this->sendResponse($code, $data);
+    }
+
+    /**
+     * Call a waiter
+     *
+     * @SWG\Get(path="/api/user_app/order/waiter",
+     *     tags={"UserApp\Order"},
+     *     @SWG\Parameter(
+     *         name="table",
+     *         in="header",
+     *         type="integer",
+     *         description="Set the table number here",
+     *         required=true
+     *     ),
+     *     @SWG\Response(
+     *         response = 200,
+     *         description = "success",
+     *         @SWG\Schema(ref = "#/definitions/Products")
+     *     ),
+     * )
+     */
+    public function actionWaiter()
+    {
+        list($code, $data) = $this->tableService->callWaiter();
+        $this->sendResponse($code, $data);
     }
 }

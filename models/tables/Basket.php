@@ -60,6 +60,11 @@ class Basket extends Base
         return $this->hasOne(Order::class, ['id' => 'order_id']);
     }
 
+    /**
+     * Clears the basket by deleting all the basket items that are not already part of an order.
+     *
+     * @throws \yii\db\Exception if there is an error while deleting the basket items.
+     */
     public function clear()
     {
         //не удаляю товары, если они уже в составе заказа

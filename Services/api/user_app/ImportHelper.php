@@ -117,7 +117,7 @@ class ImportHelper
     private function processProduct(array $arProduct)
     {
         //модификаторы не сохраняем, не используем, в меню не показываем
-        if($arProduct['type'] === 'Modifier' || $arProduct['type'] === 'Service'){
+        if ($arProduct['type'] === 'Modifier' || $arProduct['type'] === 'Service') {
             return;
         }
         $obProduct = Products::find()->where(['external_id' => $arProduct['id']])->one();
@@ -161,13 +161,13 @@ class ImportHelper
 
                 $obProductImage = new ProductsImages();
                 $obProductImage->product_id = $productId;
+                $obProductImage->image = $link;// Initialize with link value
+
                 if ($this->downloadImage($link, $storagePath)) {
                     $imagesLocalPaths[] = $storagePath;
+                    $obProductImage->image = $storagePath;// Update with local path
+                } 
 
-                    $obProductImage->image = $storagePath;
-                } else {
-                    $obProductImage->image = $link;
-                }
                 if (!$obProductImage->save()) {
                     $this->handleError('Product Image', $obProductImage);
                 }
@@ -180,12 +180,12 @@ class ImportHelper
 
     private function downloadImage($url, $storagePath): bool
     {
-        $ch = curl_init($url);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
-        $data = curl_exec($ch);
-        curl_close($ch);
+        $curl = curl_init($url);
+        curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
+        curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
+        curl_setopt($curl, CURLOPT_FOLLOWLOCATION, true);
+        $data = curl_exec($curl);
+        curl_close($curl);
 
         return (bool) (file_put_contents($storagePath, $data));
     }

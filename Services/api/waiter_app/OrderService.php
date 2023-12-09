@@ -9,6 +9,7 @@ use app\models\tables\Products;
 use yii\data\Pagination;
 use app\Services\api\BaseService;
 use app\Services\BasketItemsHelper;
+use Exception;
 
 class OrderService extends BaseService
 {
@@ -38,10 +39,11 @@ class OrderService extends BaseService
             ->asArray()
             ->all();
 
-        foreach ($productsData as $index => $order) {
+        foreach ($productsData as &$order) {
             //без этого куска кода почему-то добавляется лишний ключ table=>null
-            unset($productsData[$index]['table']);
+            unset($order['table']);
         }
+        unset($order);
 
         $output = [
             'orders' => $productsData,
@@ -101,7 +103,7 @@ class OrderService extends BaseService
      *
      * @param int $itemId The ID of the item to update.
      * @param int $quantity The new quantity value.
-     * @throws \Exception If an error occurs during the update process.
+     * @throws Exception If an error occurs during the update process.
      * @return array An array containing the HTTP status code and the response data.
      */
     public function updateQuantity(int $itemId, int $quantity): array
@@ -127,15 +129,21 @@ class OrderService extends BaseService
             $transaction->commit();
             if ($updatedCount > 0) {
                 return array(self::HTTP_OK, ['data' => 'Item updated successfully']);
-            } else {
-                return array(self::HTTP_BAD_REQUEST, ['data' => "Item quantity is already $quantity"]);
             }
-        } catch (\Exception $e) {
+            return array(self::HTTP_BAD_REQUEST, ['data' => "Item quantity is already $quantity"]);
+        } catch (Exception $e) {
             $transaction->rollBack();
             return array(self::HTTP_BAD_REQUEST, ['data' => 'An error occurred', 'error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
         }
     }
 
+    /**
+     * Updates the balance of a product in the database.
+     * @deprecated version 1.0.0
+     * @param BasketItem $item The basket item to update.
+     * @param int $diff The difference to apply to the product balance.
+     * @throws Exception If the product cannot be found or if there are not enough products in stock.
+     */
     private function updateProductBalance(BasketItem $item, int $diff)
     {
         $Product = Products::find()
@@ -143,16 +151,16 @@ class OrderService extends BaseService
             ->one();
 
         if (!$Product) {
-            throw new \Exception("Failed to find Product with id $item->product_id");
+            throw new Exception("Failed to find Product with id $item->product_id");
         }
         if ($diff > (int)$Product->balance) { //если было запрошено товаров больше, чем осталось на складе
             //TODO: имплементировать крон на постоянное обновление
-            throw new \Exception("Not enough products in stock, available only: " . $Product->balance);
+            throw new Exception("Not enough products in stock, available only: " . $Product->balance);
         }
         $Product->balance -= $diff;
         if (!$Product->save()) {
             //TODO: надо чтоб запрос кроном из айки не перезаписал это значение, пока не уйдет в заказ
-            throw new \Exception("Failed to save Product: " . print_r($Product->errors, true));
+            throw new Exception("Failed to save Product: " . print_r($Product->errors, true));
         }
     }
 
@@ -160,7 +168,7 @@ class OrderService extends BaseService
      * Updates the total order sum for a given order ID.
      *
      * @param int $orderId The ID of the order.
-     * @throws \Exception If the order is not found or fails to save.
+     * @throws Exception If the order is not found or fails to save.
      * @return void
      */
     private function updateTotal(int $orderId)
@@ -168,12 +176,12 @@ class OrderService extends BaseService
         $order = Order::findOne($orderId);
 
         if (!$order) {
-            throw new \Exception('Order not found for ID: ' . $orderId);
+            throw new Exception('Order not found for ID: ' . $orderId);
         }
         $orderSum = BasketItem::find()->where(['order_id' => $orderId])->sum('quantity * price') ?? 0;
         $order->order_sum = $orderSum;
         if (!$order->save()) {
-            throw new \Exception("Failed to save Order: " . print_r($order->errors, true));
+            throw new Exception("Failed to save Order: " . print_r($order->errors, true));
         }
     }
 
@@ -181,7 +189,7 @@ class OrderService extends BaseService
      * Deletes an item from the basket.
      *
      * @param int $itemId The ID of the item to be deleted.
-     * @throws \Exception If an error occurs during the deletion process.
+     * @throws Exception If an error occurs during the deletion process.
      * @return array An array containing the HTTP status code and a message regarding the deletion status.
      */
     public function deleteItem(int $itemId): array
@@ -204,15 +212,20 @@ class OrderService extends BaseService
             $transaction->commit();
             if ($deletedCount === 1) {
                 return array(self::HTTP_OK, ['data' => 'Item deleted successfully']);
-            } else {
-                return array(404, ['data' => 'Item not found while deleting']);
             }
-        } catch (\Exception $e) {
+            return array(404, ['data' => 'Item not found while deleting']);
+        } catch (Exception $e) {
             $transaction->rollBack();
             return array(self::HTTP_BAD_REQUEST, ['data' => 'An error occurred', 'error' => $e->getMessage()]);
         }
     }
 
+    /**
+     * Adds the balance of a product based on the quantity.
+     * @deprecated version 1.0.0
+     * @param array $item The array representing the product and its quantity. It should have the keys 'product_id' and 'quantity'.
+     * @return void
+     */
     private function addProductBalance(array $item)
     {
         $productId = $item['product_id'];
@@ -256,7 +269,7 @@ class OrderService extends BaseService
             $obNewItem = $basket->addItem($productId, $quantity, $sizeId);
             $obNewItem->order_id = $orderId;
             if (!$obNewItem->save()) {
-                throw new \Exception("Failed to save BasketItem: " . print_r($obNewItem->errors, true));
+                throw new Exception("Failed to save BasketItem: " . print_r($obNewItem->errors, true));
             }
 
             // Get the updated basket items
@@ -270,7 +283,7 @@ class OrderService extends BaseService
             $transaction->commit();
 
             return [self::HTTP_OK, $result];
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             $transaction->rollBack();
             return [self::HTTP_BAD_REQUEST, ['data' => 'An error occurred', 'error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]];
         }

@@ -38,7 +38,8 @@ class Tinkoff
                 return htmlentities($this->response);
             default:
                 if ($this->response) {
-                    if ($json = json_decode($this->response, true)) {
+                    $json = json_decode($this->response, true);
+                    if ($json) {
                         foreach ($json as $key => $value) {
                             if (strtolower($name) == strtolower($key)) {
                                 return $json[$key];

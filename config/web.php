@@ -77,10 +77,11 @@ $config = [
                 "DELETE /$user_app/basket" => "$user_app/basket/delete",
                 ["class" => 'yii\rest\UrlRule', "controller" => "$user_app/order"],
                 "/$user_app/order" => "$user_app/order/index",
-                "/$user_app/order/waiter" => "$user_app/order/waiter",
+                "/$user_app/table/waiter" => "$user_app/table/waiter",
                 ["class" => 'yii\rest\UrlRule', "controller" => "$user_app/catalog"],
                 ["class" => 'yii\rest\UrlRule', "controller" => "$user_app/iiko"],
                 ["class" => 'yii\rest\UrlRule', "controller" => "$user_app/iiko-transport"],
+                ["class" => 'yii\rest\UrlRule', "controller" => "$user_app/payment"],
 
 
                 //приложение для официанта

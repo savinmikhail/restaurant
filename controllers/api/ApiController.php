@@ -9,7 +9,7 @@ class ApiController extends BaseController
 {
     // Отключение CSRF валидации для API запросов
     public $enableCsrfValidation = false;
-    
+
     public function beforeAction($action)
     {
         $this->checkApiAccess();//проверяю есть ли у клиента доступ к апи запросам

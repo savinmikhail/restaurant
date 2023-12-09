@@ -10,7 +10,6 @@ use yii\filters\AccessControl;
 
 class UserController extends ApiController
 {
-
     public function behaviors()
     {
         $behaviors = parent::behaviors();
@@ -36,9 +35,8 @@ class UserController extends ApiController
 
                 if (!Yii::$app->user->isGuest && $action->id !== 'login') {
                     $this->sendResponse(403, ['data' => 'Access denied']);
-                } else {
-                    $this->sendResponse(401, ['data' => 'Authorization required']);
                 }
+                $this->sendResponse(401, ['data' => 'Authorization required']);
             },
         ];
 

@@ -3,18 +3,18 @@
 namespace app\commands;
 
 use app\models\tables\Payment;
-use app\Services\api\user_app\OrderService;
+use app\Services\api\user_app\PaymentService;
 use Yii;
 use yii\db\Expression;
 
 class CheckPaymentStatusController extends \yii\console\Controller
 {
-    private OrderService $orderService;
+    private PaymentService $paymentService;
 
-    public function __construct($id, $module, OrderService $orderService, $config = [])
+    public function __construct($id, $module, PaymentService $paymentService, $config = [])
     {
         parent::__construct($id, $module, $config);
-        $this->orderService = $orderService;
+        $this->paymentService = $paymentService;
     }
 
     public function actionIndex()
@@ -25,14 +25,14 @@ class CheckPaymentStatusController extends \yii\console\Controller
 
             $payments = Payment::find()
                 ->where(['paid' => 0])
-                // ->andWhere(['>=', 'created_at', $lastHour])
+                ->andWhere(['>=', 'created_at', $lastHour])
                 ->all();
             if (!$payments) {
                 Yii::error("No payments found.", 'checkPaymentStatus');
                 return;
             }
             foreach ($payments as $payment) {
-                list($code, $data) = $this->orderService->checkPaid($payment->external_id);
+                list($code, $data) = $this->paymentService->checkPaid($payment->external_id);
                 if ($code == 200) {
                     Yii::error("Payment with ID $payment->id processed successfully.", 'checkPaymentStatus');
                 } else {

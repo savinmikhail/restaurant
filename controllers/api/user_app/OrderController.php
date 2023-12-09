@@ -64,49 +64,6 @@ class OrderController extends ApiController
     }
 
     /**
-     * @SWG\Post(
-     *     path="/api/user_app/order/pay",
-     *     tags={"UserApp\Order"},
-     *     @SWG\Parameter(
-     *         name="orderId",
-     *         in="formData",
-     *         type="array",
-     *         items=@SWG\Items(
-     *             type="integer",
-     *             description="order id"
-     *         ),
-     *     ),
-     *     @SWG\Parameter(
-     *         name="table",
-     *         in="header",
-     *         type="integer",
-     *         description="Set the table number here",
-     *         required=true
-     *     ),
-     *     @SWG\Response(
-     *         response=200,
-     *         description="Ссылка на оплату \ вызов официанта",
-     *         @SWG\Schema(ref="#/definitions/Products")
-     *     )
-     * )
-     */
-    public function actionPay()
-    {
-        $orderIds = \Yii::$app->request->post('orderId');
-
-        if (!$orderIds) {
-            $this->sendResponse(400, ['data' => "orderId parameter is missing in request"]);
-        }
-        //сделано для сваггера
-        if (is_string($orderIds)) {
-            $orderIds = explode(',', $orderIds);
-        }
-
-        list($code, $data) = $this->orderService->pay($orderIds);
-        $this->sendResponse($code, $data);
-    }
-
-    /**
      * @SWG\Get(path="/api/user_app/order/check-confirmed",
      *     tags={"UserApp\Order"},
      *     @SWG\Parameter(
@@ -127,58 +84,6 @@ class OrderController extends ApiController
     {
         $orderId = \Yii::$app->request->get('id');
         list($code, $data) = $this->orderService->checkConfirmed($orderId);
-        $this->sendResponse($code, $data);
-    }
-
-    /**
-     * @SWG\Get(path="/api/user_app/order/check-paid",
-     *     tags={"UserApp\Order"},
-     *     @SWG\Parameter(
-     *          name="tinkoff_payment_id",
-     *          in="query",
-     *          type="integer",
-     *          description="tinkoff payment id, example: 3554385638"
-     *     ),
-     *     @SWG\Response(
-     *         response = 200,
-     *         description = "Подтверждение от СБП",
-     *         @SWG\Schema(ref = "#/definitions/Products")
-     *     ),
-     * )
-     */
-
-    /**
-     * Check if the payment has been made.
-     *
-     * @return void
-     */
-    public function actionCheckPaid()
-    {
-        $tinkoffPaymentId = \Yii::$app->request->get('tinkoff_payment_id');
-        list($code, $data) = $this->orderService->checkPaid($tinkoffPaymentId);
-        $this->sendResponse($code, $data);
-    }
-
-    /**
-     * @SWG\Post(path="/api/user_app/order/sbp-pay-test",
-     *     tags={"UserApp\Order"},
-     *     @SWG\Parameter(
-     *          name="payment_id",
-     *          in="formData",
-     *          type="integer",
-     *          description="tinkoff payment id"
-     *     ),
-     *     @SWG\Response(
-     *         response = 200,
-     *         description = "оплатить по СБП",
-     *         @SWG\Schema(ref = "#/definitions/Products")
-     *     ),
-     * )
-     */
-    public function actionSbpPayTest()
-    {
-        $paymentId = \Yii::$app->request->post('payment_id');
-        list($code, $data) = $this->orderService->sbpPayTest($paymentId);
         $this->sendResponse($code, $data);
     }
 
@@ -231,31 +136,6 @@ class OrderController extends ApiController
     {
         list($code, $output) = $this->orderService->getOrderList();
         $this->sendResponse($code, $output);
-    }
-
-    /**
-     * Call a waiter
-     *
-     * @SWG\Get(path="/api/user_app/order/waiter",
-     *     tags={"UserApp\Order"},
-     *     @SWG\Parameter(
-     *         name="table",
-     *         in="header",
-     *         type="integer",
-     *         description="Set the table number here",
-     *         required=true
-     *     ),
-     *     @SWG\Response(
-     *         response = 200,
-     *         description = "success",
-     *         @SWG\Schema(ref = "#/definitions/Products")
-     *     ),
-     * )
-     */
-    public function actionWaiter()
-    {
-        list($code, $data) = $this->orderService->callWaiter();
-        $this->sendResponse($code, $data);
     }
 
     /**

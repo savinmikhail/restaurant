@@ -137,7 +137,7 @@ class IikoService extends BaseService
                         'paymentTypeKind' => $order['payment_method'],
                         'sum' => (float) $order['order_sum'],
                         //TODO: убрать //пока заглушка так ка доступна только оплата бонусами да и то она удалена
-                        'paymentTypeId' => (string) 'b1d53e5f-81c0-413e-8ad0-ea8d5cc7eb18', //$order['$paymentType']['external_id'], 
+                        'paymentTypeId' => (string) 'b1d53e5f-81c0-413e-8ad0-ea8d5cc7eb18', //$order['$paymentType']['external_id'],
                         'isProcessedExternally' => (bool) $order['payment_method'] === 'External',
                     ],
                 ],
@@ -247,6 +247,8 @@ class IikoService extends BaseService
         }
 
         $items = $outData["terminalGroupStopLists"][0]["items"][0]["items"];
+        $productIds = [];
+        $productBalances = [];
         foreach ($items as $item) {
             $productIds[] = $item["productId"];
             $productBalances[] = intval(floor($item["balance"]));

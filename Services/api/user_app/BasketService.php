@@ -9,7 +9,6 @@ use app\models\tables\Table;
 use app\Services\api\BaseService;
 use Exception;
 
-
 class BasketService extends BaseService
 {
     protected $basket = null;

@@ -70,9 +70,9 @@ class ProductController extends ApiController
         // If pagination params are not set
         if (is_null($page) || is_null($perPage)) {
             list($code, $data) = $this->productService->getListData($productNameFilter);
-        } else {
-            list($code, $data) = $this->productService->getListDataPaginated($page, $perPage, $productNameFilter);
+            $this->sendResponse($code, $data);
         }
+        list($code, $data) = $this->productService->getListDataPaginated($page, $perPage, $productNameFilter);
         $this->sendResponse($code, $data);
     }
 }

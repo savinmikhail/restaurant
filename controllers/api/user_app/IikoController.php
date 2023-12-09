@@ -111,7 +111,7 @@ class IikoController extends ApiController
         if (!is_array($menuData)) {
             $this->sendResponse(400, 'Contained menu file is empty, please, rerun the Menu Action');
         }
-       
+
         try {
             $this->importHelper->parse($menuData);
         } catch (Exception $e) {
@@ -367,33 +367,32 @@ class IikoController extends ApiController
         // Get the raw POST data
         $postData = file_get_contents('php://input');
 
-        if(empty($postData)) {
+        if (empty($postData)) {
             http_response_code(400);
             return;
         }
         $postData = json_decode($postData, true);
 
-        foreach ($postData[0]['eventInfo']['terminalGroupsStopListsUpdates'] as $product) {
-            
-        }
+        // foreach ($postData[0]['eventInfo']['terminalGroupsStopListsUpdates'] as $product) {
+        // }
 
         //пример ответа
-        $jayParsedAry = [
-            [
-                "eventType" => "StopListUpdate",
-                "eventTime" => "2019-08-24 14:15:22.123",
-                "organizationId" => "7bc05553-4b68-44e8-b7bc-37be63c6d9e9",
-                "correlationId" => "48fb4cd3-2ef6-4479-bea1-7c92721b988c",
-                "eventInfo" => [
-                    "terminalGroupsStopListsUpdates" => [
-                        [
-                            "id" => "497f6eca-6276-4993-bfeb-53cbbbba6f08",
-                            "isFull" => true
-                        ]
-                    ]
-                ]
-            ]
-        ];
+        // $jayParsedAry = [
+        //     [
+        //         "eventType" => "StopListUpdate",
+        //         "eventTime" => "2019-08-24 14:15:22.123",
+        //         "organizationId" => "7bc05553-4b68-44e8-b7bc-37be63c6d9e9",
+        //         "correlationId" => "48fb4cd3-2ef6-4479-bea1-7c92721b988c",
+        //         "eventInfo" => [
+        //             "terminalGroupsStopListsUpdates" => [
+        //                 [
+        //                     "id" => "497f6eca-6276-4993-bfeb-53cbbbba6f08",
+        //                     "isFull" => true
+        //                 ]
+        //             ]
+        //         ]
+        //     ]
+        // ];
 
 
         // Send a response

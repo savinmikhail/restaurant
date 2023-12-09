@@ -7,7 +7,7 @@ use app\models\tables\Products;
 use app\models\tables\Table;
 use Exception;
 use app\Services\api\BaseService;
-
+use CurlHandle;
 
 class IikoTransportService extends BaseService
 {
@@ -142,58 +142,63 @@ class IikoTransportService extends BaseService
      */
     private function gateWay($url, $data, $method = 'POST')
     {
-        // Initialize cURL
-        $ch = curl_init();
 
-        // Set the URL
-        curl_setopt($ch, CURLOPT_URL, $this->IIKO_TRANSPORT_IP . $url);
-
-        // Return the response instead of outputting it
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-
-        // Exclude the header from the output
-        curl_setopt($ch, CURLOPT_HEADER, false);
-
-        // Set timeout options
-        curl_setopt($ch, CURLOPT_TIMEOUT, 5); // Maximum time the request is allowed to take
-        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 5); // Maximum time to wait for connection
-
-        if ($method === 'POST') {
-            // Send a POST request
-            curl_setopt($ch, CURLOPT_POST, true);
-            curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
-        } elseif ($method === 'GET') {
-            // Send a GET request
-            curl_setopt($ch, CURLOPT_HTTPGET, true);
-            if (!empty($data)) {
-                // Append query parameters to the URL
-                curl_setopt($ch, CURLOPT_URL, $this->IIKO_TRANSPORT_IP . $url . '?' . http_build_query($data));
-            }
-        }
-
-        // Set the Content-Type header
-        $headers = ["Content-Type: application/json"];
-        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+        $curl = $this->initializeCurl($url);
+        $this->setRequestOptions($curl, $data, $method, $url);
 
         // Execute the cURL request
-        $outData = curl_exec($ch);
+        $outData = curl_exec($curl);
+        $this->checkForErrors($outData, $curl);
 
-        // Check for cURL errors
-        if ($outData === false) {
-            $error = curl_error($ch);
-            curl_close($ch);
-            throw new Exception("cURL Error: $error");
+        return $this->decodeResponse($outData);
+    }
+
+    private function initializeCurl(string $url): CurlHandle
+    {
+        // Initialize cURL
+        $curl = curl_init();
+
+        if($curl === false) {
+            throw new Exception('cURL initialization failed');
         }
 
-        // Get the HTTP status code
-        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        curl_close($ch);
+        // Set the URL
+        curl_setopt($curl, CURLOPT_URL, $this->IIKO_TRANSPORT_IP . $url);
 
-        // Throw an exception if the HTTP status code is not in the 2xx range
-        if ($httpCode < self::HTTP_OK || $httpCode >= 300) {
-            throw new Exception("HTTP Error: Status code $httpCode \n" . print_r(json_decode($outData, true), true));
+        // Return the response instead of outputting it
+        curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
+
+        // Exclude the header from the output
+        curl_setopt($curl, CURLOPT_HEADER, false);
+
+        // Set timeout options
+        curl_setopt($curl, CURLOPT_TIMEOUT, 5); // Maximum time the request is allowed to take
+        curl_setopt($curl, CURLOPT_CONNECTTIMEOUT, 5); // Maximum time to wait for connection
+
+        return $curl;
+    }
+
+    private function setRequestOptions(CurlHandle $curl, $data, string $method, string $url)
+    {
+        if ($method === 'POST') {
+            // Send a POST request
+            curl_setopt($curl, CURLOPT_POST, true);
+            curl_setopt($curl, CURLOPT_POSTFIELDS, json_encode($data));
+        } elseif ($method === 'GET') {
+            // Send a GET request
+            curl_setopt($curl, CURLOPT_HTTPGET, true);
+            if (!empty($data)) {
+                // Append query parameters to the URL
+                curl_setopt($curl, CURLOPT_URL, $this->IIKO_TRANSPORT_IP . $url . '?' . http_build_query($data));
+            }
         }
+        // Set the Content-Type header
+        $headers = ["Content-Type: application/json"];
+        curl_setopt($curl, CURLOPT_HTTPHEADER, $headers);
+    }
 
+    private function decodeResponse($outData)
+    {
         // Decode the response data
         $decodedData = json_decode($outData, true);
 
@@ -209,5 +214,24 @@ class IikoTransportService extends BaseService
 
         // Return the decoded response data
         return $decodedData;
+    }
+
+    private function checkForErrors($outData, $curl)
+    {
+        // Check for cURL errors
+        if ($outData === false) {
+            $error = curl_error($curl);
+            curl_close($curl);
+            throw new Exception("cURL Error: $error");
+        }
+
+        // Get the HTTP status code
+        $httpCode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+        curl_close($curl);
+
+        // Throw an exception if the HTTP status code is not in the 2xx range
+        if ($httpCode < self::HTTP_OK || $httpCode >= 300) {
+            throw new Exception("HTTP Error: Status code $httpCode \n" . print_r(json_decode($outData, true), true));
+        }
     }
 }
