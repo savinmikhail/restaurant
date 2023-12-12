@@ -8,6 +8,7 @@ use app\models\tables\PaymentType;
 use app\models\tables\Table;
 use app\Services\api\BaseService;
 use Exception;
+use Yii;
 
 class BasketService extends BaseService
 {
@@ -20,7 +21,11 @@ class BasketService extends BaseService
      */
     public function getDataForResponse(): array
     {
-        list($result, $total) = $this->getBasketItems();
+        try {
+            list($result, $total) = $this->getBasketItems();
+        } catch (Exception $e) {
+            return array(self::HTTP_BAD_REQUEST, $e->getMessage());
+        }
 
         $output = $this->reOrganizeResponseArray($result);
 
@@ -41,10 +46,10 @@ class BasketService extends BaseService
     protected function getBasketItems(): array
     {
         $obTable = Table::getTable();
-
-        $filter = [
-            'table_id' => $obTable->id,
-        ];
+        if (!$obTable) {
+            throw new Exception('Unable to define table');
+        }
+        $filter = ['table_id' => $obTable->id,];
         $result = $this->getBasketItemsByFilter($filter);
         $total = 0;
         if ($result && isset($result['items'][0]['basket_id'])) {
@@ -163,13 +168,16 @@ class BasketService extends BaseService
     public function addItem(int $productId, int $quantity, int $sizeId): array
     {
         try {
+            $transaction = Yii::$app->db->beginTransaction();
             $this->getBasket()->addItem($productId, $quantity, $sizeId);
+            list($result) = $this->getBasketItems();
+            BasketItemsHelper::prepareItems($result['items']);
+            $transaction->commit();
         } catch (Exception $e) {
+            $transaction->rollBack();
             return array(self::HTTP_BAD_REQUEST, $e->getMessage());
         }
 
-        list($result) = $this->getBasketItems();
-        BasketItemsHelper::prepareItems($result['items']);
 
         return $this->getDataForResponse();
     }
@@ -185,10 +193,13 @@ class BasketService extends BaseService
     public function setQuantity(int $productId, int $quantity): array
     {
         try {
+            $transaction = Yii::$app->db->beginTransaction();
             $this->getBasket()->updateItem($productId, $quantity);
             list($result) = $this->getBasketItems();
             BasketItemsHelper::prepareItems($result['items']);
+            $transaction->commit();
         } catch (Exception $e) {
+            $transaction->rollBack();
             return array(self::HTTP_BAD_REQUEST, $e->getMessage());
         }
 
@@ -205,15 +216,16 @@ class BasketService extends BaseService
     public function deleteItem(int $productId): array
     {
         try {
+            $transaction = Yii::$app->db->beginTransaction();
             $this->getBasket()->deleteItem($productId);
+            list($result) = $this->getBasketItems();
+            if (!empty($result['items'])) {
+                BasketItemsHelper::prepareItems($result['items']);
+            }
+            $transaction->commit();
         } catch (Exception $e) {
+            $transaction->rollBack();
             return array(400, $e->getMessage());
-        }
-
-        list($result) = $this->getBasketItems();
-
-        if (!empty($result['items'])) {
-            BasketItemsHelper::prepareItems($result['items']);
         }
 
         return $this->getDataForResponse();
@@ -228,8 +240,11 @@ class BasketService extends BaseService
     public function clearBasket(): array
     {
         try {
+            $transaction = Yii::$app->db->beginTransaction();
             $this->getBasket()->clear();
+            $transaction->commit();
         } catch (Exception $e) {
+            $transaction->rollBack();
             return array(self::HTTP_BAD_REQUEST, $e->getMessage());
         }
 
