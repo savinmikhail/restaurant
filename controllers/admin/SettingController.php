@@ -3,9 +3,7 @@
 namespace app\controllers\admin;
 
 use Yii;
-use app\controllers\AdminController;
 use app\models\tables\Setting;
-use app\models\tables\Table;
 
 class SettingController extends AdminController
 {

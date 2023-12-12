@@ -90,6 +90,7 @@ class Basket extends Base
             throw new \Exception("Failed to find Product with id $productId");
         }
         $arSizeIds = SizePrice::find()->select('size_id')->where(['product_id' => $productId])->column();
+
         if (!in_array($sizeId, $arSizeIds)) {
             throw new \Exception("There's no such size for this product");
         }

@@ -3,12 +3,15 @@
 namespace app\controllers\api\user_app;
 
 use app\controllers\api\ApiController;
-use app\models\tables\Basket;
-use app\models\tables\Order;
-use app\models\tables\Table;
+use app\Services\api\user_app\TableService;
 
 class TableController extends ApiController
 {
+    public function __construct($id, $module, private TableService $tableService, $config = [])
+    {
+        parent::__construct($id, $module, $config);
+    }
+
     public function behaviors()
     {
         $behaviors = parent::behaviors();
@@ -47,7 +50,7 @@ class TableController extends ApiController
     {
 
         list($code, $data) = $this->tableService->closeTable();
-        return $this->sendResponse($code, $data);
+        $this->sendResponse($code, $data);
     }
 
     /**

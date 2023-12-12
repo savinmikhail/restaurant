@@ -26,6 +26,7 @@ class BasketController extends ApiController
                 'add' => ['POST'],
                 'set' => ['PUT'],
                 'delete' => ['DELETE'],
+                'clear' => ['POST'],
             ],
         ];
 
@@ -56,34 +57,17 @@ class BasketController extends ApiController
     }
 
     /**
-     * @SWG\Get(path="/api/user_app/basket/get-payment-methods",
-     *     tags={"UserApp\Basket"},
-     *     description="Справочник способов оплаты",
-     *     @SWG\Response(
-     *         response = 200,
-     *         description = "Содержимое корзины",
-     *         @SWG\Schema(ref = "#/definitions/Products")
-     *     ),
-     * )
-     */
-    public function actionGetPaymentMethods()
-    {
-        list($code, $data) = $this->basketService->getPaymentMethods();
-        $this->sendResponse($code, $data);
-    }
-
-    /**
      * @SWG\Post(path="/api/user_app/basket",
      *     tags={"UserApp\Basket"},
      *      @SWG\Parameter(
-     *      name="productId",
-     *      in="formData",
-     *      type="integer"
+     *          name="productId",
+     *          in="formData",
+     *          type="integer"
      *      ),
      *      @SWG\Parameter(
-     *      name="sizeId",
-     *      in="formData",
-     *      type="integer"
+     *          name="sizeId",
+     *          in="formData",
+     *          type="integer"
      *      ),
      *     @SWG\Parameter(
      *         name="table",
@@ -105,7 +89,7 @@ class BasketController extends ApiController
         $sizeId = \Yii::$app->request->post('sizeId');
         $quantity = 1;
 
-        list($code, $data) = $this->basketService->addItem($productId, $sizeId, $quantity);
+        list($code, $data) = $this->basketService->addItem($productId, $quantity, $sizeId);
         $this->sendResponse($code, $data);
     }
 
