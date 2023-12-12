@@ -2,12 +2,14 @@
 
 namespace app\controllers\admin;
 
-use app\controllers\AdminController;
+use app\controllers\admin\AdminController;
+use app\models\forms\CreateUserForm;
+use app\models\forms\UpdateUserForm;
 use app\models\User;
-use app\models\UserUpdateForm;
 use Yii;
 use yii\helpers\Json;
 use yii\web\NotFoundHttpException;
+use yii\web\View;
 
 class UsersController extends AdminController
 {
@@ -15,10 +17,10 @@ class UsersController extends AdminController
     {
         $users = User::find()->all();
 
-        $view = new yii\web\View();
+        $view = new View();
         $view->title = 'Пользователи';
 
-        return $this->render('/admin/users/list', [
+        return $this->render('/admin/waiters/list', [
             'users' => $users,
         ]);
     }
@@ -28,7 +30,7 @@ class UsersController extends AdminController
         $id = intval($this->getReqParam('id'));
         $user = User::find()->where(['user_id' => $id])->one();
         if (!$user) {
-            $this->sendResponse(404, 'The requested user does not exist.');
+            throw new NotFoundHttpException('The requested user does not exist.');
         }
 
         return $this->editObject($user);
@@ -36,14 +38,17 @@ class UsersController extends AdminController
 
     public function editObject($user)
     {
-        $form = new UserUpdateForm();
+        $form = new UpdateUserForm();
 
         if ($this->request->isPost) {
             $result = false;
             $form->load($this->request->post(), 'User');
             if ($form->validate()) {
                 $formAttributes = $form->getAttributes();
-                $user->attributes = $formAttributes;
+                $user->user_login = $formAttributes['user_login'];
+                if (!empty($formAttributes['user_password'])) {
+                    $user->user_password = md5($formAttributes['user_password']);
+                }
                 $result = $user->save();
                 if (!$result) {
                     return Json::encode($user->errors);
@@ -53,7 +58,7 @@ class UsersController extends AdminController
             }
         }
 
-        return $this->render('/admin/users/edit', [
+        return $this->render('/admin/waiters/edit', [
             'model' => $user,
             'id' => $user->user_id,
             'success' => ($this->request->isPost ? $result : (($this->getReqParam('success')) ? true : false)),
@@ -65,7 +70,7 @@ class UsersController extends AdminController
         $id = intval($this->getReqParam('id'));
         $model = User::find()->where(['user_id' => $id])->one();
         if (!$model) {
-            $this->sendResponse(404, 'The requested user does not exist.');
+            throw new NotFoundHttpException('The requested user does not exist.');
         }
         $model->delete();
 
@@ -77,14 +82,14 @@ class UsersController extends AdminController
      *     tags={"User"},
      *     summary="User registration.",
      *     @SWG\Parameter(
-     *         name="login",
+     *         name="user_login",
      *         in="formData",
      *         description="login",
      *         required=true,
      *         type="string"
      *     ),
      *     @SWG\Parameter(
-     *         name="password",
+     *         name="user_password",
      *         in="formData",
      *         description="password",
      *         required=true,
@@ -99,16 +104,25 @@ class UsersController extends AdminController
      */
     public function actionCreate()
     {
-        $userForm = new CreateUserForm();
-        $obUser = new User();
-        $obUser->load($userForm->getAttributes(), '');
-        $obUser->role = 'WAITER';
+        $result = false;
+        $userForm = new CreateUserForm;
 
-        if (!$obUser->save()) {
-            $this->sendResponse(400, "Failed to create user " . print_r($obUser->errors, true));
+        if ($this->request->isPost) {
+            $obUser = new User();
+            $obUser->load($this->request->post(), 'CreateUserForm');
+            $obUser->setPassword($this->request->post('CreateUserForm')['user_password']);
+            $obUser->user_password = $obUser->password;
+            $obUser->role = 'WAITER';
+            $result = $obUser->save();
+            if (!$result) {
+                return $this->asJson(['success' => false, 'data' => $obUser->errors]);
+            }
         }
-        Yii::$app->user->login($obUser, 3600 * 24 * 30);
 
-        return $this->asJson($obUser);
+        return $this->render('/admin/waiters/edit', [
+            'model' => $userForm,
+            'success' => ($this->request->isPost ? $result : (($this->getReqParam('success')) ? true : false)),
+        ]);
     }
+
 }
