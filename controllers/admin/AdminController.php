@@ -1,7 +1,8 @@
 <?php
 
-namespace app\controllers;
+namespace app\controllers\admin;
 
+use app\controllers\BaseController;
 use Yii;
 use app\models\forms\LoginForm;
 
@@ -38,7 +39,7 @@ class AdminController extends BaseController
 
         if (Yii::$app && isset(Yii::$app->user) && Yii::$app->user && Yii::$app->user->identity && Yii::$app->user->identity->getId()) {
             if (parent::isAdmin()) {
-                $teamplate = 'welcome';
+                $teamplate = '/admin/welcome';
             }
         } else {
             $post = Yii::$app->request->post();
@@ -50,12 +51,28 @@ class AdminController extends BaseController
 
                 if ($lu && $lu['user_role'] == 'ADMIN') {
                     if ($model->load($post) && $model->login()) {
-                        $teamplate = 'welcome';
+                        $teamplate = '/admin/welcome';
                     }
                 }
             }
         }
 
         return $this->render($teamplate, ['model' => $model]);
+    }
+
+    public function actionIndex()
+    {
+        $welcomeMessage = "Добро пожаловать!"; 
+        return $this->render('/admin/welcome', [
+            'welcomeMessage' => $welcomeMessage,
+        ]);
+    }
+
+    public function actionLogout()
+    {
+        Yii::$app->user->logout();
+        $model = new LoginForm();
+        return $this->render('/admin/login', ['model' => $model]);
+       
     }
 }

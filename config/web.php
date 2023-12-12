@@ -62,10 +62,9 @@ $config = [
             'showScriptName' => false,
             'rules' => [
 
-                ['class' => 'yii\rest\UrlRule', 'controller' => 'admin/category'],
-                ['class' => 'yii\rest\UrlRule', 'controller' => 'admin/product'],
-                ['class' => 'yii\rest\UrlRule', 'controller' => 'admin/table'],
-                ['class' => 'yii\rest\UrlRule', 'controller' => 'admin/orders'],
+                ['class' => 'yii\rest\UrlRule', 'controller' => 'admin/users'],
+                '/admin' => 'admin/admin/index',
+                '/admin/logout' => 'admin/admin/logout',
                 '/admin/settings' => 'admin/setting/index',
 
                 //приложение для юзера
@@ -81,6 +80,7 @@ $config = [
                 ["class" => 'yii\rest\UrlRule', "controller" => "$user_app/catalog"],
                 ["class" => 'yii\rest\UrlRule', "controller" => "$user_app/iiko"],
                 ["class" => 'yii\rest\UrlRule', "controller" => "$user_app/iiko-transport"],
+                ["class" => 'yii\rest\UrlRule', "controller" => "$user_app/iiko-config"],
                 ["class" => 'yii\rest\UrlRule', "controller" => "$user_app/payment"],
 
 
@@ -108,6 +108,9 @@ $config = [
             'app\Services\api\user_app\ProductService' => [
                 'class' => 'app\Services\api\user_app\ProductService',
             ],
+            'app\Services\api\user_app\IikoConfigService' => [
+                'class' => 'app\Services\api\user_app\IikoConfigService',
+            ],
             'app\Services\api\user_app\IikoService' => [
                 'class' => 'app\Services\api\user_app\IikoService',
             ],
@@ -123,6 +126,9 @@ $config = [
             'app\Services\api\user_app\BasketService' => [
                 'class' => 'app\Services\api\user_app\BasketService',
             ],
+            'app\Services\api\user_app\TableService' => [
+                'class' => 'app\Services\api\user_app\TableService',
+            ],
             'app\Services\api\user_app\import_helpers\GroupHelper' => [
                 'class' => 'app\Services\api\user_app\import_helpers\GroupHelper',
             ],
@@ -135,7 +141,7 @@ $config = [
             'app\Services\api\user_app\import_helpers\ProductHelper' => [
                 'class' => 'app\Services\api\user_app\import_helpers\ProductHelper',
             ],
-            
+
             //waiter_app here
             'app\Services\api\waiter_app\OrderService' => [
                 'class' => 'app\Services\api\waiter_app\OrderService',
