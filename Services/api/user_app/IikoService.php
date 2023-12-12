@@ -6,24 +6,9 @@ use app\models\tables\Order;
 use app\models\tables\Products;
 use app\models\tables\Table;
 use Exception;
-use Yii;
-use app\Services\api\BaseService;
 
-class IikoService extends BaseService
+class IikoService extends IikoConfigService
 {
-    private string $IIKO_API_KEY;
-    private string $IIKO_ORG_ID;
-    private string $IIKO_TERMINAL_GROUP_ID;
-    private string $IIKO_BASE_URL;
-
-    public function __construct()
-    {
-        $this->IIKO_API_KEY = $_ENV['IIKO_API_KEY'];
-        $this->IIKO_ORG_ID = $_ENV['IIKO_ORG_ID'];
-        $this->IIKO_TERMINAL_GROUP_ID = $_ENV['IIKO_TERMINAL_GROUP_ID'];
-        $this->IIKO_BASE_URL = $_ENV['IIKO_BASE_URL'];
-    }
-
     /**
      * Retrieves an order by its ID and table ID.
      *
@@ -145,92 +130,6 @@ class IikoService extends BaseService
         ];
 
         return $data;
-    }
-
-    /**
-     * Sends a request to the specified URL using the HTTP POST method and returns the response.
-     *
-     * @param string $url The URL to send the request to.
-     * @param array $data The data to be sent in the request body.
-     * @param string|null $token The authorization token to include in the request header. Defaults to null.
-     * @throws Exception If there is an error executing the cURL request.
-     * @return array The decoded response data from the server.
-     */
-    public function gateWay($url, $data, $token = null)
-    {
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, $this->IIKO_BASE_URL . $url);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_HEADER, false);
-        curl_setopt($ch, CURLOPT_POST, true);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
-
-        $headers = ["Content-Type: application/json"];
-        if ($token) {
-            $headers[] = "Authorization: Bearer " . $token;
-        }
-        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
-
-        $outData = curl_exec($ch);
-        if ($outData === false) {
-            $error = curl_error($ch);
-            curl_close($ch);
-            throw new Exception("cURL Error: $error");
-        }
-
-        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        curl_close($ch);
-
-        if ($httpCode < self::HTTP_OK || $httpCode >= 300) {
-            throw new Exception("HTTP Error: Status code $httpCode \n" . print_r(json_decode($outData, true), true));
-        }
-
-        $decodedData = json_decode($outData, true);
-        if ($decodedData === null && json_last_error() != JSON_ERROR_NONE) {
-            throw new Exception("JSON Decode Error: " . json_last_error_msg());
-        }
-
-        if (!$decodedData) {
-            throw new Exception("Feailed to retrieve data from Iiko");
-        }
-
-        return $decodedData;
-    }
-
-    /**
-     * Retrieves the API token.
-     *
-     * This function retrieves the API token from the session. If the token is not set or has expired,
-     * it refreshes the token by sending a request to the access_token endpoint. If the refresh is successful,
-     * it updates the token and its expiration timestamp in the session and returns the new token.
-     *
-     * @return string The API token
-     * @throws Exception If the token cannot be refreshed
-     */
-    public function getKey(): string
-    {
-        $session = Yii::$app->session;
-        $expirationTimestamp = $session->get('apiTokenExpiration');
-        $apiToken = $session->get('apiToken');
-
-        // Check if the token is not set or has expired
-        if (!$apiToken || !$expirationTimestamp || $expirationTimestamp <= time()) {
-            // Token is not set or has been expired, refresh it
-            $data = ['apiLogin' => $this->IIKO_API_KEY];
-            $url = 'access_token';
-
-            $outData = $this->gateWay($url, $data);
-            if (!$outData || !isset($outData['token'])) {
-                throw new Exception('Cannot refresh token');
-            }
-
-            // Set the new token and its expiration timestamp in the session
-            $apiToken = $outData['token'];
-            $expirationTimestamp = time() + 60 * 60; // standart life time of token is 1 hour due to documentation
-            $session->set('apiToken', $apiToken);
-            $session->set('apiTokenExpiration', $expirationTimestamp);
-        }
-        return $apiToken;
     }
 
     /**

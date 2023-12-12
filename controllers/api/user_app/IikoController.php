@@ -5,8 +5,8 @@ namespace app\controllers\api\user_app;
 use app\controllers\api\ApiController;
 use app\Services\api\user_app\IikoService;
 use app\Services\api\user_app\MenuParser;
-use app\Services\api\user_app\PaymentTypeHelper;
-use app\Services\api\user_app\TableHelper;
+use app\Services\api\user_app\import_helpers\PaymentTypeHelper;
+use app\Services\api\user_app\import_helpers\TableHelper;
 use Exception;
 use Yii;
 
@@ -38,30 +38,6 @@ class IikoController extends ApiController
         ];
 
         return $behaviors;
-    }
-
-
-    /**
-     * @SWG\Get(path="/api/user_app/iiko/id",
-     *     tags={"UserApp\Iiko"},
-     *     @SWG\Response(
-     *         response = 200,
-     *         description = "get organization id from iiko",
-     *     ),
-     * )
-     */
-    public function actionId()
-    {
-        $token = $this->iikoService->getKey();
-
-        $url = 'organizations';
-        $data = '{}';
-        $outData = $this->iikoService->gateWay($url, $data, $token);
-
-        if ($outData) {
-            $this->sendResponse(200, $outData['organizations'][0]['id']);
-        }
-        $this->sendResponse(400, []);
     }
 
     /**
@@ -170,31 +146,6 @@ class IikoController extends ApiController
     }
 
     /**
-     * @SWG\Get(path="/api/user_app/iiko/terminal",
-     *     tags={"UserApp\Iiko"},
-     *     @SWG\Response(
-     *         response = 200,
-     *         description = "get the terminal info from the iiko",
-     *     ),
-     * )
-     */
-    //получаю айди терминала
-    public function actionTerminal()
-    {
-        $token = $this->iikoService->getKey();
-
-        $url = 'terminal_groups';
-        $data = ['organizationIds' => [$this->IIKO_ORG_ID]];
-
-        $outData = $this->iikoService->gateWay($url, $data, $token);
-
-        if (!$outData) {
-            $this->sendResponse(400, 'Token has been expired');
-        }
-        $this->sendResponse(200, $outData);
-    }
-
-    /**
      * @SWG\Post(path="/api/user_app/iiko/order",
      *     tags={"UserApp\Iiko"},
      *      @SWG\Parameter(
@@ -263,7 +214,7 @@ class IikoController extends ApiController
      *      ),
      *     @SWG\Response(
      *         response = 200,
-     *         description = "ПРоверить, кончился ли товар",
+     *         description = "Проверить, кончился ли товар",
      *         @SWG\Schema(ref = "#/definitions/Products")
      *     ),
      * )
@@ -300,99 +251,4 @@ class IikoController extends ApiController
         $this->sendResponse(200, $outData);
     }
 
-    /**
-     * @SWG\Get(path="/api/user_app/iiko/get-webhook",
-     *     tags={"UserApp\Iiko"},
-     *     @SWG\Response(
-     *         response = 200,
-     *         description = "get the webhook settings from the iiko",
-     *     ),
-     * )
-     */
-    public function actionGetWebhook()
-    {
-        $token = $this->iikoService->getKey();
-
-        $url = 'webhooks/settings';
-        $data = ['organizationId' => $this->IIKO_ORG_ID];
-
-        $outData = $this->iikoService->gateWay($url, $data, $token);
-
-        if (!$outData) {
-            $this->sendResponse(400, 'Token has been expired');
-        }
-        $this->sendResponse(200, $outData);
-    }
-
-    /**
-     * @SWG\Get(path="/api/user_app/iiko/set-webhook",
-     *     tags={"UserApp\Iiko"},
-     *     @SWG\Response(
-     *         response = 200,
-     *         description = "set the webhook settings for the iiko",
-     *     ),
-     * )
-     */
-    public function actionSetWebhook()
-    {
-        $token = $this->iikoService->getKey();
-        $url = 'webhooks/update_settings';
-        $data = [
-            'organizationId' => $this->IIKO_ORG_ID,
-            'webHooksUri' => 'http://' . $_SERVER['HTTP_HOST'] . '/api/user_app/iiko/webhook',
-            'authToken' => md5($_ENV['API_PASSWORD']),
-            'webHooksFilter' => [
-                'stopListUpdateFilter' => [
-                    'updates' => true
-                ]
-            ]
-        ];
-        $outData = $this->iikoService->gateWay($url, $data, $token);
-
-        if (!$outData) {
-            $this->sendResponse(400, 'Token has been expired');
-        }
-        $this->sendResponse(200, $outData);
-    }
-
-    /**
-     * @deprecated version 1.0.0
-     * получить инфу, полностью ли обновлен стоплист
-     */
-    public function actionWebhook()
-    {
-        // Get the raw POST data
-        $postData = file_get_contents('php://input');
-
-        if (empty($postData)) {
-            http_response_code(400);
-            return;
-        }
-        $postData = json_decode($postData, true);
-
-        // foreach ($postData[0]['eventInfo']['terminalGroupsStopListsUpdates'] as $product) {
-        // }
-
-        //пример ответа
-        // $jayParsedAry = [
-        //     [
-        //         "eventType" => "StopListUpdate",
-        //         "eventTime" => "2019-08-24 14:15:22.123",
-        //         "organizationId" => "7bc05553-4b68-44e8-b7bc-37be63c6d9e9",
-        //         "correlationId" => "48fb4cd3-2ef6-4479-bea1-7c92721b988c",
-        //         "eventInfo" => [
-        //             "terminalGroupsStopListsUpdates" => [
-        //                 [
-        //                     "id" => "497f6eca-6276-4993-bfeb-53cbbbba6f08",
-        //                     "isFull" => true
-        //                 ]
-        //             ]
-        //         ]
-        //     ]
-        // ];
-
-
-        // Send a response
-        http_response_code(200);
-    }
 }
