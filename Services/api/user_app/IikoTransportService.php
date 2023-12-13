@@ -33,7 +33,7 @@ class IikoTransportService extends BaseService
                 throw new Exception('Order not found');
             }
             $orderGuid = $order->external_id;
-            $response =  $this->gateWay('markOrderAsPaid', ['orderId' => $orderGuid, 'paid' => true]);
+            $response =  $this->gateWay('markOrderAsPaid', ['orderId' => $orderGuid, 'cost' => $order->order_sum]);
         } catch (Exception $e) {
             return [self::HTTP_BAD_REQUEST, $e->getMessage()];
         }
@@ -52,7 +52,7 @@ class IikoTransportService extends BaseService
             if (!$table) {
                 throw new Exception('Table not found');
             }
-            $response =  $this->gateWay('callWaiter', ['tableNumber' => $table->table_number], 'GET');
+            $response =  $this->gateWay('callWaiter', ['message' => "Вас вызывает стол №$table->table_number"], 'GET');
         } catch (Exception $e) {
             return [self::HTTP_BAD_REQUEST, $e->getMessage()];
         }
