@@ -89,6 +89,7 @@ class BasketControllerCest
     }
 
     //закоментировано, так как не могу нормально отправить delete запрос, параметр воспринимается бэком как нулл
+    
     // public function testDeleteAction(ApiTester $I)
     // {
     //     $authHeader = 'Basic ' . base64_encode("admin:" . $_ENV['API_PASSWORD']);

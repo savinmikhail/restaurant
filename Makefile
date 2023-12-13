@@ -14,7 +14,7 @@ restart:
 
 .PHONY: test
 test:
-	./vendor/bin/codecept run Api
+	./vendor/bin/codecept run
 
 .PHONY: validate
 validate:
