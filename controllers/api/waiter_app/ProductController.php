@@ -9,11 +9,8 @@ use yii\filters\VerbFilter;
 
 class ProductController extends ApiController
 {
-    private $productService;
-
-    public function __construct($id, $module, ProductService $productService, $config = [])
+    public function __construct($id, $module,private ProductService $productService, $config = [])
     {
-        $this->productService = $productService;
         parent::__construct($id, $module, $config);
     }
 

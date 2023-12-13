@@ -8,12 +8,9 @@ use Yii;
 
 class IikoTransportController extends ApiController
 {
-    private IikoTransportService $iikoTransportService;
-
-    public function __construct($id, $module, IikoTransportService $iikoTransportService, $config = [])
+    public function __construct($id, $module, private IikoTransportService $iikoTransportService, $config = [])
     {
         parent::__construct($id, $module, $config);
-        $this->iikoTransportService = $iikoTransportService;
     }
 
     /**

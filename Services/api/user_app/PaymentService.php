@@ -12,13 +12,8 @@ use app\Services\api\user_app\Payment as User_appPayment;
 
 class PaymentService extends BaseService
 {
-    private User_appPayment $paymentService;
-    private IikoTransportService $iikoTransportService;
-
-    public function __construct(User_appPayment $paymentService, IikoTransportService $iikoTransportService)
+    public function __construct(private User_appPayment $paymentService, private IikoTransportService $iikoTransportService)
     {
-        $this->paymentService = $paymentService;
-        $this->iikoTransportService = $iikoTransportService;
     }
     /**
      * Executes a payment for the given order IDs.

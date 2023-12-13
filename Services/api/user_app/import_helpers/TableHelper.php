@@ -35,7 +35,7 @@ class TableHelper extends BaseHelper implements ImportHelperInterface
         ];
         $obTable->attributes = $arPropValues;
         if (!$obTable->save()) {
-            self::handleError('Table', $obTable);
+            $this->handleError('Table', $obTable);
         }
     }
 }

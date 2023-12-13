@@ -7,12 +7,9 @@ use app\Services\api\user_app\BasketService;
 
 class BasketController extends ApiController
 {
-    private BasketService $basketService;
-
-    public function __construct($id, $module, BasketService $basketService, $config = [])
+    public function __construct($id, $module, private BasketService $basketService, $config = [])
     {
         parent::__construct($id, $module, $config);
-        $this->basketService = $basketService;
     }
 
     public function behaviors()

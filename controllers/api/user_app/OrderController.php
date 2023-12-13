@@ -7,11 +7,8 @@ use app\Services\api\user_app\OrderService;
 
 class OrderController extends ApiController
 {
-    private OrderService $orderService;
-
-    public function __construct($id, $module, OrderService $orderService, $config = [])
+    public function __construct($id, $module, private OrderService $orderService, $config = [])
     {
-        $this->orderService = $orderService;
         parent::__construct($id, $module, $config);
     }
 

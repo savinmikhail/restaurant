@@ -10,11 +10,6 @@ use Yii;
 
 class BaseController extends Controller
 {
-    public function __construct($id, $module, $config = [])
-    {
-        parent::__construct($id, $module, $config);
-    }
-
     public function beforeAction($action)
     {
         $user = ACLConst::getAuth();

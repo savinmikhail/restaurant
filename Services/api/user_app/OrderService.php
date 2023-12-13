@@ -14,11 +14,8 @@ use app\Services\api\BaseService;
 
 class OrderService extends BaseService
 {
-    private IikoTransportService $iikoTransportService;
-
-    public function __construct(IikoTransportService $iikoTransportService)
+    public function __construct(private IikoTransportService $iikoTransportService)
     {
-        $this->iikoTransportService = $iikoTransportService;
     }
 
     /**

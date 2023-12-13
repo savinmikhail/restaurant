@@ -7,11 +7,8 @@ use app\Services\api\user_app\PaymentService;
 
 class PaymentController extends ApiController
 {
-    private PaymentService $paymentService;
-
-    public function __construct($id, $module, PaymentService $paymentService, $config = [])
+    public function __construct($id, $module, private PaymentService $paymentService, $config = [])
     {
-        $this->paymentService = $paymentService;
         parent::__construct($id, $module, $config);
     }
 

@@ -7,7 +7,6 @@ use app\Services\api\user_app\IikoConfigService;
 
 class IikoConfigController extends ApiController
 {
-
     public function __construct($id, $module, private IikoConfigService $iikoConfigService, $config = [])
     {
         parent::__construct($id, $module, $config);

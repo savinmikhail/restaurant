@@ -9,11 +9,8 @@ use app\Services\api\BaseService;
 
 class TableService extends BaseService
 {
-    private IikoTransportService $iikoTransportService;
-
-    public function __construct(IikoTransportService $iikoTransportService)
+    public function __construct(private IikoTransportService $iikoTransportService)
     {
-        $this->iikoTransportService = $iikoTransportService;
     }
     /**
      * Call the waiter and return the response.
