@@ -56,7 +56,7 @@ class Payment
         $initArgs = [
             'OrderId' => $payment->id,
             'Amount' => $payment->sum . '.00',
-            'IP' => $_SERVER['REMOTE_ADDR'],
+            'IP' => $_SERVER['REMOTE_ADDR'] ?? '127.0.0.1',
         ];
 
         try {

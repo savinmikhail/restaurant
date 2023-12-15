@@ -4,23 +4,26 @@
 namespace Api\waiter_app;
 
 use \ApiTester;
+use Codeception\Attribute\Examples;
+use Codeception\Example;
+use Codeception\Util\HttpCode;
 
 class ProductControllerCest
 {
-
-    public function testIndexActionWithProductNameFilter(ApiTester $I)
+    private string $authHeader;
+    public function _before(ApiTester $I)
     {
-        $authHeader = 'Basic ' . base64_encode("admin:" . $_ENV['API_PASSWORD']);
-        $I->haveHttpHeader('Authorization', $authHeader);
-        $I->sendGET('waiter_app/products', ['productName' => 'yourProductNameFilter']);
-        $I->seeResponseCodeIs(200);
+        $this->authHeader = 'Basic ' . base64_encode("admin:" . $_ENV['API_PASSWORD']);
+        $I->haveHttpHeader('Authorization', $this->authHeader);
     }
 
-    public function testIndexActionWithPaginationParams(ApiTester $I)
+    #[Examples(
+        ['productName' => '', 'page' => 1, 'perPage' => 10, 'responseCode' => HttpCode::OK],
+        ['productName' => 'nonExistingProductName', 'page' => null, 'perPage' => null, 'responseCode' => HttpCode::OK],
+    )]
+    public function testIndexAction(ApiTester $I, Example $example)
     {
-        $authHeader = 'Basic ' . base64_encode("admin:" . $_ENV['API_PASSWORD']);
-        $I->haveHttpHeader('Authorization', $authHeader);
-        $I->sendGET('waiter_app/products', ['page' => '1', 'perPage' => '10']);
-        $I->seeResponseCodeIs(200);
+        $I->sendGET('waiter_app/products', ['page' => $example['page'], 'perPage' => $example['perPage'], 'productName' => $example['productName'],]);
+        $I->seeResponseCodeIs($example['responseCode']);
     }
 }

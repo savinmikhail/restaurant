@@ -4,6 +4,7 @@ namespace app\controllers\api\waiter_app;
 
 use app\controllers\api\ApiController;
 use app\Services\api\waiter_app\OrderService;
+use Yii;
 
 class OrderController extends ApiController
 {
@@ -59,8 +60,8 @@ class OrderController extends ApiController
 
     public function actionList()
     {
-        $page = \Yii::$app->request->get('page', 1);
-        $perPage = \Yii::$app->request->get('perPage', 10);
+        $page = Yii::$app->request->get('page', 1);
+        $perPage = Yii::$app->request->get('perPage', 10);
 
         list($code, $output) = $this->orderService->getListData($page, $perPage);
         $this->sendResponse($code, $output);
@@ -84,7 +85,7 @@ class OrderController extends ApiController
      */
     public function actionIndex()
     {
-        $request = \Yii::$app->request;
+        $request = Yii::$app->request;
         $orderId = $request->get('orderId');
 
         list($code, $data) = $this->orderService->getIndexData($orderId);
@@ -114,7 +115,7 @@ class OrderController extends ApiController
      */
     public function actionEdit()
     {
-        $request = \Yii::$app->request;
+        $request = Yii::$app->request;
         $itemId = $request->post('item_id');
         $quantity = $request->post('quantity');
 
@@ -139,7 +140,7 @@ class OrderController extends ApiController
      */
     public function actionDeleteItem()
     {
-        $itemId = (int) \Yii::$app->request->get('item_id');
+        $itemId = (int) Yii::$app->request->get('item_id');
 
         list($code, $data) = $this->orderService->deleteItem($itemId);
         $this->sendResponse($code, $data);
@@ -172,7 +173,7 @@ class OrderController extends ApiController
      */
     public function actionAddItem()
     {
-        $request = \Yii::$app->request->post();
+        $request = Yii::$app->request->post();
         $productId = $request['product_id'] ?? null;
         $sizeId = $request['size_id'] ?? null;
         $orderId = $request['order_id'] ?? null;

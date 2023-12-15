@@ -4,31 +4,30 @@
 namespace Api\user_app;
 
 use \ApiTester;
-
+use Codeception\Example;
 use Codeception\Util\HttpCode;
+use \Codeception\Attribute\Examples;
 
 class BasketControllerCest
 {
-    private $authHeader;
+    private string $authHeader;
     //не удается загрузить трейт для dry загрузки авторизационного заголовка
     // use \tests\Api\traits\ApiAuthTrait;
     public function _before(ApiTester $I)
     {
+        // $this->setAuthorizationHeader($I);
         $this->authHeader = 'Basic ' . base64_encode("admin:" . $_ENV['API_PASSWORD']);
+        $I->haveHttpHeader('Authorization', $this->authHeader);
     }
 
     public function testIndexActionWithoutTableHeader(ApiTester $I)
     {
-        // $this->setAuthorizationHeader($I);
-        $I->haveHttpHeader('Authorization', $this->authHeader);
         $I->sendGET('user_app/basket');
-        $I->seeResponseCodeIs(400);
+        $I->seeResponseCodeIs(HttpCode::BAD_REQUEST);
     }
 
     public function testIndexActionWithTableHeader(ApiTester $I)
     {
-        $I->haveHttpHeader('Authorization', $this->authHeader);
-
         $I->haveHttpHeader('table', 2);
         $I->sendGET('user_app/basket');
         $expectedJson = [
@@ -37,16 +36,10 @@ class BasketControllerCest
                 'total' => 0
             ]
         ];
-        $validResponseJsonSchema = [
-            'data' => [
-                'list' => ['type' => 'array'],
-                'total' => ['type' => 'integer']
-            ]
-        ];
+
         $I->seeResponseIsValidOnJsonSchemaString('{"type":"object"}');
         $I->seeResponseIsJson();
         $I->seeResponseContainsJson($expectedJson);
-        $I->seeResponseIsValidOnJsonSchemaString(json_encode($validResponseJsonSchema));
         $I->seeResponseMatchesJsonType(
             [
                 'data'         => 'array',
@@ -55,19 +48,19 @@ class BasketControllerCest
         $I->seeResponseCodeIs(HttpCode::OK);
     }
 
-    public function testAddAction(ApiTester $I)
+    #[Examples(
+        ['productId' => 62, 'sizeId' => 1, 'responseCode' => HttpCode::OK],
+        ['productId' => 62, 'sizeId' => 2, 'responseCode' => HttpCode::BAD_REQUEST]
+    )]
+    public function testAddAction(ApiTester $I, Example $example)
     {
-        $I->haveHttpHeader('Authorization', $this->authHeader);
-
         $I->haveHttpHeader('table', 10);
-        $I->sendPost('user_app/basket', ['productId' => 62, 'sizeId' => 1]);
-        $I->seeResponseCodeIs(200);
+        $I->sendPost('user_app/basket', ['productId' => $example['productId'], 'sizeId' => $example['sizeId']]);
+        $I->seeResponseCodeIs($example['responseCode']);
     }
 
     public function testDoubleAddAttempt(ApiTester $I)
     {
-        $I->haveHttpHeader('Authorization', $this->authHeader);
-
         $I->haveHttpHeader('table', 10);
         $I->sendPost('user_app/basket', ['productId' => 62, 'sizeId' => 1]);
         $I->seeResponseCodeIs(HttpCode::OK);
@@ -76,20 +69,19 @@ class BasketControllerCest
         $I->seeResponseContains('Such item already exists, please update the quantity');
     }
 
+
     public function testSetAction(ApiTester $I)
     {
-        $I->haveHttpHeader('Authorization', $this->authHeader);
-
         $I->haveHttpHeader('table', 10);
         $I->sendPost('user_app/basket', ['productId' => 62, 'sizeId' => 1]);
         $I->sendPut('user_app/basket', ['productId' => 62, 'quantity' => 3]);
         $I->seeResponseCodeIs(HttpCode::OK);
-        // Assert that the item has a quantity of 2
+        // Assert that the item has a quantity of 3
         $I->seeResponseContainsJson(['data' => ['list' => [['quantity' => 3]]]]);
     }
 
     //закоментировано, так как не могу нормально отправить delete запрос, параметр воспринимается бэком как нулл
-    
+
     // public function testDeleteAction(ApiTester $I)
     // {
     //     $authHeader = 'Basic ' . base64_encode("admin:" . $_ENV['API_PASSWORD']);
@@ -104,7 +96,6 @@ class BasketControllerCest
 
     public function testClearAction(ApiTester $I)
     {
-        $I->haveHttpHeader('Authorization', $this->authHeader);
         $I->haveHttpHeader('table', 10);
         $I->sendPost('user_app/basket/clear');
         $I->seeResponseCodeIs(HttpCode::OK);

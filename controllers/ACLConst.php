@@ -2,6 +2,7 @@
 
 namespace app\controllers;
 
+use app\models\User;
 use Yii;
 
 class ACLConst
@@ -10,8 +11,6 @@ class ACLConst
     const ADMIN_ROLES = [
         'ADMIN' => 'Суперадмин',
     ];
-
-    const USER_ROLE = 'USER';
 
     public static function isAdmin($user = false)
     {
@@ -30,42 +29,7 @@ class ACLConst
         return false;
     }
 
-    public static function isUser($user = false)
-    {
-        if (!$user) {
-            $user = Yii::$app->user->identity;
-        }
-
-        if (!$user) {
-            return false;
-        }
-
-        if ($user->role == self::USER_ROLE) {
-            return true;
-        }
-
-        return false;
-    }
-
-    public static function getAuthId()
-    {
-        if (Yii::$app->user && Yii::$app->user->identity && Yii::$app->user->identity->getId()) {
-            return Yii::$app->user->identity->getId();
-        }
-
-        return 0;
-    }
-
-    public static function getAuthRole()
-    {
-        if (Yii::$app->user && Yii::$app->user->identity && Yii::$app->user->identity->getId()) {
-            return Yii::$app->user->identity->role;
-        }
-
-        return 0;
-    }
-
-    public static function getAuth()
+    public static function getAuth(): ?User
     {
         if (Yii::$app && Yii::$app->user && Yii::$app->user->identity && Yii::$app->user->identity->getId()) {
             return Yii::$app->user->identity;
@@ -74,12 +38,4 @@ class ACLConst
         return null;
     }
 
-    public static function isAuth()
-    {
-        if (Yii::$app->user && Yii::$app->user->identity && Yii::$app->user->identity->getId()) {
-            return true;
-        }
-
-        return false;
-    }
 }

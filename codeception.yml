@@ -12,16 +12,15 @@ modules:
     config:
         Yii2:
             configFile: 'config/test.php'
-# coverage:
-#     enabled: true
-#     remote: false
-#     #c3_url: http://localhost:8080/index-test.php/
-#     #remote: true
-#     #remote_config: '../codeception.yml'
-#     whitelist:
-#        include:
-#            - controllers/*
-#            - Services/*
+coverage:
+  enabled: true
+  remote: false
+  c3_url: 'http://172.0.0.1/index-test.php'
+  include:
+    - /controllers/*
+    - /Services/*
+#   exclude:
+#     - app/cache/*
 fixtures:
     - \tests\fixtures\BasketFixture
 

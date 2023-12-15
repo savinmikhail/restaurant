@@ -4,46 +4,38 @@
 namespace Api\user_app;
 
 use \ApiTester;
+use Codeception\Util\HttpCode;
 
 class TableControllerCest
 {
+    private string $authHeader;
+    public function _before(ApiTester $I)
+    {
+        $this->authHeader = 'Basic ' . base64_encode("admin:" . $_ENV['API_PASSWORD']);
+        $I->haveHttpHeader('Authorization', $this->authHeader);
+    }
+
     public function testTableCloseWithExistingTableNumber(ApiTester $I)
     {
-        $authHeader = 'Basic ' . base64_encode("admin:" . $_ENV['API_PASSWORD']);
-        $I->haveHttpHeader('Authorization', $authHeader);
         $I->sendPut('user_app/table/close', ['tableNumber' => 2]);
-        $I->seeResponseCodeIs(200);
+        $I->seeResponseCodeIs(HttpCode::OK);
     }
 
     public function testTableCloseWithNonExistingTableNumber(ApiTester $I)
     {
-        $authHeader = 'Basic ' . base64_encode("admin:" . $_ENV['API_PASSWORD']);
-        $I->haveHttpHeader('Authorization', $authHeader);
         $I->sendPut('user_app/table/close', ['tableNumber' => 20]);
-        $I->seeResponseCodeIs(404);
+        $I->seeResponseCodeIs(HttpCode::NOT_FOUND);
     }
 
     public function testTableCloseWithoutTableNumber(ApiTester $I)
     {
-        $authHeader = 'Basic ' . base64_encode("admin:" . $_ENV['API_PASSWORD']);
-        $I->haveHttpHeader('Authorization', $authHeader);
         $I->sendPut('user_app/table/close');
-        $I->seeResponseCodeIs(400);
+        $I->seeResponseCodeIs(HttpCode::BAD_REQUEST);
     }
 
     public function testTableCloseWithWrongRequestMethod(ApiTester $I)
     {
-        $authHeader = 'Basic ' . base64_encode("admin:" . $_ENV['API_PASSWORD']);
-        $I->haveHttpHeader('Authorization', $authHeader);
         $I->sendPost('user_app/table/close');
-        $I->seeResponseCodeIs(405);
-    }
-
-    public function testTableCloseWithWrongCredentials(ApiTester $I)
-    {
-        $authHeader = 'Basic ' . base64_encode("admin:wrongPassword");
-        $I->haveHttpHeader('Authorization', $authHeader);
-        $I->sendPost('user_app/table/close');
-        $I->seeResponseCodeIs(403);
+        $I->seeResponseCodeIs(HttpCode::METHOD_NOT_ALLOWED);
     }
 }

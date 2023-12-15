@@ -20,15 +20,15 @@ class OrderController extends ApiController
                 'actions' => [
                     'index' => ['POST'],
                     'pay' => ['POST'],
-                    'checkConfirmed' => ['GET'],
-                    'checkPaid' => ['GET'],
-                    'sbpPayTest' => ['POST'],
+                    'check-confirmed' => ['GET'],
+                    'check-paid' => ['GET'],
+                    'sbp-pay-test' => ['POST'],
                     'cancel' => ['POST'],
                     'list' => ['GET'],
                     'waiter' => ['GET'],
-                    'markOrderAsPaid' => ['POST'],
-                    'changeOrder' => ['POST'],
-                    'setOrderGuid' => ['POST'],
+                    'mark-order-as-paid' => ['POST'],
+                    'change-order' => ['POST'],
+                    'set-order-guid' => ['POST'],
                 ],
             ],
         ]);
@@ -88,7 +88,7 @@ class OrderController extends ApiController
      * @SWG\Post(path="/api/user_app/order/cancel",
      *     tags={"UserApp\Order"},
      *      @SWG\Parameter(
-     *          name="id",
+     *          name="orderGuid",
      *          in="formData",
      *          type="string",
      *          description="Ид заказа"
@@ -104,8 +104,9 @@ class OrderController extends ApiController
 
     public function actionCancel()
     {
-        $orderId = \Yii::$app->request->post('id');
-        list($code, $data) = $this->orderService->cancelOrder($orderId);
+        //сюда айко транспорт сообщит, что заказ отменен
+        $orderGuid = \Yii::$app->request->post('orderGuid');
+        list($code, $data) = $this->orderService->cancelOrder($orderGuid);
         $this->sendResponse($code, $data);
     }
 
@@ -123,7 +124,7 @@ class OrderController extends ApiController
      *     ),
      *     @SWG\Response(
      *         response = 200,
-     *         description = "Содержимое корзины",
+     *         description = "Содержимое заказа",
      *         @SWG\Schema(ref = "#/definitions/Products")
      *     ),
      * )
@@ -210,7 +211,7 @@ class OrderController extends ApiController
     /**
      * Mark order as paid
      *
-     * @SWG\Get(path="/api/user_app/order/set-order-guid",
+     * @SWG\Post(path="/api/user_app/order/set-order-guid",
      *     tags={"UserApp\Order"},
      *      @SWG\Parameter(
      *          name="orderId",
@@ -231,7 +232,7 @@ class OrderController extends ApiController
      *     ),
      * )
      */
-    public function actionsSetOrderGuid()
+    public function actionSetOrderGuid()
     {
         //сюда айко транспорт отправит гуид созданного заказа, сохраним его
         $orderId = \Yii::$app->request->post('orderId');

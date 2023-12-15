@@ -4,6 +4,7 @@ namespace app\controllers\api\user_app;
 
 use app\controllers\api\ApiController;
 use app\Services\api\user_app\PaymentService;
+use Yii;
 
 class PaymentController extends ApiController
 {
@@ -56,11 +57,12 @@ class PaymentController extends ApiController
      */
     public function actionPay()
     {
-        $orderIds = \Yii::$app->request->post('orderId');
+        $orderIds = Yii::$app->request->post('orderId');
 
         if (!$orderIds) {
             $this->sendResponse(400, ['data' => "orderId parameter is missing in request"]);
         }
+        
         //сделано для сваггера
         if (is_string($orderIds)) {
             $orderIds = explode(',', $orderIds);
@@ -92,9 +94,9 @@ class PaymentController extends ApiController
      *
      * @return void
      */
-    public function actionCheckPaid()
+    public function actionCheckPaid(): void
     {
-        $tinkoffPaymentId = \Yii::$app->request->get('tinkoff_payment_id');
+        $tinkoffPaymentId = Yii::$app->request->get('tinkoff_payment_id');
         list($code, $data) = $this->paymentService->checkPaid($tinkoffPaymentId);
         $this->sendResponse($code, $data);
     }
@@ -115,9 +117,14 @@ class PaymentController extends ApiController
      *     ),
      * )
      */
-    public function actionSbpPayTest()
+    
+    /**
+     * Execute the sbpPayTest action.
+     *
+     */
+    public function actionSbpPayTest(): void
     {
-        $paymentId = \Yii::$app->request->post('payment_id');
+        $paymentId = Yii::$app->request->post('payment_id');
         list($code, $data) = $this->paymentService->sbpPayTest($paymentId);
         $this->sendResponse($code, $data);
     }

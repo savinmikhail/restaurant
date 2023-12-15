@@ -9,6 +9,7 @@ use app\models\tables\Table;
 use app\Services\api\BaseService;
 use Exception;
 use app\Services\api\user_app\Payment as User_appPayment;
+use Yii;
 
 class PaymentService extends BaseService
 {
@@ -25,8 +26,8 @@ class PaymentService extends BaseService
     public function pay(array $orderIds): array
     {
         try {
-            $transaction = \Yii::$app->db->beginTransaction();
-            // фронт шлет несколько заказов на оплату, объединяю в один
+            $transaction = Yii::$app->db->beginTransaction();
+            // фронт шлет несколько заказов на оплату, создаю для них платеж
             $payment = $this->createPayment($orderIds);
             //проверяю условия оплаты
             $result = $this->processPaymentMethod($payment);
@@ -145,10 +146,11 @@ class PaymentService extends BaseService
             }
             $payment = $this->markPaymentAsPaid($tinkoffPaymentId);
             $this->markOrdersAsPaid($payment);
+            
+            return array(self::HTTP_OK, ['data' => 'OK']);
         } catch (Exception $e) {
             return array(self::HTTP_BAD_REQUEST, ['data' => $e->getMessage()]);
         }
-        return array(self::HTTP_OK, ['data' => 'OK']);
     }
 
     /**

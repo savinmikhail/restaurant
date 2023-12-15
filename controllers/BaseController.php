@@ -2,6 +2,7 @@
 
 namespace app\controllers;
 
+use app\common\Request;
 use yii\web\Controller;
 use app\controllers\ACLConst;
 use yii\helpers\Json;
@@ -12,25 +13,13 @@ class BaseController extends Controller
 {
     public function beforeAction($action)
     {
-        $user = ACLConst::getAuth();
-
-        if ($user && !$user->remote_ip) {
-            $user->remote_ip = $_SERVER['REMOTE_ADDR'];
-
-            if (isset($_SERVER['HTTP_X_FORWARDED_FOR'])) {
-                $user->remote_ip .= '_' . $_SERVER['HTTP_X_FORWARDED_FOR'];
-            }
-
-            $user->save();
-        }
-
         $this->enableCsrfValidation = false;
         return parent::beforeAction($action);
     }
 
     protected function getReqParam($name, $default = '')
     {
-        return \app\common\Request::getReqParam($name, $default);
+        return Request::getReqParam($name, $default);
     }
 
     public function isAdmin($user = false)

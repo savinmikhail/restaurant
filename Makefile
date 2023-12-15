@@ -18,4 +18,4 @@ test:
 
 .PHONY: validate
 validate:
-	php ./vendor/bin/grumphp run
+	php ./vendor/bin/grumphp run --tasks=$(TASK)

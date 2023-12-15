@@ -69,7 +69,7 @@ class ProductController extends ApiController
             list($code, $data) = $this->productService->getListData($productNameFilter);
             $this->sendResponse($code, $data);
         }
-        list($code, $data) = $this->productService->getListDataPaginated($page, $perPage, $productNameFilter);
+        list($code, $data) = $this->productService->getListDataPaginated((int) $page, (int) $perPage, $productNameFilter);
         $this->sendResponse($code, $data);
     }
 }

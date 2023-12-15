@@ -218,8 +218,8 @@ class OrderService extends BaseService
         }
         return [
             'data' => 'order limit is reached',
+            'orderId' => $order->id,
             'qr' => QRGen::renderQR($order->id),
-            'orderId' => $order->id
         ];
     }
 
@@ -345,21 +345,19 @@ class OrderService extends BaseService
     /**
      * Cancels an order.
      *
-     * @param int $orderId The ID of the order to be canceled.
+     * @param string $orderGuid The ID of the order to be canceled.
      * @return array An array containing the HTTP status code and the response data.
      */
-    public function cancelOrder(int $orderId): array
+    public function cancelOrder(string $orderGuid): array
     {
-        $order = Order::find()->where(['id' => $orderId])->one();
+        $order = Order::find()->where(['external_id' => $orderGuid])->one();
+        if (!$order) {
+            return array(self::HTTP_BAD_REQUEST, ['data' => 'Order does not exists in iiko ']);
+        }
         $order->canceled = 1;
-        $order->updated_at = time();
         if (!$order->save()) {
             return array(self::HTTP_BAD_REQUEST, ['data' => "Failed to save order: " . print_r($order->errors, true)]);
         }
-        if (!$order->external_id) {
-            return array(self::HTTP_BAD_REQUEST, ['data' => 'Order does not exists in iiko ']);
-        }
         return array(self::HTTP_OK, ['data' => 'OK']);
-        //TODO: send requst to iiko
     }
 }

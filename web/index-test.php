@@ -11,6 +11,12 @@ defined('YII_ENV') or define('YII_ENV', 'test');
 require __DIR__ . '/../vendor/autoload.php';
 require __DIR__ . '/../vendor/yiisoft/yii2/Yii.php';
 
+//C3 Code Coverage
+define('C3_CODECOVERAGE_ERROR_LOG_FILE', '/path/to/c3_error.log'); //Optional (if not set the default c3 output dir will be used)
+include '/../c3.php';
+
+define('MY_APP_STARTED', true);
+// App::start();
 
 
 $config = require __DIR__ . '/../config/test.php';
