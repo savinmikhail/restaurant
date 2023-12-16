@@ -12,6 +12,11 @@ bash:
 restart:
 	cd ./.docker/stage && sudo docker-compose down && sudo docker-compose build && sudo docker-compose up -d --remove-orphans
 
+
+.PHONY: ps
+ps:
+	cd ./.docker/stage && sudo docker-compose ps
+
 .PHONY: test
 test:
 	./vendor/bin/codecept run

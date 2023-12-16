@@ -10,6 +10,9 @@ use app\models\tables\ProductsProperties;
 use app\models\tables\ProductsPropertiesValues;
 use app\models\tables\Size;
 use app\models\tables\SizePrice;
+use Exception;
+use Yii;
+use yii\helpers\FileHelper;
 
 class ProductHelper extends BaseHelper implements ImportHelperInterface
 {
@@ -62,32 +65,55 @@ class ProductHelper extends BaseHelper implements ImportHelperInterface
         $this->processProductProps($arProduct, $obProduct->id);
         $this->processSizePrices($arProduct, $obProduct->id);
     }
-    private function processProductImages(array $arProduct, int $productId)
+
+    private function processProductImages(array $arProduct, int $productId): ?string
     {
-        if (isset($arProduct['imageLinks']) && !empty($arProduct['imageLinks'])) {
-            $imageLinks = $arProduct['imageLinks'];
-            $imagesLocalPaths = [];
-            foreach ($imageLinks as $link) {
-                $fileName = basename(parse_url($link, PHP_URL_PATH));
-                $imagesDir = 'web/upload/productImages/';
-                $storagePath = $imagesDir . $fileName;
-
-                $obProductImage = new ProductsImages();
-                $obProductImage->product_id = $productId;
-                $obProductImage->image = $link; // Initialize with link value
-
-                if ($this->downloadImage($link, $storagePath)) {
-                    $imagesLocalPaths[] = $storagePath;
-                    $obProductImage->image = $storagePath; // Update with local path
-                }
-
-                if (!$obProductImage->save()) {
-                    $this->handleError('Product Image', $obProductImage);
-                }
-            }
-            return !empty($imagesLocalPaths) ? $imagesLocalPaths[0] : null;
+        if (!isset($arProduct['imageLinks']) || empty($arProduct['imageLinks'])) {
+            return null;
         }
-        return null;
+
+        $imageLinks = $arProduct['imageLinks'];
+        $imagesLocalPaths = [];
+        $imagesDirAlias = '@webroot/upload/productImages/';
+        $imagesDir = Yii::getAlias($imagesDirAlias);
+
+        // Check if the directory exists
+        if (!is_dir($imagesDir)) {
+            // Attempt to create the directory
+            if (!FileHelper::createDirectory($imagesDir, 0777, true)) {
+                // Handle the case where the directory creation failed
+                throw new Exception('Unable to create directory: ' . $imagesDirAlias);
+            }
+        }
+
+        // Check if the directory is writable
+        if (!is_writable($imagesDir)) {
+            // Handle the case where the directory is not writable
+            throw new Exception('Directory is not writable: ' . $imagesDirAlias);
+        }
+
+        foreach ($imageLinks as $link) {
+            $fileName = basename(parse_url($link, PHP_URL_PATH));
+            $storagePath = $imagesDir . $fileName;
+
+            $obProductImage = new ProductsImages();
+            $obProductImage->product_id = $productId;
+            $obProductImage->image = $link; // Initialize with link value
+            $isImageDownloaded = $this->downloadImage($link, $storagePath);
+
+            if (!$isImageDownloaded) {
+                throw new Exception('Error downloading image: ' . $link);
+            }
+
+            $imagesLocalPaths[] = $storagePath;
+            $obProductImage->image = $storagePath; // Update with local path
+
+            if (!$obProductImage->save()) {
+                $this->handleError('Product Image', $obProductImage);
+            }
+        }
+
+        return !empty($imagesLocalPaths) ? $imagesLocalPaths[0] : null;
     }
 
     private function downloadImage($url, $storagePath): bool
@@ -97,6 +123,16 @@ class ProductHelper extends BaseHelper implements ImportHelperInterface
         curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
         curl_setopt($curl, CURLOPT_FOLLOWLOCATION, true);
         $data = curl_exec($curl);
+        $httpCode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+        if ($httpCode !== 200) {
+           throw new Exception('Error downloading image: ' . $url . ' code is ' . $httpCode);
+        }
+        // Check for cURL errors
+        if ($data === false) {
+            $error = curl_error($curl);
+            curl_close($curl);
+            throw new Exception("cURL Error: $error");
+        }
         curl_close($curl);
 
         return (bool) (file_put_contents($storagePath, $data));

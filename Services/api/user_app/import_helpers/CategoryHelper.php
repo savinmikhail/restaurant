@@ -8,7 +8,7 @@ class CategoryHelper extends BaseHelper  implements ImportHelperInterface
 {
     public function process(array $data)
     {
-        $this->processCategories($data['categories']);
+        $this->processCategories($data['productCategories']);
     }
 
     private function processCategories(array $arCategories)
