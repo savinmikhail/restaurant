@@ -38,8 +38,6 @@ tests/_support/_generated
 #uploaded images
 /web/upload/*
 
-/.docker
-
 .env
 
 #trash
